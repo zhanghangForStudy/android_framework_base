@@ -735,6 +735,9 @@ public class Activity extends ContextThemeWrapper
 
     // set by the thread after the constructor and before onCreate(Bundle savedInstanceState) is called.
     private Instrumentation mInstrumentation;
+    /**
+     * AMS中的ActivityRecord引用
+     */
     private IBinder mToken;
     private int mIdent;
     /*package*/ String mEmbeddedID;
@@ -4189,20 +4192,27 @@ public class Activity extends ContextThemeWrapper
      * onActivityResult() method will be called with the given requestCode.
      * Using a negative requestCode is the same as calling
      * {@link #startActivity} (the activity is not launched as a sub-activity).
-     *
+     * 运行一个在其结束时，返回结果的新activity.
+     * 当新activity退出时， 旧activity的onActivityResult()将被调用，其中此处的requestCode
+     * 将重新传递给旧activity的onActivityResult方法。
      * <p>Note that this method should only be used with Intent protocols
      * that are defined to return a result.  In other protocols (such as
      * {@link Intent#ACTION_MAIN} or {@link Intent#ACTION_VIEW}), you may
      * not get the result when you expect.  For example, if the activity you
      * are launching uses the singleTask launch mode, it will not run in your
      * task and thus you will immediately receive a cancel result.
-     *
+     * 此方法只能被要求返回结果的Intent协议使用。对于一些不能返回结果的Intent协议，例如
+     * {@link Intent#ACTION_MAIN} 或者 {@link Intent#ACTION_VIEW})，你可能不会得到
+     * 你期望的结果返回。例如，你想一个启动模式为singleTask的activity,则新activity将不会和
+     * 旧activity运行在同一个task之中，从而导致旧activity会立即收到一个取消结果。
      * <p>As a special case, if you call startActivityForResult() with a requestCode
      * >= 0 during the initial onCreate(Bundle savedInstanceState)/onResume() of your
      * activity, then your window will not be displayed until a result is
      * returned back from the started activity.  This is to avoid visible
      * flickering when redirecting to another activity.
-     *
+     * 作为一个特例，如果在旧activity最初的onCreate或者onResume方法期间，调用了一个requestCode
+     * 为正数的startActivityForResult()方法，则旧activity的窗口不会被展示，直到结果从新activity
+     * 返回。这样做是为了避免屏幕的闪速，当展示另一个activity时
      * <p>This method throws {@link android.content.ActivityNotFoundException}
      * if there was no Activity found to run the given Intent.
      *
@@ -4219,6 +4229,7 @@ public class Activity extends ContextThemeWrapper
      */
     public void startActivityForResult(@RequiresPermission Intent intent, int requestCode,
             @Nullable Bundle options) {
+        // 一般情况mParent为null
         if (mParent == null) {
             options = transferSpringboardActivityOptions(options);
             Instrumentation.ActivityResult ar =
@@ -4226,6 +4237,7 @@ public class Activity extends ContextThemeWrapper
                     this, mMainThread.getApplicationThread(), mToken, this,
                     intent, requestCode, options);
             if (ar != null) {
+                // 发送结果给旧activity，异步
                 mMainThread.sendActivityResult(
                     mToken, mEmbeddedID, requestCode, ar.getResultCode(),
                     ar.getResultData());
@@ -4236,11 +4248,15 @@ public class Activity extends ContextThemeWrapper
                 // this code during onCreate(Bundle savedInstanceState) or onResume() will keep the
                 // activity hidden during this time, to avoid flickering.
                 // This can only be done when a result is requested because
-                // that guarantees we will get information back when the
+                // that guarantees（保证） we will get information back when the
                 // activity is finished, no matter what happens to it.
+                // 如果此启动需要一个结果，我们可以避免旧activity可见，直到收到返回结果。
+                // 在oncreate或者onResume期间设置此代码，将保持activity隐藏，一次避免屏幕闪烁。
+                // 此策略只会在需要结果的时候执行，因为当新acitivity接受的时候，无论发生了什么，
+                // 系统都将保证我们会得到返回信息
                 mStartedActivity = true;
             }
-
+            // 取消即将到来的输入事件，开始activity退出过渡（动画）
             cancelInputsAndStartExitTransition(options);
             // TODO Consider clearing/flushing other event sources and events for child windows.
         } else {
@@ -4256,7 +4272,7 @@ public class Activity extends ContextThemeWrapper
 
     /**
      * Cancels pending inputs and if an Activity Transition is to be run, starts the transition.
-     *
+     * 取消即将发生的输入时间，如果一个activity过渡打算运行，启动此过度
      * @param options The ActivityOptions bundle used to start an Activity.
      */
     private void cancelInputsAndStartExitTransition(Bundle options) {
@@ -4498,14 +4514,17 @@ public class Activity extends ContextThemeWrapper
      * information, the {@link Intent#FLAG_ACTIVITY_NEW_TASK} launch flag is not
      * required; if not specified, the new activity will be added to the
      * task of the caller.
-     *
+     * 运行一个新的activity，如果新的activity退出，你不会收到任何通知。
+     * 重写了父类的方法（{@link android.content.ContextWrapper#startActivity(Intent, Bundle)}）
+     * 以此提供启动新activity的activity的信息。因为此信息，{@link Intent#FLAG_ACTIVITY_NEW_TASK}
+     * 标记不在需要；如果没有指定此标记，新的activity将被添加到调用者的task之上。
      * <p>This method throws {@link android.content.ActivityNotFoundException}
      * if there was no Activity found to run the given Intent.
      *
      * @param intent The intent to start.
      * @param options Additional options for how the Activity should be started.
      * See {@link android.content.Context#startActivity(Intent, Bundle)
-     * Context.startActivity(Intent, Bundle)} for more details.
+     * Context.startActivity(Intent, Bundle)} for more details.描述新activity如何启动的扩展可选项。
      *
      * @throws android.content.ActivityNotFoundException
      *
@@ -4517,7 +4536,7 @@ public class Activity extends ContextThemeWrapper
         if (options != null) {
             startActivityForResult(intent, -1, options);
         } else {
-            // Note we want to go through this call for compatibility with
+            // Note we want to go through this call for compatibility（通用性，兼容） with
             // applications that may have overridden the method.
             startActivityForResult(intent, -1);
         }
@@ -5044,10 +5063,13 @@ public class Activity extends ContextThemeWrapper
     }
 
     /**
-     * Override to generate the desired referrer for the content currently being shown
+     * Override to generate the desired（期望的） referrer（介绍者） for the content currently being shown
      * by the app.  The default implementation returns null, meaning the referrer will simply
      * be the android-app: of the package name of this activity.  Return a non-null Uri to
      * have that supplied as the {@link Intent#EXTRA_REFERRER} of any activities started from it.
+     * 子类重写的目的是，为当前被app显示的内容，生成一个期望的引荐者。
+     * Activity中的实现是返回null，表示介绍者只是简单的android-app。
+     *
      */
     public Uri onProvideReferrer() {
         return null;

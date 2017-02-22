@@ -1527,7 +1527,7 @@ public class Intent implements Parcelable, Cloneable {
     /**
      * This extra can be used with any Intent used to launch an activity, supplying information
      * about who is launching that activity.  This field contains a {@link android.net.Uri}
-     * object, typically an http: or https: URI of the web site that the referral came from;
+     * object, typically（通常） an http: or https: URI of the web site that the referral（介绍） came from;
      * it can also use the {@link #URI_ANDROID_APP_SCHEME android-app:} scheme to identify
      * a native application that it came from.
      *
@@ -9027,9 +9027,11 @@ public class Intent implements Parcelable, Cloneable {
      }
 
     /**
-     * Migrate any {@link #EXTRA_STREAM} in {@link #ACTION_SEND} and
-     * {@link #ACTION_SEND_MULTIPLE} to {@link ClipData}. Also inspects nested
+     * Migrate（移动，迁移） any {@link #EXTRA_STREAM} in {@link #ACTION_SEND} and
+     * {@link #ACTION_SEND_MULTIPLE} to {@link ClipData}. Also inspects（检验） nested（嵌套）
      * intents in {@link #ACTION_CHOOSER}.
+     * 将ACTION_SEND和ACTION_SEND_MULTIPLE中的所有EXTRA_STREAM
+     * 迁移到裁剪数据之中。
      *
      * @return Whether any contents were migrated.
      * @hide

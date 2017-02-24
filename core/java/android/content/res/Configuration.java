@@ -46,9 +46,11 @@ import java.util.Locale;
  * user-specified configuration options (locale list and scaling) as well
  * as device configurations (such as input modes, screen size and screen orientation).
  * <p>You can acquire this object from {@link Resources}, using {@link
- * Resources#getConfiguration}. Thus, from an activity, you can get it by chaining the request
+ * Resources#getConfiguration}. Thus, from an activity, you can get it by chaining(链接) the request
  * with {@link android.app.Activity#getResources}:</p>
  * <pre>Configuration config = getResources().getConfiguration();</pre>
+ * 此类定义了一个设备上所有的配置信息，这些配置信息能影响能被应用检索的资源。
+ * 此配置信息即包含了特定于用户的配置选项（本地列表和缩放比例），也包含了设备配置（例如输入模式，屏幕尺寸，屏幕方向）。
  */
 public final class Configuration implements Parcelable, Comparable<Configuration> {
     /** @hide */

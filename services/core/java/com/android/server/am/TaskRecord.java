@@ -146,7 +146,7 @@ final class TaskRecord {
     Intent intent;          // The original intent that started the task.
     Intent affinityIntent;  // Intent of affinity-moved activity that started this task.
     int effectiveUid;       // The current effective uid of the identity of this task.
-    ComponentName origActivity; // The non-alias activity component of the intent.
+    ComponentName origActivity; // The non-alias(非别名) activity component of the intent.
     ComponentName realActivity; // The actual activity component that started the task.
     boolean realActivitySuspended; // True if the actual activity component that started the
                                    // task is suspended.

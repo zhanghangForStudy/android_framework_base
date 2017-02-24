@@ -77,6 +77,7 @@ import static com.android.server.am.ActivityStackSupervisor.PRESERVE_WINDOWS;
 import static com.android.server.am.ActivityStackSupervisor.TAG_TASKS;
 import static com.android.server.am.EventLogTags.AM_NEW_INTENT;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityOptions;
 import android.app.AppGlobals;
@@ -122,9 +123,12 @@ import java.util.ArrayList;
 
 /**
  * Controller for interpreting how and then launching activities.
- *
+ * 接受如何启动activity，并启动activity的控制器
  * This class collects all the logic for determining how an intent and flags should be turned into
  * an activity and associated task and stack.
+ * 此类的功能：
+ * 1.搜集了所有的逻辑，这些逻辑决定如何将一个intent对象以及一些启动标志，正确的转换为一个activity(的启动)；
+ * 2.联合activity任务和activity栈
  */
 class ActivityStarter {
     private static final String TAG = TAG_WITH_CLASS_NAME ? "ActivityStarter" : TAG_AM;
@@ -228,13 +232,13 @@ class ActivityStarter {
     }
 
     final int startActivityLocked(IApplicationThread caller, Intent intent, Intent ephemeralIntent,
-            String resolvedType, ActivityInfo aInfo, ResolveInfo rInfo,
-            IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
-            IBinder resultTo, String resultWho, int requestCode, int callingPid, int callingUid,
-            String callingPackage, int realCallingPid, int realCallingUid, int startFlags,
-            ActivityOptions options, boolean ignoreTargetSecurity, boolean componentSpecified,
-            ActivityRecord[] outActivity, ActivityStackSupervisor.ActivityContainer container,
-            TaskRecord inTask) {
+                                  String resolvedType, ActivityInfo aInfo, ResolveInfo rInfo,
+                                  IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
+                                  IBinder resultTo, String resultWho, int requestCode, int callingPid, int callingUid,
+                                  String callingPackage, int realCallingPid, int realCallingUid, int startFlags,
+                                  ActivityOptions options, boolean ignoreTargetSecurity, boolean componentSpecified,
+                                  ActivityRecord[] outActivity, ActivityStackSupervisor.ActivityContainer container,
+                                  TaskRecord inTask) {
         int err = ActivityManager.START_SUCCESS;
 
         ProcessRecord callerApp = null;
@@ -489,7 +493,7 @@ class ActivityStarter {
                 || stack.mResumedActivity.info.applicationInfo.uid != callingUid)) {
             if (!mService.checkAppSwitchAllowedLocked(callingPid, callingUid,
                     realCallingPid, realCallingUid, "Activity start")) {
-                PendingActivityLaunch pal =  new PendingActivityLaunch(r,
+                PendingActivityLaunch pal = new PendingActivityLaunch(r,
                         sourceRecord, startFlags, stack, callerApp);
                 mPendingActivityLaunches.add(pal);
                 ActivityOptions.abort(options);
@@ -525,7 +529,7 @@ class ActivityStarter {
      * Builds and returns an intent to launch the ephemeral installer.
      */
     private Intent buildEphemeralInstallerIntent(Intent launchIntent, Intent origIntent,
-            String ephemeralPackage, String callingPackage, String resolvedType, int userId) {
+                                                 String ephemeralPackage, String callingPackage, String resolvedType, int userId) {
         final Intent nonEphemeralIntent = new Intent(origIntent);
         nonEphemeralIntent.setFlags(nonEphemeralIntent.getFlags() | Intent.FLAG_IGNORE_EPHEMERAL);
         // Intent that is launched if the ephemeral package couldn't be installed
@@ -533,9 +537,9 @@ class ActivityStarter {
         final IIntentSender failureIntentTarget = mService.getIntentSenderLocked(
                 ActivityManager.INTENT_SENDER_ACTIVITY, callingPackage,
                 Binder.getCallingUid(), userId, null /*token*/, null /*resultWho*/, 1,
-                new Intent[]{ nonEphemeralIntent }, new String[]{ resolvedType },
+                new Intent[]{nonEphemeralIntent}, new String[]{resolvedType},
                 PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_ONE_SHOT
-                | PendingIntent.FLAG_IMMUTABLE, null /*bOptions*/);
+                        | PendingIntent.FLAG_IMMUTABLE, null /*bOptions*/);
 
         final Intent ephemeralIntent;
         if (USE_DEFAULT_EPHEMERAL_LAUNCHER) {
@@ -553,9 +557,9 @@ class ActivityStarter {
         final IIntentSender successIntentTarget = mService.getIntentSenderLocked(
                 ActivityManager.INTENT_SENDER_ACTIVITY, callingPackage,
                 Binder.getCallingUid(), userId, null /*token*/, null /*resultWho*/, 0,
-                new Intent[]{ ephemeralIntent }, new String[]{ resolvedType },
+                new Intent[]{ephemeralIntent}, new String[]{resolvedType},
                 PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_ONE_SHOT
-                | PendingIntent.FLAG_IMMUTABLE, null /*bOptions*/);
+                        | PendingIntent.FLAG_IMMUTABLE, null /*bOptions*/);
 
         // Finally build the actual intent to launch the ephemeral installer
         int flags = launchIntent.getFlags();
@@ -690,8 +694,8 @@ class ActivityStarter {
                     activityRecord.launchedFromUid,
                     activityRecord.userId,
                     null, null, 0,
-                    new Intent[] { activityRecord.intent },
-                    new String[] { activityRecord.resolvedType },
+                    new Intent[]{activityRecord.intent},
+                    new String[]{activityRecord.resolvedType},
                     PendingIntent.FLAG_CANCEL_CURRENT |
                             PendingIntent.FLAG_ONE_SHOT |
                             PendingIntent.FLAG_IMMUTABLE,
@@ -712,25 +716,52 @@ class ActivityStarter {
                 UserHandle.CURRENT);
     }
 
+    /**
+     * 应用进程通过跨进程通信，调用的第三个方法；
+     *
+     * @param caller               旧activity所在进程的远程引用
+     * @param callingUid           调用者的uid，应用进程通过跨进程通信调用的第二个方法，传值-1
+     * @param callingPackage       旧activity对应的包名
+     * @param intent               启动activity的intent对象；也就是{@link Activity#startActivity(Intent)}中的Intent对象
+     * @param resolvedType         一般和应用开发没有关系，主要被framework用来与一些后端系统服务交互
+     * @param voiceSession         声音交互session，推测应该是和启动声音相关？，应用进程通过跨进程通信调用的第二个方法，传值null
+     * @param voiceInteractor      声音交互者，推测应该是和启动声音相关？
+     * @param resultTo             旧activity的远程引用，AMS可通过此对象找到用以记录旧Activity信息的ActivityRecord对象
+     * @param resultWho            旧activity的嵌入ID，其来源待查？{@link Activity#mEmbeddedID}
+     * @param requestCode          请求码，-1表示不需要返回结果
+     * @param startFlags           如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为0
+     * @param profilerInfo         如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
+     * @param outResult            在等待新activity启动后的返回信息,应用进程通过跨进程通信调用的第二个方法，传值null
+     * @param config               设备的配置信息（特定于用户信息及设备信息），应用进程通过跨进程通信调用的第二个方法，传值null
+     * @param bOptions             一些定义新activity如何启动的可选项；如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
+     * @param ignoreTargetSecurity 忽略目标安全？;应用进程通过跨进程通信调用的第二个方法，传值false
+     * @param userId               用户id
+     * @param iContainer           应用进程通过跨进程通信调用的第二个方法，传值null
+     * @param inTask               应用进程通过跨进程通信调用的第二个方法，传值null
+     * @return
+     */
     final int startActivityMayWait(IApplicationThread caller, int callingUid,
-            String callingPackage, Intent intent, String resolvedType,
-            IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
-            IBinder resultTo, String resultWho, int requestCode, int startFlags,
-            ProfilerInfo profilerInfo, IActivityManager.WaitResult outResult, Configuration config,
-            Bundle bOptions, boolean ignoreTargetSecurity, int userId,
-            IActivityContainer iContainer, TaskRecord inTask) {
-        // Refuse possible leaked file descriptors
+                                   String callingPackage, Intent intent, String resolvedType,
+                                   IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
+                                   IBinder resultTo, String resultWho, int requestCode, int startFlags,
+                                   ProfilerInfo profilerInfo, IActivityManager.WaitResult outResult, Configuration config,
+                                   Bundle bOptions, boolean ignoreTargetSecurity, int userId,
+                                   IActivityContainer iContainer, TaskRecord inTask) {
+        // Refuse（拒绝） possible leaked(泄露) file descriptors
         if (intent != null && intent.hasFileDescriptors()) {
             throw new IllegalArgumentException("File descriptors passed in Intent");
         }
+        // 在可能的最早点，通知日志跟踪器，我们即将开始运行新activity
         mSupervisor.mActivityMetricsLogger.notifyActivityLaunching();
         boolean componentSpecified = intent.getComponent() != null;
 
-        // Save a copy in case ephemeral needs it
+        // Save a copy in case ephemeral（短暂的） needs it
         final Intent ephemeralIntent = new Intent(intent);
         // Don't modify the client's object!
+        // 不修改客户端的对象
         intent = new Intent(intent);
 
+        /*****以下代码根据intent查询新activity的信息**********************/
         ResolveInfo rInfo = mSupervisor.resolveIntent(intent, resolvedType, userId);
         if (rInfo == null) {
             UserInfo userInfo = mSupervisor.getUserInfo(userId);
@@ -758,10 +789,11 @@ class ActivityStarter {
         }
         // Collect information about the target of the Intent.
         ActivityInfo aInfo = mSupervisor.resolveActivity(intent, rInfo, startFlags, profilerInfo);
+        /*****以上代码根据intent查询新activity的信息**********************/
 
         ActivityOptions options = ActivityOptions.fromBundle(bOptions);
         ActivityStackSupervisor.ActivityContainer container =
-                (ActivityStackSupervisor.ActivityContainer)iContainer;
+                (ActivityStackSupervisor.ActivityContainer) iContainer;
         synchronized (mService) {
             if (container != null && container.mParentActivity != null &&
                     container.mParentActivity.state != RESUMED) {
@@ -817,8 +849,8 @@ class ActivityStarter {
 
                         IIntentSender target = mService.getIntentSenderLocked(
                                 ActivityManager.INTENT_SENDER_ACTIVITY, "android",
-                                appCallingUid, userId, null, null, 0, new Intent[] { intent },
-                                new String[] { resolvedType }, PendingIntent.FLAG_CANCEL_CURRENT
+                                appCallingUid, userId, null, null, 0, new Intent[]{intent},
+                                new String[]{resolvedType}, PendingIntent.FLAG_CANCEL_CURRENT
                                         | PendingIntent.FLAG_ONE_SHOT, null);
 
                         Intent newIntent = new Intent();
@@ -921,8 +953,8 @@ class ActivityStarter {
     }
 
     final int startActivities(IApplicationThread caller, int callingUid, String callingPackage,
-            Intent[] intents, String[] resolvedTypes, IBinder resultTo,
-            Bundle bOptions, int userId) {
+                              Intent[] intents, String[] resolvedTypes, IBinder resultTo,
+                              Bundle bOptions, int userId) {
         if (intents == null) {
             throw new NullPointerException("intents is null");
         }
@@ -949,7 +981,7 @@ class ActivityStarter {
         try {
             synchronized (mService) {
                 ActivityRecord[] outActivity = new ActivityRecord[1];
-                for (int i=0; i<intents.length; i++) {
+                for (int i = 0; i < intents.length; i++) {
                     Intent intent = intents[i];
                     if (intent == null) {
                         continue;
@@ -973,7 +1005,7 @@ class ActivityStarter {
 
                     if (aInfo != null &&
                             (aInfo.applicationInfo.privateFlags
-                                    & ApplicationInfo.PRIVATE_FLAG_CANT_SAVE_STATE)  != 0) {
+                                    & ApplicationInfo.PRIVATE_FLAG_CANT_SAVE_STATE) != 0) {
                         throw new IllegalArgumentException(
                                 "FLAG_CANT_SAVE_STATE not supported here");
                     }
@@ -1003,10 +1035,10 @@ class ActivityStarter {
         // Trigger launch power hint if activity being launched is not in the current task
         final ActivityStack focusStack = mSupervisor.getFocusedStack();
         final ActivityRecord curTop = (focusStack == null)
-            ? null : focusStack.topRunningNonDelayedActivityLocked(mNotTop);
+                ? null : focusStack.topRunningNonDelayedActivityLocked(mNotTop);
         if ((forceSend || (!mPowerHintSent && curTop != null &&
                 curTop.task != null && mStartActivity != null &&
-                curTop.task != mStartActivity.task )) &&
+                curTop.task != mStartActivity.task)) &&
                 mService.mLocalPowerManager != null) {
             mService.mLocalPowerManager.powerHint(PowerManagerInternal.POWER_HINT_LAUNCH, 1);
             mPowerHintSent = true;
@@ -1022,8 +1054,8 @@ class ActivityStarter {
     }
 
     private int startActivityUnchecked(final ActivityRecord r, ActivityRecord sourceRecord,
-            IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
-            int startFlags, boolean doResume, ActivityOptions options, TaskRecord inTask) {
+                                       IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
+                                       int startFlags, boolean doResume, ActivityOptions options, TaskRecord inTask) {
 
         setInitialState(r, options, inTask, doResume, startFlags, sourceRecord, voiceSession,
                 voiceInteractor);
@@ -1250,8 +1282,8 @@ class ActivityStarter {
     }
 
     private void setInitialState(ActivityRecord r, ActivityOptions options, TaskRecord inTask,
-            boolean doResume, int startFlags, ActivityRecord sourceRecord,
-            IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor) {
+                                 boolean doResume, int startFlags, ActivityRecord sourceRecord,
+                                 IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor) {
         reset();
 
         mStartActivity = r;
@@ -1418,7 +1450,7 @@ class ActivityStarter {
             // in any task/stack, however it could launch other activities like ResolverActivity,
             // and we want those to stay in the original task.
             if ((mStartActivity.isResolverActivity() || mStartActivity.noDisplay) && mSourceRecord != null
-                    && mSourceRecord.isFreeform())  {
+                    && mSourceRecord.isFreeform()) {
                 mAddingToTask = true;
             }
         }
@@ -1495,7 +1527,7 @@ class ActivityStarter {
             if (mLaunchSingleInstance) {
                 // There can be one and only one instance of single instance activity in the
                 // history, and it is always in its own unique task, so we do a special search.
-               intentActivity = mSupervisor.findActivityLocked(mIntent, mStartActivity.info, false);
+                intentActivity = mSupervisor.findActivityLocked(mIntent, mStartActivity.info, false);
             } else if ((mLaunchFlags & FLAG_ACTIVITY_LAUNCH_ADJACENT) != 0) {
                 // For the launch adjacent case we only want to put the activity in an existing
                 // task if the activity already exists in the history.
@@ -1540,7 +1572,7 @@ class ActivityStarter {
                 // to the new activity that's started after the old ones are gone.
                 final boolean willClearTask =
                         (mLaunchFlags & (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK))
-                            == (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK);
+                                == (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK);
                 if (!willClearTask) {
                     final ActivityStack launchStack = getLaunchStack(
                             mStartActivity, mLaunchFlags, mStartActivity.task, mOptions);
@@ -1846,8 +1878,8 @@ class ActivityStarter {
         }
         final ActivityRecord prev = mTargetStack.topActivity();
         final TaskRecord task = (prev != null) ? prev.task : mTargetStack.createTaskRecord(
-                        mSupervisor.getNextTaskIdForUserLocked(mStartActivity.userId),
-                        mStartActivity.info, mIntent, null, null, true);
+                mSupervisor.getNextTaskIdForUserLocked(mStartActivity.userId),
+                mStartActivity.info, mIntent, null, null, true);
         mStartActivity.setTask(task, null);
         mWindowManager.moveTaskToTop(mStartActivity.task.taskId);
         if (DEBUG_TASKS) Slog.v(TAG_TASKS,
@@ -1855,7 +1887,7 @@ class ActivityStarter {
     }
 
     private int adjustLaunchFlagsToDocumentMode(ActivityRecord r, boolean launchSingleInstance,
-            boolean launchSingleTask, int launchFlags) {
+                                                boolean launchSingleTask, int launchFlags) {
         if ((launchFlags & Intent.FLAG_ACTIVITY_NEW_DOCUMENT) != 0 &&
                 (launchSingleInstance || launchSingleTask)) {
             // We have a conflict between the Intent and the Activity manifest, manifest wins.
@@ -1899,7 +1931,7 @@ class ActivityStarter {
     }
 
     private ActivityStack computeStackFocus(ActivityRecord r, boolean newTask, Rect bounds,
-            int launchFlags, ActivityOptions aOptions) {
+                                            int launchFlags, ActivityOptions aOptions) {
         final TaskRecord task = r.task;
         if (!(r.isApplicationActivity() || (task != null && task.isApplicationTask()))) {
             return mSupervisor.mHomeStack;
@@ -1970,7 +2002,7 @@ class ActivityStarter {
     }
 
     private ActivityStack getLaunchStack(ActivityRecord r, int launchFlags, TaskRecord task,
-            ActivityOptions aOptions) {
+                                         ActivityOptions aOptions) {
 
         // We are reusing a task, keep the stack!
         if (mReuseTask != null) {

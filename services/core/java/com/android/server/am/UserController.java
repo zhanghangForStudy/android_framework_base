@@ -1214,6 +1214,12 @@ final class UserController {
         // the value the caller will receive and someone else changing it.
         // We assume that USER_CURRENT_OR_SELF will use the current user; later
         // we will switch to the calling user if access to the current user fails.
+
+        // 注意我们可能会在一个锁范围之外访问mCurrentUserId...
+        // 不应该是一个重量级处理，如果这是一个在上下文锁范围外的调用。
+        // 本质而言，调用者接受的值，可能被其他修改，这是一种竞争。
+        // 我们假设USER_CURRENT_OR_SELF将使用最近的用户；
+        // 然后我们会切换调用用户，如果访问最近用户失败。
         int targetUserId = unsafeConvertIncomingUserLocked(userId);
 
         if (callingUid != 0 && callingUid != SYSTEM_UID) {

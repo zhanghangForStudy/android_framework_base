@@ -738,7 +738,9 @@ public interface IActivityManager extends IInterface {
         }
     }
 
-    /** Information returned after waiting for an activity start. */
+    /** Information returned after waiting for an activity start.
+     *  在等待一个activity启动后的返回信息
+     * */
     public static class WaitResult implements Parcelable {
         public int result;
         public boolean timeout;

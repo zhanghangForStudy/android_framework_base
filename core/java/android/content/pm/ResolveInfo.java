@@ -31,9 +31,12 @@ import java.util.Comparator;
 
 /**
  * Information that is returned from resolving an intent
- * against an IntentFilter. This partially corresponds to
+ * against an IntentFilter. This partially（一部分） corresponds to
  * information collected from the AndroidManifest.xml's
  * &lt;intent&gt; tags.
+ * 解析一个Intent结合（IntentFilter）所得的结果信息。
+ * 这些结果信息中的一部分来至于AndroidManifest.xml文件中的<intent></intent>标签
+ *
  */
 public class ResolveInfo implements Parcelable {
     private static final String TAG = "ResolveInfo";

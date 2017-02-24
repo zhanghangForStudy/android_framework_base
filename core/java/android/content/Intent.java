@@ -5967,7 +5967,8 @@ public class Intent implements Parcelable, Cloneable {
      * intent resolution.  This is not generally useful for application code;
      * it is used by the frameworks for communicating with back-end system
      * services.
-     *
+     * 返回一个Intent的MIME数据类型，只被intent解析所需有。
+     * 一般不会为应用开发所用。此数据类型，一般被framework用来和后端系统服务通信
      * @param resolver A ContentResolver that can be used to determine the MIME
      *                 type of the intent's data.
      *

@@ -95,6 +95,7 @@ class ActivityMetricsLogger {
     /**
      * Notifies the tracker at the earliest possible point when we are starting to launch an
      * activity.
+     * 在可能的最早点通知跟踪器，我们将开始运行一个activity
      */
     void notifyActivityLaunching() {
         mCurrentTransitionStartTime = System.currentTimeMillis();

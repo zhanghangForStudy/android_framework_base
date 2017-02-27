@@ -441,7 +441,8 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
      * <p>Comes from the
      * android.R.styleable#AndroidManifestApplication_cantSaveState
      * attribute of the &lt;application&gt; tag.
-     *
+     * 如果应用报告自己是一个高权重的应用，则会设置为true，
+     * 所以，高权重应用不能处于一个普通应用的生命周期之中。
      * {@hide}
      */
     public static final int PRIVATE_FLAG_CANT_SAVE_STATE = 1<<1;

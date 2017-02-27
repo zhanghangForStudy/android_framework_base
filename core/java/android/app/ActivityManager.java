@@ -216,6 +216,7 @@ public class ActivityManager {
     /**
      * Result for IActivityManaqer.startActivity: activity wasn't really started, but
      * a task was simply brought to the foreground.
+     * activity并未真正被启动，但是一个任务已经简单的被带到了前台
      * @hide
      */
     public static final int START_TASK_TO_FRONT = 2;

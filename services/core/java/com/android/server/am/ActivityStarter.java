@@ -149,6 +149,9 @@ class ActivityStarter {
 
     // Share state variable among methods when starting an activity.
     private ActivityRecord mStartActivity;
+    /**
+     * 重用activity
+     */
     private ActivityRecord mReusedActivity;
     private Intent mIntent;
     private int mCallingUid;
@@ -231,6 +234,37 @@ class ActivityStarter {
         mInterceptor = new ActivityStartInterceptor(mService, mSupervisor);
     }
 
+    /**
+     * 应用进程通过跨进程通信，调用的第四个方法；
+     * 此方法线程不安全
+     *
+     * @param caller               旧activity所在进程的远程引用
+     * @param callingUid           调用者的uid，应用进程通过跨进程通信调用的第二个方法，传值-1
+     * @param callingPackage       旧activity对应的包名
+     * @param intent               启动activity的intent对象；也就是{@link Activity#startActivity(Intent)}中的Intent对象
+     * @param ephemeralIntent      启动activity的intent对象的一个短暂的副本
+     * @param resolvedType         一般和应用开发没有关系，主要被framework用来与一些后端系统服务交互
+     * @param aInfo                新activity的信息
+     * @param rInfo                根据启动activity的intent对象，获取的新activity的解析信息
+     * @param voiceSession         声音交互session，推测应该是和启动声音相关？，应用进程通过跨进程通信调用的第三个方法，传值null
+     * @param voiceInteractor      声音交互者，推测应该是和启动声音相关？
+     * @param resultTo             旧activity的远程引用，AMS可通过此对象找到用以记录旧Activity信息的ActivityRecord对象
+     * @param resultWho            旧activity的嵌入ID，其来源待查？{@link Activity#mEmbeddedID}
+     * @param requestCode          请求码，-1表示不需要返回结果
+     * @param callingPid           旧activity所在的进程ID
+     * @param callingUid           旧activity所在的进程的用户ID
+     * @param callingPackage       旧activity所在的包的包名
+     * @param realCallingPid       旧activity所在的进程真正的ID
+     * @param realCallingUid       旧activity所在的进程的真正的用户ID
+     * @param startFlags           如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为0
+     * @param options              一些定义新activity如何启动的可选项；如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
+     * @param ignoreTargetSecurity 忽略目标安全？;应用进程通过跨进程通信调用的第三个方法，传值false
+     * @param componentSpecified   启动activity的intent对象是否含有新activity的组件名
+     * @param outActivity          应用进程通过跨进程通信调用的第三个方法，传值new ActivityRecord[1]
+     * @param container            应用进程通过跨进程通信调用的第三个方法，传值null
+     * @param inTask               应用进程通过跨进程通信调用的第三个方法，传值null
+     * @return
+     */
     final int startActivityLocked(IApplicationThread caller, Intent intent, Intent ephemeralIntent,
                                   String resolvedType, ActivityInfo aInfo, ResolveInfo rInfo,
                                   IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
@@ -241,6 +275,7 @@ class ActivityStarter {
                                   TaskRecord inTask) {
         int err = ActivityManager.START_SUCCESS;
 
+        // 获取旧acitivity所在的进程记录对象
         ProcessRecord callerApp = null;
         if (caller != null) {
             callerApp = mService.getRecordForAppLocked(caller);
@@ -265,8 +300,9 @@ class ActivityStarter {
                     (container.mActivityDisplay == null ? Display.DEFAULT_DISPLAY :
                             container.mActivityDisplay.mDisplayId)));
         }
-
+        // 旧acitivty在AMS中的ActivityRecord对象
         ActivityRecord sourceRecord = null;
+        // 旧acitivty在AMS中的ActivityRecord对象
         ActivityRecord resultRecord = null;
         if (resultTo != null) {
             sourceRecord = mSupervisor.isInAnyStackLocked(resultTo);
@@ -284,6 +320,7 @@ class ActivityStarter {
         if ((launchFlags & Intent.FLAG_ACTIVITY_FORWARD_RESULT) != 0 && sourceRecord != null) {
             // Transfer the result target from the source activity to the new
             // one being started, including any failures.
+            // 将旧activity的结果目标赋值给新acitivity的结果目标，包含任何失败的结果
             if (requestCode >= 0) {
                 ActivityOptions.abort(options);
                 return ActivityManager.START_FORWARD_AND_REQUEST_CONFLICT;
@@ -718,6 +755,15 @@ class ActivityStarter {
 
     /**
      * 应用进程通过跨进程通信，调用的第三个方法；
+<<<<<<< Updated upstream
+=======
+     * 此方法线程安全
+     * 主要功能如下：
+     * 1、根据Intentn结合PMS，查询新activity的ActivityInfo对象；
+     * 2、处理高权重进程的情况；根据初始启新activity的Intent对象
+     * 以及HeavyWeightSwitcherActivity，来生成一个新的Intent对象和
+     * 一个新的A-ctivity对象。
+>>>>>>> Stashed changes
      *
      * @param caller               旧activity所在进程的远程引用
      * @param callingUid           调用者的uid，应用进程通过跨进程通信调用的第二个方法，传值-1
@@ -762,6 +808,10 @@ class ActivityStarter {
         intent = new Intent(intent);
 
         /*****以下代码根据intent查询新activity的信息**********************/
+<<<<<<< Updated upstream
+=======
+        // resolveIntent最终会与PMS通信
+>>>>>>> Stashed changes
         ResolveInfo rInfo = mSupervisor.resolveIntent(intent, resolvedType, userId);
         if (rInfo == null) {
             UserInfo userInfo = mSupervisor.getUserInfo(userId);
@@ -791,6 +841,7 @@ class ActivityStarter {
         ActivityInfo aInfo = mSupervisor.resolveActivity(intent, rInfo, startFlags, profilerInfo);
         /*****以上代码根据intent查询新activity的信息**********************/
 
+        // 一般而言，以下两段赋值语句，会将null赋值给各自的局部变量
         ActivityOptions options = ActivityOptions.fromBundle(bOptions);
         ActivityStackSupervisor.ActivityContainer container =
                 (ActivityStackSupervisor.ActivityContainer) iContainer;
@@ -824,15 +875,20 @@ class ActivityStarter {
 
             final long origId = Binder.clearCallingIdentity();
 
+            /*****以下代码针对新activity对应的应用是一个高权重应用的处理**********************/
             if (aInfo != null &&
                     (aInfo.applicationInfo.privateFlags
                             & ApplicationInfo.PRIVATE_FLAG_CANT_SAVE_STATE) != 0) {
                 // This may be a heavy-weight process!  Check to see if we already
                 // have another, different heavy-weight process running.
+                // 新activity所在的进程可能是一个高权重进程！
+                // 检测我们是否已经运行了一个权重不同的进程。
                 if (aInfo.processName.equals(aInfo.applicationInfo.packageName)) {
+                    // 新activity指定运行自己的进程名与新activity所在包的包名一致
                     final ProcessRecord heavy = mService.mHeavyWeightProcess;
                     if (heavy != null && (heavy.info.uid != aInfo.applicationInfo.uid
                             || !heavy.processName.equals(aInfo.processName))) {
+                        // 如果高权重进程正在运行，且不是新activity即将运行的进程
                         int appCallingUid = callingUid;
                         if (caller != null) {
                             ProcessRecord callerApp = mService.getRecordForAppLocked(caller);
@@ -856,20 +912,25 @@ class ActivityStarter {
                         Intent newIntent = new Intent();
                         if (requestCode >= 0) {
                             // Caller is requesting a result.
+                            // 调用者正在等待结果
                             newIntent.putExtra(HeavyWeightSwitcherActivity.KEY_HAS_RESULT, true);
                         }
                         newIntent.putExtra(HeavyWeightSwitcherActivity.KEY_INTENT,
                                 new IntentSender(target));
                         if (heavy.activities.size() > 0) {
                             ActivityRecord hist = heavy.activities.get(0);
+                            // 高权重进程正在载入的包（名）
                             newIntent.putExtra(HeavyWeightSwitcherActivity.KEY_CUR_APP,
                                     hist.packageName);
+                            // 高权重进程正在载入的任务（号）
                             newIntent.putExtra(HeavyWeightSwitcherActivity.KEY_CUR_TASK,
                                     hist.task.taskId);
                         }
+                        // 高权重进程即将载入的包（名）
                         newIntent.putExtra(HeavyWeightSwitcherActivity.KEY_NEW_APP,
                                 aInfo.packageName);
                         newIntent.setFlags(intent.getFlags());
+                        // 通过HeavyWeightSwitcherActivity来启动新activity?
                         newIntent.setClassName("android",
                                 HeavyWeightSwitcherActivity.class.getName());
                         intent = newIntent;
@@ -886,6 +947,7 @@ class ActivityStarter {
                     }
                 }
             }
+            /*****以上代码针对新activity对应的应用是一个高权重应用的处理**********************/
 
             final ActivityRecord[] outRecord = new ActivityRecord[1];
             int res = startActivityLocked(caller, intent, ephemeralIntent, resolvedType,

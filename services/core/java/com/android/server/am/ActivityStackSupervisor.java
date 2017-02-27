@@ -309,7 +309,9 @@ public final class ActivityStackSupervisor implements DisplayListener {
      * Display.DEFAULT_DISPLAY. */
     ActivityStack mHomeStack;
 
-    /** The stack currently receiving input or launching the next activity. */
+    /** The stack currently receiving input or launching the next activity.
+     *  当前接收输入事件或者运行下一个activity的栈
+     * */
     ActivityStack mFocusedStack;
 
     /** If this is the same as mFocusedStack then the activity on the top of the focused stack has

@@ -763,6 +763,7 @@ public final class ActivityManagerService extends ActivityManagerNative
 
     /**
      * The currently running heavy-weight process, if any.
+     * 当前正在运行的高权重进程，如果存在
      */
     ProcessRecord mHeavyWeightProcess = null;
 

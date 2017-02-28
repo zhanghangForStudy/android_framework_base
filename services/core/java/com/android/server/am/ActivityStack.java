@@ -283,6 +283,7 @@ final class ActivityStack {
 
     /**
      * Current activity that is resumed, or null if there is none.
+     * 已经被重新的activity
      */
     ActivityRecord mResumedActivity = null;
 

@@ -66,6 +66,7 @@ public class ResolveInfo implements Parcelable {
     /**
      * The ephemeral application that corresponds to this resolution match. This will
      * only be set in specific circumstances.
+     * 代表解析匹配的短暂应用。
      * @hide
      */
     public EphemeralResolveInfo ephemeralResolveInfo;

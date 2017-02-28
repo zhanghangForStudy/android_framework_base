@@ -111,7 +111,9 @@ final class ActivityRecord {
     final IApplicationToken.Stub appToken; // window manager token
     final ActivityInfo info; // all about me
     final ApplicationInfo appInfo; // information about activity's app
+    /**启动此activity的进程的用户id*/
     final int launchedFromUid; // always the uid who started the activity.
+    /**启动此activity的包的包名*/
     final String launchedFromPackage; // always the package who started the activity.
     final int userId;          // Which user is this running for?
     final Intent intent;    // the original intent that generated us
@@ -154,9 +156,10 @@ final class ActivityRecord {
     // should never be altered directly.
     Configuration taskConfigOverride;
     CompatibilityInfo compat;// last used compatibility mode
-    ActivityRecord resultTo; // who started this entry, so will get our reply
-    final String resultWho; // additional identifier for use by resultTo.
+    ActivityRecord resultTo; // who started this entry, so will get our reply接收此Acitivity结束后的结果的activity
+    final String resultWho; // additional（额外的） identifier for use by resultTo.
     final int requestCode;  // code given by requester (resultTo)
+    /**此activity所收到的所有的结果信息*/
     ArrayList<ResultInfo> results; // pending ActivityResult objs we have received
     HashSet<WeakReference<PendingIntentRecord>> pendingResults; // all pending intents for this act
     ArrayList<ReferrerIntent> newIntents; // any pending new intents for single-top mode
@@ -914,6 +917,12 @@ final class ActivityRecord {
         results.add(r);
     }
 
+    /**
+     * 删除来自于指定activity的指定requestCode的结果
+     * @param from
+     * @param resultWho
+     * @param requestCode
+     */
     void removeResultsLocked(ActivityRecord from, String resultWho,
             int requestCode) {
         if (results != null) {

@@ -181,6 +181,7 @@ public class ActivityManager {
      * Result for IActivityManager.startActivity: an error where the
      * caller has requested both to forward a result and to receive
      * a result.
+     * 调用者即请求了转发一个结果又接收一个结果
      * @hide
      */
     public static final int START_FORWARD_AND_REQUEST_CONFLICT = -3;

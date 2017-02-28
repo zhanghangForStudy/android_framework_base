@@ -1212,12 +1212,15 @@ public final class ActivityManagerService extends ActivityManagerNative
     /**
      * The time at which we will allow normal application switches again,
      * after a call to {@link #stopAppSwitches()}.
+     *调用{@link #stopAppSwitches()}方法后，允许普通应用再次切换的时间
      */
     long mAppSwitchesAllowedTime;
 
     /**
      * This is set to true after the first switch after mAppSwitchesAllowedTime
      * is set; any switches after that will clear the time.
+     * 在{@link #mAppSwitchesAllowedTime}被设置后，如果进行了至少一次切换
+     * 则此值被设置为true
      */
     boolean mDidAppSwitch;
 

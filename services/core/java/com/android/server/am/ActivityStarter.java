@@ -142,25 +142,49 @@ class ActivityStarter {
 
     private final ActivityManagerService mService;
     private final ActivityStackSupervisor mSupervisor;
+    /**
+     * 拦截器
+     */
     private ActivityStartInterceptor mInterceptor;
     private WindowManagerService mWindowManager;
 
     final ArrayList<PendingActivityLaunch> mPendingActivityLaunches = new ArrayList<>();
 
     // Share state variable among methods when starting an activity.
+    /**
+     * 新activity
+     */
     private ActivityRecord mStartActivity;
     /**
      * 重用activity
      */
     private ActivityRecord mReusedActivity;
+    /**
+     * 启动新acitivity的intent对象
+     */
     private Intent mIntent;
+    /**
+     * 启动新activity的用户id
+     */
     private int mCallingUid;
     private ActivityOptions mOptions;
 
+    /**
+     * 新activity是否singletop
+     */
     private boolean mLaunchSingleTop;
+    /**
+     * 新activity是否SingleInstance
+     */
     private boolean mLaunchSingleInstance;
+    /**
+     * 新activity是否SingleTask
+     */
     private boolean mLaunchSingleTask;
     private boolean mLaunchTaskBehind;
+    /**
+     * 新activity的运行标志
+     */
     private int mLaunchFlags;
 
     private Rect mLaunchBounds;
@@ -168,6 +192,9 @@ class ActivityStarter {
     private ActivityRecord mNotTop;
     private boolean mDoResume;
     private int mStartFlags;
+    /**
+     * 启动新activity的activity
+     */
     private ActivityRecord mSourceRecord;
 
     private TaskRecord mInTask;
@@ -237,6 +264,12 @@ class ActivityStarter {
     /**
      * 应用进程通过跨进程通信，调用的第四个方法；
      * 此方法线程不安全
+     * 1、获取旧activity的ActivityRecord对象
+     * 2、重定向启动标志的处理；替换结果接受activity等；
+     * 3、权限检测、启动拦截等处理；
+     * 4、实例化新activity对应的activityrecord对象
+     * 5、判断当前系统是否允许切换activity(应用)
+     * 6、执行{@link #startActivityUnchecked(ActivityRecord, ActivityRecord, IVoiceInteractionSession, IVoiceInteractor, int, boolean, ActivityOptions, TaskRecord)}方法
      *
      * @param caller               旧activity所在进程的远程引用
      * @param callingUid           调用者的uid，应用进程通过跨进程通信调用的第二个方法，传值-1
@@ -260,9 +293,9 @@ class ActivityStarter {
      * @param options              一些定义新activity如何启动的可选项；如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
      * @param ignoreTargetSecurity 忽略目标安全？;应用进程通过跨进程通信调用的第三个方法，传值false
      * @param componentSpecified   启动activity的intent对象是否含有新activity的组件名
-     * @param outActivity          应用进程通过跨进程通信调用的第三个方法，传值new ActivityRecord[1]
-     * @param container            应用进程通过跨进程通信调用的第三个方法，传值null
-     * @param inTask               应用进程通过跨进程通信调用的第三个方法，传值null
+     * @param outActivity          获取新activity对应的activityrecord对象的引用，应用进程通过跨进程通信调用的第三个方法，传值new ActivityRecord[1]
+     * @param container            来自应用进程通过跨进程通信调用的第三个方法，传值null
+     * @param inTask               来自应用进程通过跨进程通信调用的第三个方法，传值null
      * @return
      */
     final int startActivityLocked(IApplicationThread caller, Intent intent, Intent ephemeralIntent,
@@ -302,7 +335,7 @@ class ActivityStarter {
         }
         // 旧acitivty在AMS中的ActivityRecord对象
         ActivityRecord sourceRecord = null;
-        // 旧acitivty在AMS中的ActivityRecord对象
+        // 旧acitivty在AMS中的ActivityRecord对象，新activity结束后，接收结果的activity
         ActivityRecord resultRecord = null;
         if (resultTo != null) {
             sourceRecord = mSupervisor.isInAnyStackLocked(resultTo);
@@ -317,14 +350,17 @@ class ActivityStarter {
 
         final int launchFlags = intent.getFlags();
 
+        /*****以下代码处理结果重定向的情况**********************/
         if ((launchFlags & Intent.FLAG_ACTIVITY_FORWARD_RESULT) != 0 && sourceRecord != null) {
             // Transfer the result target from the source activity to the new
             // one being started, including any failures.
             // 将旧activity的结果目标赋值给新acitivity的结果目标，包含任何失败的结果
             if (requestCode >= 0) {
+                // requestCode大于等于0，表示旧Activity希望得到一个结果，但是旧activity又会转发此结果，矛盾
                 ActivityOptions.abort(options);
                 return ActivityManager.START_FORWARD_AND_REQUEST_CONFLICT;
             }
+            // 替换接收结果的activity
             resultRecord = sourceRecord.resultTo;
             if (resultRecord != null && !resultRecord.isInStackLocked()) {
                 resultRecord = null;
@@ -332,10 +368,18 @@ class ActivityStarter {
             resultWho = sourceRecord.resultWho;
             requestCode = sourceRecord.requestCode;
             sourceRecord.resultTo = null;
+            // 删除已经接收到的requestCode，且来至于旧activity的结果
             if (resultRecord != null) {
                 resultRecord.removeResultsLocked(sourceRecord, resultWho, requestCode);
             }
             if (sourceRecord.launchedFromUid == callingUid) {
+                // 如果启动新activity的用户id等于启动旧activity的activity的进程对应的用户id，并且
+                // 要求将新activity的结果转寄回启动旧activity的activity.
+                // 在这种情况下，旧activity将像一张蹦床服务于两者，所以我们也想更新新activity的启动包名
+                // 为启动旧activity的activity的包名。这样做是安全的，因为我们知道这两个包来自于相同的用户(id)
+                // 旧activity也只能够支持与它自己相同的用户id。这样做的目的是为了处理这样一个场景：
+                // 当以隐式方式启动一组相似activity时，那么用户从这组相似activity中所选择的那个activity
+                // 应该被认作是由上一个activity启动的。（activity选择器（界面）是否是一个activity）
                 // The new activity is being launched from the same uid as the previous
                 // activity in the flow, and asking to forward its result back to the
                 // previous.  In this case the activity is serving as a trampoline between
@@ -343,15 +387,17 @@ class ActivityStarter {
                 // same as the previous activity.  Note that this is safe, since we know
                 // these two packages come from the same uid; the caller could just as
                 // well have supplied that same package name itself.  This specifially
-                // deals with the case of an intent picker/chooser being launched in the app
+                // deals with the case of an intent picker（选择器）/chooser being launched in the app
                 // flow to redirect to an activity picked by the user, where we want the final
                 // activity to consider it to have been launched by the previous app activity.
                 callingPackage = sourceRecord.launchedFromPackage;
             }
         }
+        /*****以上代码处理结果重定向的情况**********************/
 
         if (err == ActivityManager.START_SUCCESS && intent.getComponent() == null) {
             // We couldn't find a class that can handle the given Intent.
+            // 如果启动intent对象中并没有组件
             // That's the end of that!
             err = ActivityManager.START_INTENT_NOT_RESOLVED;
         }
@@ -362,12 +408,14 @@ class ActivityStarter {
             err = ActivityManager.START_CLASS_NOT_FOUND;
         }
 
+        /*****以下代码处理声音会话的情况**********************/
         if (err == ActivityManager.START_SUCCESS && sourceRecord != null
                 && sourceRecord.task.voiceSession != null) {
             // If this activity is being launched as part of a voice session, we need
             // to ensure that it is safe to do so.  If the upcoming activity will also
             // be part of the voice session, we can only launch it if it has explicitly
             // said it supports the VOICE category, or it is a part of the calling app.
+            // 如果新activity的启动是一个声音会话的部分，我们需要判断新activity的启动是否安全。
             if ((launchFlags & FLAG_ACTIVITY_NEW_TASK) == 0
                     && sourceRecord.info.applicationInfo.uid != aInfo.applicationInfo.uid) {
                 try {
@@ -402,11 +450,15 @@ class ActivityStarter {
                 err = ActivityManager.START_NOT_VOICE_COMPATIBLE;
             }
         }
+        /*****以上代码处理声音会话的情况**********************/
 
+        // 获取结果的activity所在的栈
         final ActivityStack resultStack = resultRecord == null ? null : resultRecord.task.stack;
 
         if (err != START_SUCCESS) {
             if (resultRecord != null) {
+                // 如果接受结果的activity是当前最顶端的activity,直接调用其对应的进程处理结果；
+                // 否则添加到ActivityRecord的调度列表之中
                 resultStack.sendActivityResultLocked(
                         -1, resultRecord, resultWho, requestCode, RESULT_CANCELED, null);
             }
@@ -414,6 +466,9 @@ class ActivityStarter {
             return err;
         }
 
+
+        /*****以下代码进行权限检测、启动拦截等操作**********************/
+        // 检测启动activity的权限
         boolean abort = !mSupervisor.checkStartAnyActivityPermission(intent, aInfo, resultWho,
                 requestCode, callingPid, callingUid, callingPackage, ignoreTargetSecurity, callerApp,
                 resultRecord, resultStack, options);
@@ -453,10 +508,14 @@ class ActivityStarter {
             ActivityOptions.abort(options);
             return START_SUCCESS;
         }
+        /*****以上代码进行权限检测、启动拦截等操作**********************/
 
+        /*****以下代码进行将权限复查窗口的启动，插入至旧activity启动新activity的过程之中**********************/
         // If permissions need a review before any of the app components can run, we
         // launch the review activity and pass a pending intent to start the activity
         // we are to launching now after the review is completed.
+        // 如果在启动任何应用组件之前需要复查权限，我们运行一个复查权限activity，并传递一个pending的
+        // intnt来启动新activity.
         if (Build.PERMISSIONS_REVIEW_REQUIRED && aInfo != null) {
             if (mService.getPackageManagerInternalLocked().isPermissionsReviewRequired(
                     aInfo.packageName, userId)) {
@@ -495,11 +554,14 @@ class ActivityStarter {
                 }
             }
         }
+        /*****以上代码进行将权限复查窗口的启动，插入至旧activity启动新activity的过程之中**********************/
 
-        // If we have an ephemeral app, abort the process of launching the resolved intent.
+        // If we have an ephemeral（短暂的） app, abort the process of launching the resolved intent.
         // Instead, launch the ephemeral installer. Once the installer is finished, it
         // starts either the intent we resolved here [on install error] or the ephemeral
         // app [on install success].
+        // 如果我们有一个短暂的app，中断允许这个被解析的intent对象的进程。
+        // 例如，运行短暂的安装器。一旦安装器结束，则要么开始我们解析的intent对象，或者开始短暂的app
         if (rInfo != null && rInfo.ephemeralResolveInfo != null) {
             intent = buildEphemeralInstallerIntent(intent, ephemeralIntent,
                     rInfo.ephemeralResolveInfo.getPackageName(), callingPackage, resolvedType,
@@ -511,6 +573,7 @@ class ActivityStarter {
             aInfo = mSupervisor.resolveActivity(intent, rInfo, startFlags, null /*profilerInfo*/);
         }
 
+        // 构建启动的activity，大部分情况下是新activity
         ActivityRecord r = new ActivityRecord(mService, callerApp, callingUid, callingPackage,
                 intent, resolvedType, aInfo, mService.mConfiguration, resultRecord, resultWho,
                 requestCode, componentSpecified, voiceSession != null, mSupervisor, container,
@@ -528,6 +591,7 @@ class ActivityStarter {
         final ActivityStack stack = mSupervisor.mFocusedStack;
         if (voiceSession == null && (stack.mResumedActivity == null
                 || stack.mResumedActivity.info.applicationInfo.uid != callingUid)) {
+            // 如果当前不允许app切换,则将本次activity的启动，缓存至即将启动列表之中
             if (!mService.checkAppSwitchAllowedLocked(callingPid, callingUid,
                     realCallingPid, realCallingUid, "Activity start")) {
                 PendingActivityLaunch pal = new PendingActivityLaunch(r,
@@ -544,6 +608,7 @@ class ActivityStarter {
             // home (switches disabled, switch to home, mDidAppSwitch now true);
             // user taps a home icon (coming from home so allowed, we hit here
             // and now allow anyone to switch again).
+            // 第二次运行切换，自从停止切换后，就像一般的允许切换即可。
             mService.mAppSwitchesAllowedTime = 0;
         } else {
             mService.mDidAppSwitch = true;
@@ -614,6 +679,16 @@ class ActivityStarter {
         return intent;
     }
 
+    /**
+     * 启动{@link #startActivityUnchecked(ActivityRecord, ActivityRecord, IVoiceInteractionSession, IVoiceInteractor, int, boolean, ActivityOptions, TaskRecord)}
+     * 方法后的一些善后处理
+     *
+     * @param r
+     * @param result
+     * @param prevFocusedStackId
+     * @param sourceRecord
+     * @param targetStack
+     */
     void postStartActivityUncheckedProcessing(
             ActivityRecord r, int result, int prevFocusedStackId, ActivityRecord sourceRecord,
             ActivityStack targetStack) {
@@ -755,15 +830,12 @@ class ActivityStarter {
 
     /**
      * 应用进程通过跨进程通信，调用的第三个方法；
-<<<<<<< Updated upstream
-=======
      * 此方法线程安全
      * 主要功能如下：
      * 1、根据Intentn结合PMS，查询新activity的ActivityInfo对象；
      * 2、处理高权重进程的情况；根据初始启新activity的Intent对象
      * 以及HeavyWeightSwitcherActivity，来生成一个新的Intent对象和
      * 一个新的A-ctivity对象。
->>>>>>> Stashed changes
      *
      * @param caller               旧activity所在进程的远程引用
      * @param callingUid           调用者的uid，应用进程通过跨进程通信调用的第二个方法，传值-1
@@ -808,10 +880,7 @@ class ActivityStarter {
         intent = new Intent(intent);
 
         /*****以下代码根据intent查询新activity的信息**********************/
-<<<<<<< Updated upstream
-=======
         // resolveIntent最终会与PMS通信
->>>>>>> Stashed changes
         ResolveInfo rInfo = mSupervisor.resolveIntent(intent, resolvedType, userId);
         if (rInfo == null) {
             UserInfo userInfo = mSupervisor.getUserInfo(userId);
@@ -1115,6 +1184,20 @@ class ActivityStarter {
         }
     }
 
+    /**
+     * 应用进程通过跨进程通信，调用的第五个方法；
+     * 此方法线程不安全
+     *
+     * @param r               新activity对应的activityrecord记录
+     * @param sourceRecord    旧activity对应的activityrecord记录
+     * @param voiceSession    声音交互session，推测应该是和启动声音相关？，应用进程通过跨进程通信调用的第三个方法，传值null
+     * @param voiceInteractor 声音交互者，推测应该是和启动声音相关？
+     * @param startFlags      新activity的启动标志
+     * @param doResume        是否恢复新activity(至屏幕上)
+     * @param options         一些定义新activity如何启动的可选项；如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
+     * @param inTask          来自应用进程通过跨进程通信调用的第三个方法，传值null
+     * @return
+     */
     private int startActivityUnchecked(final ActivityRecord r, ActivityRecord sourceRecord,
                                        IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
                                        int startFlags, boolean doResume, ActivityOptions options, TaskRecord inTask) {
@@ -1343,6 +1426,19 @@ class ActivityStarter {
         return START_SUCCESS;
     }
 
+    /**
+     * 重置{@link ActivityStarter}的一些重要属性
+     * 修改一些启动标志
+     *
+     * @param r
+     * @param options
+     * @param inTask
+     * @param doResume
+     * @param startFlags
+     * @param sourceRecord
+     * @param voiceSession
+     * @param voiceInteractor
+     */
     private void setInitialState(ActivityRecord r, ActivityOptions options, TaskRecord inTask,
                                  boolean doResume, int startFlags, ActivityRecord sourceRecord,
                                  IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor) {
@@ -1441,6 +1537,12 @@ class ActivityStarter {
         mNoAnimation = (mLaunchFlags & FLAG_ACTIVITY_NO_ANIMATION) != 0;
     }
 
+    /**
+     * 如果A通过startActivityForResult的方式启动B；
+     * 但B又会在一个新的task上运行（启动标志带有FLAG_ACTIVITY_NEW_TASK）
+     * 则会在此处向A发送一个取消结果；
+     * 并且将B的结果接受者置为空
+     */
     private void sendNewTaskResultRequestIfNeeded() {
         if (mStartActivity.resultTo != null && (mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0
                 && mStartActivity.resultTo.task.stack != null) {

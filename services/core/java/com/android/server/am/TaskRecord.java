@@ -143,6 +143,7 @@ final class TaskRecord {
     String rootAffinity;    // Initial base affinity, or null; does not change from initial root.
     final IVoiceInteractionSession voiceSession;    // Voice interaction session driving task
     final IVoiceInteractor voiceInteractor;         // Associated interactor to provide to app
+    /**启动此任务的第一个Intent对象*/
     Intent intent;          // The original intent that started the task.
     Intent affinityIntent;  // Intent of affinity-moved activity that started this task.
     int effectiveUid;       // The current effective uid of the identity of this task.
@@ -152,6 +153,7 @@ final class TaskRecord {
                                    // task is suspended.
     long firstActiveTime;   // First time this task was active.
     long lastActiveTime;    // Last time this task was active, including sleep.
+    /**此任务是否在最新列表之中*/
     boolean inRecents;      // Actually in the recents list?
     boolean isAvailable;    // Is the activity available to be launched?
     boolean rootWasReset;   // True if the intent at the root of the task had
@@ -196,7 +198,10 @@ final class TaskRecord {
     // NOTE: This value needs to be persisted with each task
     TaskDescription lastTaskDescription = new TaskDescription();
 
-    /** List of all activities in the task arranged in history order */
+    /** List of all activities in the task arranged in history order
+     * 此list中index越小的activity，越root
+     * index=0的activity,为root activity
+     * */
     final ArrayList<ActivityRecord> mActivities;
 
     /** Current stack */

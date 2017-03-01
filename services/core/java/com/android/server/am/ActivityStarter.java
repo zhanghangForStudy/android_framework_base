@@ -156,7 +156,7 @@ class ActivityStarter {
      */
     private ActivityRecord mStartActivity;
     /**
-     * 重用activity
+     * top activity
      */
     private ActivityRecord mReusedActivity;
     /**
@@ -197,12 +197,24 @@ class ActivityStarter {
      */
     private ActivityRecord mSourceRecord;
 
+    /**
+     * 用来运行新activity的Task(TaskRecord对象)，可能为空
+     */
     private TaskRecord mInTask;
     private boolean mAddingToTask;
     private TaskRecord mReuseTask;
 
+    /**
+     * 新任务的（root activity）信息
+     */
     private ActivityInfo mNewTaskInfo;
+    /**
+     * 新任务的启动intent
+     */
     private Intent mNewTaskIntent;
+    /**
+     * 启动新activity的栈
+     */
     private ActivityStack mSourceStack;
     private ActivityStack mTargetStack;
     // Indicates that we moved other task and are going to put something on top soon, so
@@ -294,8 +306,8 @@ class ActivityStarter {
      * @param ignoreTargetSecurity 忽略目标安全？;应用进程通过跨进程通信调用的第三个方法，传值false
      * @param componentSpecified   启动activity的intent对象是否含有新activity的组件名
      * @param outActivity          获取新activity对应的activityrecord对象的引用，应用进程通过跨进程通信调用的第三个方法，传值new ActivityRecord[1]
-     * @param container            来自应用进程通过跨进程通信调用的第三个方法，传值null
-     * @param inTask               来自应用进程通过跨进程通信调用的第三个方法，传值null
+     * @param container            来自应用进程通过跨进程通信调用的第二个方法，传值null
+     * @param inTask               用来运行新activity的Task(TaskRecord对象)，来自应用进程通过跨进程通信调用的第二个方法，传值null
      * @return
      */
     final int startActivityLocked(IApplicationThread caller, Intent intent, Intent ephemeralIntent,
@@ -855,7 +867,7 @@ class ActivityStarter {
      * @param ignoreTargetSecurity 忽略目标安全？;应用进程通过跨进程通信调用的第二个方法，传值false
      * @param userId               用户id
      * @param iContainer           应用进程通过跨进程通信调用的第二个方法，传值null
-     * @param inTask               应用进程通过跨进程通信调用的第二个方法，传值null
+     * @param inTask               用来运行新activity的Task(TaskRecord对象)，来自应用进程通过跨进程通信调用的第二个方法，传值null
      * @return
      */
     final int startActivityMayWait(IApplicationThread caller, int callingUid,
@@ -1192,21 +1204,27 @@ class ActivityStarter {
      * @param sourceRecord    旧activity对应的activityrecord记录
      * @param voiceSession    声音交互session，推测应该是和启动声音相关？，应用进程通过跨进程通信调用的第三个方法，传值null
      * @param voiceInteractor 声音交互者，推测应该是和启动声音相关？
-     * @param startFlags      新activity的启动标志
+     * @param startFlags      新activity的启动标志，如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为0
      * @param doResume        是否恢复新activity(至屏幕上)
      * @param options         一些定义新activity如何启动的可选项；如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
-     * @param inTask          来自应用进程通过跨进程通信调用的第三个方法，传值null
+     * @param inTask          用来运行新activity的Task(TaskRecord对象)，来自应用进程通过跨进程通信调用的第二个方法，传值null
      * @return
      */
     private int startActivityUnchecked(final ActivityRecord r, ActivityRecord sourceRecord,
                                        IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
                                        int startFlags, boolean doResume, ActivityOptions options, TaskRecord inTask) {
 
+        // 重置ActivityStarter的一些属性值，适当修改一些运行标志
         setInitialState(r, options, inTask, doResume, startFlags, sourceRecord, voiceSession,
                 voiceInteractor);
 
+        // 如果以下三个条件任意满足一个，则在运行标志上添加FLAG_ACTIVITY_NEW_TASK标志：
+        // 1、新activity并不是从一个已经运行的activity上启动；
+        // 2、旧activity的启动模式是SINGLE_INSTANCE
+        // 3、新activity的启动模式是SINGLE_INSTANCE或者SINGLE_TASK
         computeLaunchingTaskFlags();
 
+        // 确定启动新activity的栈
         computeSourceStack();
 
         mIntent.setFlags(mLaunchFlags);
@@ -1480,6 +1498,7 @@ class ActivityStarter {
 
         // We'll invoke onUserLeaving before onPause only if the launching
         // activity did not explicitly state that this is an automated launch.
+        // 除非新activity明确的指定它是被自动运行的，否则，我们将会在执行onPause之前，执行onUserLeaving方法
         mSupervisor.mUserLeaving = (mLaunchFlags & FLAG_ACTIVITY_NO_USER_ACTION) == 0;
         if (DEBUG_USER_LEAVING) Slog.v(TAG_USER_LEAVING,
                 "startActivity() => mUserLeaving=" + mSupervisor.mUserLeaving);
@@ -1487,6 +1506,7 @@ class ActivityStarter {
         // If the caller has asked not to resume at this point, we make note
         // of this in the record so that we can skip it when trying to find
         // the top running activity.
+        // 如果在此点不进行重新恢复操作，我们记录下来，以便我们在尝试找到顶部运行activity的时候，能够跳过恢复
         mDoResume = doResume;
         if (!doResume || !mSupervisor.okToShowLocked(r)) {
             r.delayedResume = true;
@@ -1509,10 +1529,13 @@ class ActivityStarter {
         mNotTop = (mLaunchFlags & FLAG_ACTIVITY_PREVIOUS_IS_TOP) != 0 ? r : null;
 
         mInTask = inTask;
-        // In some flows in to this function, we retrieve the task record and hold on to it
+        // In some flows in to this function, we retrieve(检索) the task record and hold on to it
         // without a lock before calling back in to here...  so the task at this point may
         // not actually be in recents.  Check for that, and if it isn't in recents just
         // consider it invalid.
+        // 在一些包含了此方法的流程中，我们检索到了taskRecord对象，并且在此方法被调用之前非锁定的持有了它。。。
+        // 所以在这一个点，taskRecord对象可能不是最新的。
+        // 检测此状态，如果不是最新的，则认为这份持有是无效的，丢弃持有。
         if (inTask != null && !inTask.inRecents) {
             Slog.w(TAG, "Starting activity in task not in recents: " + inTask);
             mInTask = null;
@@ -1560,6 +1583,8 @@ class ActivityStarter {
     private void computeLaunchingTaskFlags() {
         // If the caller is not coming from another activity, but has given us an explicit task into
         // which they would like us to launch the new activity, then let's see about doing that.
+        // 如果启动新activity的并非来自于一个activity,但是又给定了一个明确的用来运行新activity的TaskRecord对象，
+        // 这种情况下，我们会做一些Task检测
         if (mSourceRecord == null && mInTask != null && mInTask.stack != null) {
             final Intent baseIntent = mInTask.getBaseIntent();
             final ActivityRecord root = mInTask.getRootActivity();
@@ -1571,7 +1596,9 @@ class ActivityStarter {
 
             // If this task is empty, then we are adding the first activity -- it
             // determines the root, and must be launching as a NEW_TASK.
+            // task是空的，我们将添加第一个activity--第一个activity会被认为是root，且必须有一个NEW_TASK标记
             if (mLaunchSingleInstance || mLaunchSingleTask) {
+                //
                 if (!baseIntent.getComponent().equals(mStartActivity.intent.getComponent())) {
                     ActivityOptions.abort(mOptions);
                     throw new IllegalArgumentException("Trying to launch singleInstance/Task "
@@ -1584,7 +1611,7 @@ class ActivityStarter {
                 }
             }
 
-            // If task is empty, then adopt the interesting intent launch flags in to the
+            // If task is empty, then adopt(采取) the interesting intent launch flags in to the
             // activity being started.
             if (root == null) {
                 final int flagsOfInterest = FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_MULTIPLE_TASK
@@ -1598,6 +1625,8 @@ class ActivityStarter {
                 // If the task is not empty and the caller is asking to start it as the root of
                 // a new task, then we don't actually want to start this on the task. We will
                 // bring the task to the front, and possibly give it a new intent.
+                // 如果task不为空，且调用者请求将新activity作为一个新task的root，则我们不会真正的想将新activity
+                // 在mInTask之中启动，我们会将mInTask放置到前段，并且可能会给它一个新intent
             } else if ((mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0) {
                 mAddingToTask = false;
 
@@ -1620,6 +1649,10 @@ class ActivityStarter {
         }
 
         if (mInTask == null) {
+            // 如果以下三个条件任意满足一个，则在运行标志上添加FLAG_ACTIVITY_NEW_TASK标志：
+            // 1、新activity并不是从一个已经运行的activity上启动；
+            // 2、旧activity的启动模式是SINGLE_INSTANCE
+            // 3、新activity的启动模式是SINGLE_INSTANCE或者SINGLE_TASK
             if (mSourceRecord == null) {
                 // This activity is not being started from another...  in this
                 // case we -always- start a new task.
@@ -1641,6 +1674,11 @@ class ActivityStarter {
         }
     }
 
+    /**
+     * 确定启动新activity的栈
+     * 如果旧activityfinish了，则按照FLAG_ACTIVITY_NEW_TASK的行为，运行新activity
+     * 这种情况下新task的信息与旧activity相关的task信息一致
+     */
     private void computeSourceStack() {
         if (mSourceRecord == null) {
             mSourceStack = null;
@@ -1655,6 +1693,9 @@ class ActivityStarter {
         // task it is associated with may now be empty and on its way out, so we don't want to
         // blindly throw it in to that task.  Instead we will take the NEW_TASK flow and try to find
         // a task for it. But save the task information so it can be used when creating the new task.
+        // 如果旧activity已经结束,我们不在将它视为旧cativity。
+        // 这是因为旧activity对应的task可能为空,且此task可能在丢去的过程中，所以我们不想盲目的将新activity丢进此task
+        // 这种情况下，我们将执行NEW_TASK流程，尝试为新activity找到一个任务。
         if ((mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) == 0) {
             Slog.w(TAG, "startActivity called from finishing " + mSourceRecord
                     + "; forcing " + "Intent.FLAG_ACTIVITY_NEW_TASK for: " + mIntent);
@@ -1669,6 +1710,9 @@ class ActivityStarter {
     /**
      * Decide whether the new activity should be inserted into an existing task. Returns null
      * if not or an ActivityRecord with the task into which the new activity should be added.
+     * 决定新activity是否应该被插入到一个存在的task中。
+     * 如果不应该被插入到一个存在的任务中，返回null；或者返回新activity应该被添加到的任务的一个activityrecord对象
+     * 如果返回activityrecord对象不会null，则表示
      */
     private ActivityRecord getReusableIntentActivity() {
         // We may want to try to place the new activity in to an existing task.  We always
@@ -1676,12 +1720,18 @@ class ActivityStarter {
         // this if NEW_TASK has been requested, and there is not an additional qualifier telling
         // us to still place it in a new task: multi task, always doc mode, or being asked to
         // launch this as a new task behind the current one.
+        // 我们可能会尝试将新activity定位到一个已经存在的task之中。
+        // 如果新activity的启动模式是single_instance或者single_task，我们总是这样做。
+        // 如果FLAG_ACTIVITY_NEW_TASK被请求,且没有其他的情况让我们必须将新activity定位到一个新的task中，我们也总是这样做。
+        //
         boolean putIntoExistingTask = ((mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0 &&
                 (mLaunchFlags & FLAG_ACTIVITY_MULTIPLE_TASK) == 0)
                 || mLaunchSingleInstance || mLaunchSingleTask;
         // If bring to front is requested, and no result is requested and we have not been given
         // an explicit task to launch in to, and we can find a task that was started with this
         // same component, then instead of launching bring that one to the front.
+        // 如果提到前台被需要，且没有结果被需要，且没有提供一个明确的运行新activity的task,
+        // 且我们我们能够找到以相同组件启动的任务，则运行提到前台操作？
         putIntoExistingTask &= mInTask == null && mStartActivity.resultTo == null;
         ActivityRecord intentActivity = null;
         if (mOptions != null && mOptions.getLaunchTaskId() != -1) {
@@ -1691,10 +1741,13 @@ class ActivityStarter {
             if (mLaunchSingleInstance) {
                 // There can be one and only one instance of single instance activity in the
                 // history, and it is always in its own unique task, so we do a special search.
+                // 在整个系统中启动模式为single_instance的activity实例有且只有一个，且此实例总是存在于一个只包含它的task之中
+                // 所以我们做一个特殊的搜寻
                 intentActivity = mSupervisor.findActivityLocked(mIntent, mStartActivity.info, false);
             } else if ((mLaunchFlags & FLAG_ACTIVITY_LAUNCH_ADJACENT) != 0) {
-                // For the launch adjacent case we only want to put the activity in an existing
+                // For the launch adjacent（相邻的） case we only want to put the activity in an existing
                 // task if the activity already exists in the history.
+                // 对于运行相邻的情况，我们只想将新activity放进一个存在的task之中，如果新acitivity已经存在于系统中
                 intentActivity = mSupervisor.findActivityLocked(mIntent, mStartActivity.info,
                         !mLaunchSingleTask);
             } else {

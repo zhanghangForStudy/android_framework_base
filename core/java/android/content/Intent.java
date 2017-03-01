@@ -4394,20 +4394,31 @@ public class Intent implements Parcelable, Cloneable {
      * the same order.  See
      * <a href="{@docRoot}guide/topics/fundamentals/tasks-and-back-stack.html">Tasks and Back
      * Stack</a> for more information about tasks.
+     * 如果设置，新activity将是一个新task的开始。
+     * 一个任务（从启动任务的activity到下一个任务的activity止），定义了一个activity的原子组合，
+     * 这种组合，能被用户原子性的移动。
+     * 任务能被移动到前台和后台；
+     * 一个普通的任务，其内部activiy总是保持相同的顺序。
      * <p>
      * <p>This flag is generally used by activities that want
-     * to present a "launcher" style behavior: they give the user a list of
+     * to present(提出) a "launcher" style behavior: they give the user a list of
      * separate things that can be done, which otherwise run completely
      * independently of the activity launching them.
+     * 此标志一般被想提供一种"运行器"风格行为的activity使用：
+     * 这些activity为用户提供了一系列独立的事情，这些独立事情的执行，需要与运行它们的activity分离
      * <p>
      * <p>When using this flag, if a task is already running for the activity
      * you are now starting, then a new activity will not be started; instead,
      * the current task will simply be brought to the front of the screen with
      * the state it was last in.  See {@link #FLAG_ACTIVITY_MULTIPLE_TASK} for a flag
      * to disable this behavior.
+     * 当使用这个标志的时候，如果一个任务已经运行了你期望运行的activity，则系统将不会运行一个新的activity,
+     * 而是将当前任务简单的提到前台
      * <p>
      * <p>This flag can not be used when the caller is requesting a result from
      * the activity being launched.
+     * 如果旧activity需要新activity的结果，则此标志不能被使用；这种情况下，如果设置了此标志，
+     * 则仍会按照此标志的行为，运行新activity，同时返回一个取消结果给旧activity
      */
     public static final int FLAG_ACTIVITY_NEW_TASK = 0x10000000;
     /**
@@ -4500,6 +4511,9 @@ public class Intent implements Parcelable, Cloneable {
      * the top instead of starting a new one.  The previous activity will
      * be used as the top, with the assumption being that the current activity
      * will finish itself immediately.
+     * 如果设置了此标志，且此intent对象被用来从一个已经存在的旧activity启动一个新的activity,
+     * 则新activity将不会被视为决定intent对象应该交互给自己，而不是启动一个新的activity的top activity
+     * 旧activity将会作为top activity,并且会假设新activity会立即结束自己？
      */
     public static final int FLAG_ACTIVITY_PREVIOUS_IS_TOP = 0x01000000;
     /**
@@ -4606,6 +4620,9 @@ public class Intent implements Parcelable, Cloneable {
      * when you are going to do a series of activity operations but the
      * animation seen by the user shouldn't be driven by the first activity
      * change but rather a later one.
+     * 如果此标志被设置了，则会阻止系统提供一个activity过度动画进行下一个activity。
+     * 但是这并非意味着一个动画不会运行了--如果另一个activity在此activity运行之前，
+     * 清空了这个标志，过渡动画仍然被使用。
      */
     public static final int FLAG_ACTIVITY_NO_ANIMATION = 0X00010000;
     /**

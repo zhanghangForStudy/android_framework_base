@@ -116,7 +116,7 @@ final class ActivityRecord {
     /**启动此activity的包的包名*/
     final String launchedFromPackage; // always the package who started the activity.
     final int userId;          // Which user is this running for?
-    final Intent intent;    // the original intent that generated us
+    final Intent intent;    // the original intent that generated(生成) us
     final ComponentName realActivity;  // the intent component, or target of an alias.
     final String shortComponentName; // the short component name of the intent
     final String resolvedType; // as per original caller;

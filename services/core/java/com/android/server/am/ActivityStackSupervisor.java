@@ -352,7 +352,10 @@ public final class ActivityStackSupervisor implements DisplayListener {
     final ArrayList<UserState> mStartingUsers = new ArrayList<>();
 
     /** Set to indicate whether to issue an onUserLeaving callback when a newly launched activity
-     * is being brought in front of us. */
+     * is being brought in front of us.
+     * 如果设置为true，则表示在将一个新activity带到我们面前的时候，
+     * 会引起一个（旧activity的）onUserLeaving方法回调
+     * */
     boolean mUserLeaving = false;
 
     /** Set when we have taken too long waiting to go to sleep. */
@@ -2721,6 +2724,13 @@ public final class ActivityStackSupervisor implements DisplayListener {
         return mTmpFindTaskResult.r;
     }
 
+    /**
+     *
+     * @param intent
+     * @param info
+     * @param compareIntentFilters 比较IntentFilters
+     * @return
+     */
     ActivityRecord findActivityLocked(Intent intent, ActivityInfo info,
                                       boolean compareIntentFilters) {
         for (int displayNdx = mActivityDisplays.size() - 1; displayNdx >= 0; --displayNdx) {
@@ -4309,7 +4319,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
         }
     }
 
-    /** Exactly one of these classes per Display in the system. Capable of holding zero or more
+    /** Exactly（精确） one of these classes per Display in the system. Capable of holding zero or more
      * attached {@link ActivityStack}s */
     class ActivityDisplay {
         /** Actual Display this object tracks. */

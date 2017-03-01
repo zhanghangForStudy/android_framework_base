@@ -40,6 +40,7 @@ import static android.Manifest.permission.CONFIGURE_DISPLAY_COLOR_MODE;
 
 /**
  * Provides information about the size and density of a logical display.
+ * 提供一个逻辑显示器的尺寸和分辨率的相关信息
  * <p>
  * The display area is described in two different ways.
  * <ul>
@@ -60,6 +61,19 @@ import static android.Manifest.permission.CONFIGURE_DISPLAY_COLOR_MODE;
  * display may be presented on one or more physical displays according to the devices
  * that are currently attached and whether mirroring has been enabled.
  * </p>
+ * <p>
+ * 两种不同的方式来描述显示区域
+ * <ul>
+ * <li>应用显示区域指定了总显示区域的一部分，这部分可能包含一个出去了系统修饰的应用窗口。
+ * 应用显示区域比真实显示区域可能要小，因为系统会减去装饰元素（例如状态栏）所需的空间。</li>
+ * <li>真实显示区域指定了总显示区域的一部分，这部分包含内容，也包含了系统装饰；即便如此，真实显示区域也可能小于
+ * 总显示区域的物理尺寸，比如window manager模拟了一个更小的显示器。</li>
+ * </ul>
+ * </p><p>
+ * 一个逻辑显示器不需要代表一个详细的物理显示器设备，例如一个嵌入的屏幕或者一个外部监视器。
+ * 一个逻辑显示器的内容可能是被一个或者多个物理显示器瞄准的
+ * </p>
+ *
  */
 public final class Display {
     private static final String TAG = "Display";

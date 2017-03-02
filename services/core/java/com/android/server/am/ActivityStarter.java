@@ -156,7 +156,7 @@ class ActivityStarter {
      */
     private ActivityRecord mStartActivity;
     /**
-     * top activity
+     * 已经展示或者即将展示的 activity
      */
     private ActivityRecord mReusedActivity;
     /**
@@ -1229,11 +1229,19 @@ class ActivityStarter {
 
         mIntent.setFlags(mLaunchFlags);
 
+        // 此处的mReusedActivity分为两种情况：
+        // 1、如果新activity是single_instance模式，或者启动标志位上含有FLAG_ACTIVITY_LAUNCH_ADJACENT（分屏多窗口模式，手机暂不考虑），
+        //    则返回的ActivityRecord表示与新activity组件名或intent相等的activityrecord。
+        // 2、除此之外，返回一个task的top activity，此activity满足一下三个条件：
+        //     1）task的初始intent包含的组件与新activity对应的组件相等；
+        //     2）task的亲和性intent包含的组件与新activity对应的组件相等；
+        //     3）task的rootAffinity等于新activity的taskAffinity;
         mReusedActivity = getReusableIntentActivity();
 
         final int preferredLaunchStackId =
                 (mOptions != null) ? mOptions.getLaunchStackId() : INVALID_STACK_ID;
 
+        /**以下代码是对找到了合适的task的处理*/
         if (mReusedActivity != null) {
             // When the flags NEW_TASK and CLEAR_TASK are set, then the task gets reused but
             // still needs to be a lock task mode violation since the task gets cleared out and
@@ -1245,38 +1253,44 @@ class ActivityStarter {
                 Slog.e(TAG, "startActivityUnchecked: Attempt to violate Lock Task Mode");
                 return START_RETURN_LOCK_TASK_MODE_VIOLATION;
             }
-
+            // 确定新activity的task
             if (mStartActivity.task == null) {
                 mStartActivity.task = mReusedActivity.task;
             }
             if (mReusedActivity.task.intent == null) {
                 // This task was started because of movement of the activity based on affinity...
-                // Now that we are actually launching it, we can assign the base intent.
+                // Now that we are actually launching it, we can assign（分配） the base intent.
                 mReusedActivity.task.setIntent(mStartActivity);
             }
 
             // This code path leads to delivering a new intent, we want to make sure we schedule it
             // as the first operation, in case the activity will be resumed as a result of later
             // operations.
+            // 当前if分支会导致一个新intent对象的传递，我们期望确保我们对此intent对象的调度是第一个操作，
+            // 在这种情况下，紧接着的操作，将是恢复新activity
             if ((mLaunchFlags & FLAG_ACTIVITY_CLEAR_TOP) != 0
                     || mLaunchSingleInstance || mLaunchSingleTask) {
                 // In this situation we want to remove all activities from the task up to the one
                 // being started. In most cases this means we are resetting the task to its initial
                 // state.
+                // 此if分支表示系统期望删掉所有的在新activity之上的activity。
+                // 在多数情况下，这意味着我们需要重新将task的状态重置为它的初始状态
                 final ActivityRecord top = mReusedActivity.task.performClearTaskForReuseLocked(
                         mStartActivity, mLaunchFlags);
                 if (top != null) {
                     if (top.frontOfTask) {
-                        // Activity aliases may mean we use different intents for the top activity,
+                        // Activity aliases(别名) may mean we use different intents for the top activity,
                         // so make sure the task now has the identity of the new intent.
                         top.task.setIntent(mStartActivity);
                     }
                     ActivityStack.logStartActivity(AM_NEW_INTENT, mStartActivity, top.task);
+                    // 调度新activity所在的进程执行新activity的onNewIntent方法
                     top.deliverNewIntentLocked(mCallingUid, mStartActivity.intent,
                             mStartActivity.launchedFromPackage);
                 }
             }
 
+            // 一些电源处理
             sendPowerHintForLaunchStartIfNeeded(false /* forceSend */);
 
             mReusedActivity = setTargetStackAndMoveToFrontIfNeeded(mReusedActivity);
@@ -1297,6 +1311,7 @@ class ActivityStarter {
                 return START_TASK_TO_FRONT;
             }
         }
+        /**以上代码是对找到了合适的task的处理*/
 
         if (mStartActivity.packageName == null) {
             if (mStartActivity.resultTo != null && mStartActivity.resultTo.task.stack != null) {
@@ -1712,7 +1727,12 @@ class ActivityStarter {
      * if not or an ActivityRecord with the task into which the new activity should be added.
      * 决定新activity是否应该被插入到一个存在的task中。
      * 如果不应该被插入到一个存在的任务中，返回null；或者返回新activity应该被添加到的任务的一个activityrecord对象
-     * 如果返回activityrecord对象不会null，则表示
+     * 如果返回activityrecord对象不会null，则分为两种情况：
+     * 1、如果新activity是single_instance模式，或者启动标志位上含有FLAG_ACTIVITY_LAUNCH_ADJACENT，则返回的ActivityRecord表示与新activity组件名或intent相等的activityrecord。
+     * 2、除此之外，返回一个task的top activity，此activity满足一下三个条件：
+     * 1）task的初始intent包含的组件与新activity对应的组件相等；
+     * 2）task的亲和性intent包含的组件与新activity对应的组件相等；
+     * 3）task的rootAffinity等于新activity的taskAffinity;
      */
     private ActivityRecord getReusableIntentActivity() {
         // We may want to try to place the new activity in to an existing task.  We always

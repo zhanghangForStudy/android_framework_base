@@ -111,9 +111,13 @@ final class ActivityRecord {
     final IApplicationToken.Stub appToken; // window manager token
     final ActivityInfo info; // all about me
     final ApplicationInfo appInfo; // information about activity's app
-    /**启动此activity的进程的用户id*/
+    /**
+     * 启动此activity的进程的用户id
+     */
     final int launchedFromUid; // always the uid who started the activity.
-    /**启动此activity的包的包名*/
+    /**
+     * 启动此activity的包的包名
+     */
     final String launchedFromPackage; // always the package who started the activity.
     final int userId;          // Which user is this running for?
     final Intent intent;    // the original intent that generated(生成) us
@@ -159,7 +163,9 @@ final class ActivityRecord {
     ActivityRecord resultTo; // who started this entry, so will get our reply接收此Acitivity结束后的结果的activity
     final String resultWho; // additional（额外的） identifier for use by resultTo.
     final int requestCode;  // code given by requester (resultTo)
-    /**此activity所收到的所有的结果信息*/
+    /**
+     * 此activity所收到的所有的结果信息
+     */
     ArrayList<ResultInfo> results; // pending ActivityResult objs we have received
     HashSet<WeakReference<PendingIntentRecord>> pendingResults; // all pending intents for this act
     ArrayList<ReferrerIntent> newIntents; // any pending new intents for single-top mode
@@ -170,8 +176,11 @@ final class ActivityRecord {
     UriPermissionOwner uriPermissions; // current special URI access perms.
     ProcessRecord app;      // if non-null, hosting application
     ActivityState state;    // current state we are in
-    Bundle  icicle;         // last saved activity state
+    Bundle icicle;         // last saved activity state
     PersistableBundle persistentState; // last persistently saved activity state
+    /**
+     * 此activity是否是一个task的root activity
+     */
     boolean frontOfTask;    // is this the root activity of its task?
     boolean launchFailed;   // set if a launched failed, to abort on 2nd try
     boolean haveState;      // have we gotten the last activity state?
@@ -179,7 +188,7 @@ final class ActivityRecord {
     boolean delayedResume;  // not yet resumed because of stopped app switches?
     boolean finishing;      // activity in pending finish list?
     boolean deferRelaunchUntilPaused;   // relaunch of activity is being deferred until pause is
-                                        // completed
+    // completed
     boolean preserveWindowOnDeferredRelaunch; // activity windows are preserved on deferred relaunch
     int configChangeFlags;  // which config values have changed
     boolean keysPaused;     // has key dispatching been paused for it?
@@ -213,7 +222,7 @@ final class ActivityRecord {
 
     TaskDescription taskDescription; // the recents information for this activity
     boolean mLaunchTaskBehind; // this activity is actively being launched with
-        // ActivityOptions.setLaunchTaskBehind, will be cleared once launch is completed.
+    // ActivityOptions.setLaunchTaskBehind, will be cleared once launch is completed.
 
     // These configurations are collected from application's resources based on size-sensitive
     // qualifiers. For example, layout-w800dp will be added to mHorizontalSizeConfigurations as 800
@@ -247,69 +256,119 @@ final class ActivityRecord {
 
     void dump(PrintWriter pw, String prefix) {
         final long now = SystemClock.uptimeMillis();
-        pw.print(prefix); pw.print("packageName="); pw.print(packageName);
-                pw.print(" processName="); pw.println(processName);
-        pw.print(prefix); pw.print("launchedFromUid="); pw.print(launchedFromUid);
-                pw.print(" launchedFromPackage="); pw.print(launchedFromPackage);
-                pw.print(" userId="); pw.println(userId);
-        pw.print(prefix); pw.print("app="); pw.println(app);
-        pw.print(prefix); pw.println(intent.toInsecureStringWithClip());
-        pw.print(prefix); pw.print("frontOfTask="); pw.print(frontOfTask);
-                pw.print(" task="); pw.println(task);
-        pw.print(prefix); pw.print("taskAffinity="); pw.println(taskAffinity);
-        pw.print(prefix); pw.print("realActivity=");
-                pw.println(realActivity.flattenToShortString());
+        pw.print(prefix);
+        pw.print("packageName=");
+        pw.print(packageName);
+        pw.print(" processName=");
+        pw.println(processName);
+        pw.print(prefix);
+        pw.print("launchedFromUid=");
+        pw.print(launchedFromUid);
+        pw.print(" launchedFromPackage=");
+        pw.print(launchedFromPackage);
+        pw.print(" userId=");
+        pw.println(userId);
+        pw.print(prefix);
+        pw.print("app=");
+        pw.println(app);
+        pw.print(prefix);
+        pw.println(intent.toInsecureStringWithClip());
+        pw.print(prefix);
+        pw.print("frontOfTask=");
+        pw.print(frontOfTask);
+        pw.print(" task=");
+        pw.println(task);
+        pw.print(prefix);
+        pw.print("taskAffinity=");
+        pw.println(taskAffinity);
+        pw.print(prefix);
+        pw.print("realActivity=");
+        pw.println(realActivity.flattenToShortString());
         if (appInfo != null) {
-            pw.print(prefix); pw.print("baseDir="); pw.println(appInfo.sourceDir);
+            pw.print(prefix);
+            pw.print("baseDir=");
+            pw.println(appInfo.sourceDir);
             if (!Objects.equals(appInfo.sourceDir, appInfo.publicSourceDir)) {
-                pw.print(prefix); pw.print("resDir="); pw.println(appInfo.publicSourceDir);
+                pw.print(prefix);
+                pw.print("resDir=");
+                pw.println(appInfo.publicSourceDir);
             }
-            pw.print(prefix); pw.print("dataDir="); pw.println(appInfo.dataDir);
+            pw.print(prefix);
+            pw.print("dataDir=");
+            pw.println(appInfo.dataDir);
             if (appInfo.splitSourceDirs != null) {
-                pw.print(prefix); pw.print("splitDir=");
-                        pw.println(Arrays.toString(appInfo.splitSourceDirs));
+                pw.print(prefix);
+                pw.print("splitDir=");
+                pw.println(Arrays.toString(appInfo.splitSourceDirs));
             }
         }
-        pw.print(prefix); pw.print("stateNotNeeded="); pw.print(stateNotNeeded);
-                pw.print(" componentSpecified="); pw.print(componentSpecified);
-                pw.print(" mActivityType="); pw.println(mActivityType);
+        pw.print(prefix);
+        pw.print("stateNotNeeded=");
+        pw.print(stateNotNeeded);
+        pw.print(" componentSpecified=");
+        pw.print(componentSpecified);
+        pw.print(" mActivityType=");
+        pw.println(mActivityType);
         if (rootVoiceInteraction) {
-            pw.print(prefix); pw.print("rootVoiceInteraction="); pw.println(rootVoiceInteraction);
+            pw.print(prefix);
+            pw.print("rootVoiceInteraction=");
+            pw.println(rootVoiceInteraction);
         }
-        pw.print(prefix); pw.print("compat="); pw.print(compat);
-                pw.print(" labelRes=0x"); pw.print(Integer.toHexString(labelRes));
-                pw.print(" icon=0x"); pw.print(Integer.toHexString(icon));
-                pw.print(" theme=0x"); pw.println(Integer.toHexString(theme));
-        pw.print(prefix); pw.print("config="); pw.println(configuration);
-        pw.print(prefix); pw.print("taskConfigOverride="); pw.println(taskConfigOverride);
+        pw.print(prefix);
+        pw.print("compat=");
+        pw.print(compat);
+        pw.print(" labelRes=0x");
+        pw.print(Integer.toHexString(labelRes));
+        pw.print(" icon=0x");
+        pw.print(Integer.toHexString(icon));
+        pw.print(" theme=0x");
+        pw.println(Integer.toHexString(theme));
+        pw.print(prefix);
+        pw.print("config=");
+        pw.println(configuration);
+        pw.print(prefix);
+        pw.print("taskConfigOverride=");
+        pw.println(taskConfigOverride);
         if (resultTo != null || resultWho != null) {
-            pw.print(prefix); pw.print("resultTo="); pw.print(resultTo);
-                    pw.print(" resultWho="); pw.print(resultWho);
-                    pw.print(" resultCode="); pw.println(requestCode);
+            pw.print(prefix);
+            pw.print("resultTo=");
+            pw.print(resultTo);
+            pw.print(" resultWho=");
+            pw.print(resultWho);
+            pw.print(" resultCode=");
+            pw.println(requestCode);
         }
         if (taskDescription != null) {
             final String iconFilename = taskDescription.getIconFilename();
             if (iconFilename != null || taskDescription.getLabel() != null ||
                     taskDescription.getPrimaryColor() != 0) {
-                pw.print(prefix); pw.print("taskDescription:");
-                        pw.print(" iconFilename="); pw.print(taskDescription.getIconFilename());
-                        pw.print(" label=\""); pw.print(taskDescription.getLabel());
-                                pw.print("\"");
-                        pw.print(" color=");
-                        pw.println(Integer.toHexString(taskDescription.getPrimaryColor()));
+                pw.print(prefix);
+                pw.print("taskDescription:");
+                pw.print(" iconFilename=");
+                pw.print(taskDescription.getIconFilename());
+                pw.print(" label=\"");
+                pw.print(taskDescription.getLabel());
+                pw.print("\"");
+                pw.print(" color=");
+                pw.println(Integer.toHexString(taskDescription.getPrimaryColor()));
             }
             if (iconFilename == null && taskDescription.getIcon() != null) {
-                pw.print(prefix); pw.println("taskDescription contains Bitmap");
+                pw.print(prefix);
+                pw.println("taskDescription contains Bitmap");
             }
         }
         if (results != null) {
-            pw.print(prefix); pw.print("results="); pw.println(results);
+            pw.print(prefix);
+            pw.print("results=");
+            pw.println(results);
         }
         if (pendingResults != null && pendingResults.size() > 0) {
-            pw.print(prefix); pw.println("Pending Results:");
+            pw.print(prefix);
+            pw.println("Pending Results:");
             for (WeakReference<PendingIntentRecord> wpir : pendingResults) {
                 PendingIntentRecord pir = wpir != null ? wpir.get() : null;
-                pw.print(prefix); pw.print("  - ");
+                pw.print(prefix);
+                pw.print("  - ");
                 if (pir == null) {
                     pw.println("null");
                 } else {
@@ -319,10 +378,12 @@ final class ActivityRecord {
             }
         }
         if (newIntents != null && newIntents.size() > 0) {
-            pw.print(prefix); pw.println("Pending New Intents:");
-            for (int i=0; i<newIntents.size(); i++) {
+            pw.print(prefix);
+            pw.println("Pending New Intents:");
+            for (int i = 0; i < newIntents.size(); i++) {
                 Intent intent = newIntents.get(i);
-                pw.print(prefix); pw.print("  - ");
+                pw.print(prefix);
+                pw.print("  - ");
                 if (intent == null) {
                     pw.println("null");
                 } else {
@@ -331,7 +392,9 @@ final class ActivityRecord {
             }
         }
         if (pendingOptions != null) {
-            pw.print(prefix); pw.print("pendingOptions="); pw.println(pendingOptions);
+            pw.print(prefix);
+            pw.print("pendingOptions=");
+            pw.println(pendingOptions);
         }
         if (appTimeTracker != null) {
             appTimeTracker.dumpWithHeader(pw, prefix, false);
@@ -339,63 +402,97 @@ final class ActivityRecord {
         if (uriPermissions != null) {
             uriPermissions.dump(pw, prefix);
         }
-        pw.print(prefix); pw.print("launchFailed="); pw.print(launchFailed);
-                pw.print(" launchCount="); pw.print(launchCount);
-                pw.print(" lastLaunchTime=");
-                if (lastLaunchTime == 0) pw.print("0");
-                else TimeUtils.formatDuration(lastLaunchTime, now, pw);
-                pw.println();
-        pw.print(prefix); pw.print("haveState="); pw.print(haveState);
-                pw.print(" icicle="); pw.println(icicle);
-        pw.print(prefix); pw.print("state="); pw.print(state);
-                pw.print(" stopped="); pw.print(stopped);
-                pw.print(" delayedResume="); pw.print(delayedResume);
-                pw.print(" finishing="); pw.println(finishing);
-        pw.print(prefix); pw.print("keysPaused="); pw.print(keysPaused);
-                pw.print(" inHistory="); pw.print(inHistory);
-                pw.print(" visible="); pw.print(visible);
-                pw.print(" sleeping="); pw.print(sleeping);
-                pw.print(" idle="); pw.print(idle);
-                pw.print(" mStartingWindowState=");
-                pw.println(startingWindowStateToString(mStartingWindowState));
-        pw.print(prefix); pw.print("fullscreen="); pw.print(fullscreen);
-                pw.print(" noDisplay="); pw.print(noDisplay);
-                pw.print(" immersive="); pw.print(immersive);
-                pw.print(" launchMode="); pw.println(launchMode);
-        pw.print(prefix); pw.print("frozenBeforeDestroy="); pw.print(frozenBeforeDestroy);
-                pw.print(" forceNewConfig="); pw.println(forceNewConfig);
-        pw.print(prefix); pw.print("mActivityType=");
-                pw.println(activityTypeToString(mActivityType));
+        pw.print(prefix);
+        pw.print("launchFailed=");
+        pw.print(launchFailed);
+        pw.print(" launchCount=");
+        pw.print(launchCount);
+        pw.print(" lastLaunchTime=");
+        if (lastLaunchTime == 0) pw.print("0");
+        else TimeUtils.formatDuration(lastLaunchTime, now, pw);
+        pw.println();
+        pw.print(prefix);
+        pw.print("haveState=");
+        pw.print(haveState);
+        pw.print(" icicle=");
+        pw.println(icicle);
+        pw.print(prefix);
+        pw.print("state=");
+        pw.print(state);
+        pw.print(" stopped=");
+        pw.print(stopped);
+        pw.print(" delayedResume=");
+        pw.print(delayedResume);
+        pw.print(" finishing=");
+        pw.println(finishing);
+        pw.print(prefix);
+        pw.print("keysPaused=");
+        pw.print(keysPaused);
+        pw.print(" inHistory=");
+        pw.print(inHistory);
+        pw.print(" visible=");
+        pw.print(visible);
+        pw.print(" sleeping=");
+        pw.print(sleeping);
+        pw.print(" idle=");
+        pw.print(idle);
+        pw.print(" mStartingWindowState=");
+        pw.println(startingWindowStateToString(mStartingWindowState));
+        pw.print(prefix);
+        pw.print("fullscreen=");
+        pw.print(fullscreen);
+        pw.print(" noDisplay=");
+        pw.print(noDisplay);
+        pw.print(" immersive=");
+        pw.print(immersive);
+        pw.print(" launchMode=");
+        pw.println(launchMode);
+        pw.print(prefix);
+        pw.print("frozenBeforeDestroy=");
+        pw.print(frozenBeforeDestroy);
+        pw.print(" forceNewConfig=");
+        pw.println(forceNewConfig);
+        pw.print(prefix);
+        pw.print("mActivityType=");
+        pw.println(activityTypeToString(mActivityType));
         if (requestedVrComponent != null) {
             pw.print(prefix);
             pw.print("requestedVrComponent=");
             pw.println(requestedVrComponent);
         }
         if (displayStartTime != 0 || startTime != 0) {
-            pw.print(prefix); pw.print("displayStartTime=");
-                    if (displayStartTime == 0) pw.print("0");
-                    else TimeUtils.formatDuration(displayStartTime, now, pw);
-                    pw.print(" startTime=");
-                    if (startTime == 0) pw.print("0");
-                    else TimeUtils.formatDuration(startTime, now, pw);
-                    pw.println();
+            pw.print(prefix);
+            pw.print("displayStartTime=");
+            if (displayStartTime == 0) pw.print("0");
+            else TimeUtils.formatDuration(displayStartTime, now, pw);
+            pw.print(" startTime=");
+            if (startTime == 0) pw.print("0");
+            else TimeUtils.formatDuration(startTime, now, pw);
+            pw.println();
         }
         final boolean waitingVisible = mStackSupervisor.mWaitingVisibleActivities.contains(this);
         if (lastVisibleTime != 0 || waitingVisible || nowVisible) {
-            pw.print(prefix); pw.print("waitingVisible="); pw.print(waitingVisible);
-                    pw.print(" nowVisible="); pw.print(nowVisible);
-                    pw.print(" lastVisibleTime=");
-                    if (lastVisibleTime == 0) pw.print("0");
-                    else TimeUtils.formatDuration(lastVisibleTime, now, pw);
-                    pw.println();
+            pw.print(prefix);
+            pw.print("waitingVisible=");
+            pw.print(waitingVisible);
+            pw.print(" nowVisible=");
+            pw.print(nowVisible);
+            pw.print(" lastVisibleTime=");
+            if (lastVisibleTime == 0) pw.print("0");
+            else TimeUtils.formatDuration(lastVisibleTime, now, pw);
+            pw.println();
         }
         if (deferRelaunchUntilPaused || configChangeFlags != 0) {
-            pw.print(prefix); pw.print("deferRelaunchUntilPaused="); pw.print(deferRelaunchUntilPaused);
-                    pw.print(" configChangeFlags=");
-                    pw.println(Integer.toHexString(configChangeFlags));
+            pw.print(prefix);
+            pw.print("deferRelaunchUntilPaused=");
+            pw.print(deferRelaunchUntilPaused);
+            pw.print(" configChangeFlags=");
+            pw.println(Integer.toHexString(configChangeFlags));
         }
         if (connections != null) {
-            pw.print(prefix); pw.print("connections="); pw.println(connections);
+            pw.print(prefix);
+            pw.print("connections=");
+            pw.println(connections);
         }
         if (info != null) {
             pw.println(prefix + "resizeMode=" + ActivityInfo.resizeModeToString(info.resizeMode));
@@ -420,7 +517,7 @@ final class ActivityRecord {
      * is small, all the activity content has to do is relayout itself within new bounds. There are
      * cases however, where the activity's content would be completely changed in the new size and
      * the full relaunch is required.
-     *
+     * <p>
      * The activity will report to us vertical and horizontal thresholds after which a relaunch is
      * required. These thresholds are collected from the application resource qualifiers. For
      * example, if application has layout-w600dp resource directory, then it needs a relaunch when
@@ -429,7 +526,7 @@ final class ActivityRecord {
      * of the threshold.
      */
     private static boolean crossesSizeThreshold(int[] thresholds, int firstDp,
-            int secondDp) {
+                                                int secondDp) {
         if (thresholds == null) {
             return false;
         }
@@ -444,7 +541,7 @@ final class ActivityRecord {
     }
 
     public void setSizeConfigurations(int[] horizontalSizeConfiguration,
-            int[] verticalSizeConfigurations, int[] smallestSizeConfigurations) {
+                                      int[] verticalSizeConfigurations, int[] smallestSizeConfigurations) {
         mHorizontalSizeConfigurations = horizontalSizeConfiguration;
         mVerticalSizeConfigurations = verticalSizeConfigurations;
         mSmallestSizeConfigurations = smallestSizeConfigurations;
@@ -594,7 +691,7 @@ final class ActivityRecord {
 
     static ActivityRecord forTokenLocked(IBinder token) {
         try {
-            return Token.tokenToActivityRecordLocked((Token)token);
+            return Token.tokenToActivityRecordLocked((Token) token);
         } catch (ClassCastException e) {
             Slog.w(TAG, "Bad activity token: " + token, e);
             return null;
@@ -606,12 +703,12 @@ final class ActivityRecord {
     }
 
     ActivityRecord(ActivityManagerService _service, ProcessRecord _caller,
-            int _launchedFromUid, String _launchedFromPackage, Intent _intent, String _resolvedType,
-            ActivityInfo aInfo, Configuration _configuration,
-            ActivityRecord _resultTo, String _resultWho, int _reqCode,
-            boolean _componentSpecified, boolean _rootVoiceInteraction,
-            ActivityStackSupervisor supervisor,
-            ActivityContainer container, ActivityOptions options, ActivityRecord sourceRecord) {
+                   int _launchedFromUid, String _launchedFromPackage, Intent _intent, String _resolvedType,
+                   ActivityInfo aInfo, Configuration _configuration,
+                   ActivityRecord _resultTo, String _resultWho, int _reqCode,
+                   boolean _componentSpecified, boolean _rootVoiceInteraction,
+                   ActivityStackSupervisor supervisor,
+                   ActivityContainer container, ActivityOptions options, ActivityRecord sourceRecord) {
         service = _service;
         appToken = new Token(this, service);
         info = aInfo;
@@ -671,7 +768,7 @@ final class ActivityRecord {
                 realActivity = new ComponentName(aInfo.packageName, aInfo.targetActivity);
             }
             taskAffinity = aInfo.taskAffinity;
-            stateNotNeeded = (aInfo.flags&
+            stateNotNeeded = (aInfo.flags &
                     ActivityInfo.FLAG_STATE_NOT_NEEDED) != 0;
             appInfo = aInfo.applicationInfo;
             nonLocalizedLabel = aInfo.nonLocalizedLabel;
@@ -691,13 +788,13 @@ final class ActivityRecord {
                         ? android.R.style.Theme
                         : android.R.style.Theme_Holo;
             }
-            if ((aInfo.flags&ActivityInfo.FLAG_HARDWARE_ACCELERATED) != 0) {
+            if ((aInfo.flags & ActivityInfo.FLAG_HARDWARE_ACCELERATED) != 0) {
                 windowFlags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
             }
-            if ((aInfo.flags&ActivityInfo.FLAG_MULTIPROCESS) != 0
+            if ((aInfo.flags & ActivityInfo.FLAG_MULTIPROCESS) != 0
                     && _caller != null
                     && (aInfo.applicationInfo.uid == Process.SYSTEM_UID
-                            || aInfo.applicationInfo.uid == _caller.info.uid)) {
+                    || aInfo.applicationInfo.uid == _caller.info.uid)) {
                 processName = _caller.processName;
             } else {
                 processName = aInfo.processName;
@@ -715,10 +812,10 @@ final class ActivityRecord {
             final boolean translucent = ent != null && (ent.array.getBoolean(
                     com.android.internal.R.styleable.Window_windowIsTranslucent, false)
                     || (!ent.array.hasValue(
-                            com.android.internal.R.styleable.Window_windowIsTranslucent)
-                            && ent.array.getBoolean(
-                                    com.android.internal.R.styleable.Window_windowSwipeToDismiss,
-                                            false)));
+                    com.android.internal.R.styleable.Window_windowIsTranslucent)
+                    && ent.array.getBoolean(
+                    com.android.internal.R.styleable.Window_windowSwipeToDismiss,
+                    false)));
             fullscreen = ent != null && !ent.array.getBoolean(
                     com.android.internal.R.styleable.Window_windowIsFloating, false)
                     && !translucent;
@@ -742,7 +839,7 @@ final class ActivityRecord {
             noDisplay = false;
             mActivityType = APPLICATION_ACTIVITY_TYPE;
             immersive = false;
-            requestedVrComponent  = null;
+            requestedVrComponent = null;
         }
     }
 
@@ -772,7 +869,7 @@ final class ActivityRecord {
     }
 
     private void setActivityType(boolean componentSpecified,
-            int launchedFromUid, Intent intent, ActivityRecord sourceRecord) {
+                                 int launchedFromUid, Intent intent, ActivityRecord sourceRecord) {
         if ((!componentSpecified || canLaunchHomeActivity(launchedFromUid, sourceRecord))
                 && isHomeIntent(intent) && !isResolverActivity()) {
             // This sure looks like a home activity!
@@ -907,8 +1004,8 @@ final class ActivityRecord {
     }
 
     void addResultLocked(ActivityRecord from, String resultWho,
-            int requestCode, int resultCode,
-            Intent resultData) {
+                         int requestCode, int resultCode,
+                         Intent resultData) {
         ActivityResult r = new ActivityResult(from, resultWho,
                 requestCode, resultCode, resultData);
         if (results == null) {
@@ -919,15 +1016,16 @@ final class ActivityRecord {
 
     /**
      * 删除来自于指定activity的指定requestCode的结果
+     *
      * @param from
      * @param resultWho
      * @param requestCode
      */
     void removeResultsLocked(ActivityRecord from, String resultWho,
-            int requestCode) {
+                             int requestCode) {
         if (results != null) {
-            for (int i=results.size()-1; i>=0; i--) {
-                ActivityResult r = (ActivityResult)results.get(i);
+            for (int i = results.size() - 1; i >= 0; i--) {
+                ActivityResult r = (ActivityResult) results.get(i);
                 if (r.mFrom != from) continue;
                 if (r.mResultWho == null) {
                     if (resultWho != null) continue;
@@ -1015,8 +1113,8 @@ final class ActivityRecord {
                     if (intent.getSourceBounds() == null) {
                         intent.setSourceBounds(new Rect(pendingOptions.getStartX(),
                                 pendingOptions.getStartY(),
-                                pendingOptions.getStartX()+pendingOptions.getWidth(),
-                                pendingOptions.getStartY()+pendingOptions.getHeight()));
+                                pendingOptions.getStartX() + pendingOptions.getWidth(),
+                                pendingOptions.getStartY() + pendingOptions.getHeight()));
                     }
                     break;
                 case ActivityOptions.ANIM_SCALE_UP:
@@ -1026,8 +1124,8 @@ final class ActivityRecord {
                     if (intent.getSourceBounds() == null) {
                         intent.setSourceBounds(new Rect(pendingOptions.getStartX(),
                                 pendingOptions.getStartY(),
-                                pendingOptions.getStartX()+pendingOptions.getWidth(),
-                                pendingOptions.getStartY()+pendingOptions.getHeight()));
+                                pendingOptions.getStartX() + pendingOptions.getWidth(),
+                                pendingOptions.getStartY() + pendingOptions.getHeight()));
                     }
                     break;
                 case ActivityOptions.ANIM_THUMBNAIL_SCALE_UP:
@@ -1455,7 +1553,7 @@ final class ActivityRecord {
     }
 
     static ActivityRecord restoreFromXml(XmlPullParser in,
-            ActivityStackSupervisor stackSupervisor) throws IOException, XmlPullParserException {
+                                         ActivityStackSupervisor stackSupervisor) throws IOException, XmlPullParserException {
         Intent intent = null;
         PersistableBundle persistentState = null;
         int launchedFromUid = 0;
@@ -1471,7 +1569,7 @@ final class ActivityRecord {
             final String attrName = in.getAttributeName(attrNdx);
             final String attrValue = in.getAttributeValue(attrNdx);
             if (TaskPersister.DEBUG) Slog.d(TaskPersister.TAG,
-                        "ActivityRecord: attribute name=" + attrName + " value=" + attrValue);
+                    "ActivityRecord: attribute name=" + attrName + " value=" + attrValue);
             if (ATTR_ID.equals(attrName)) {
                 createTime = Long.valueOf(attrValue);
             } else if (ATTR_LAUNCHEDFROMUID.equals(attrName)) {
@@ -1497,11 +1595,11 @@ final class ActivityRecord {
             if (event == XmlPullParser.START_TAG) {
                 final String name = in.getName();
                 if (TaskPersister.DEBUG)
-                        Slog.d(TaskPersister.TAG, "ActivityRecord: START_TAG name=" + name);
+                    Slog.d(TaskPersister.TAG, "ActivityRecord: START_TAG name=" + name);
                 if (TAG_INTENT.equals(name)) {
                     intent = Intent.restoreFromXml(in);
                     if (TaskPersister.DEBUG)
-                            Slog.d(TaskPersister.TAG, "ActivityRecord: intent=" + intent);
+                        Slog.d(TaskPersister.TAG, "ActivityRecord: intent=" + intent);
                 } else if (TAG_PERSISTABLEBUNDLE.equals(name)) {
                     persistentState = PersistableBundle.restoreFromXml(in);
                     if (TaskPersister.DEBUG) Slog.d(TaskPersister.TAG,
@@ -1537,10 +1635,14 @@ final class ActivityRecord {
 
     private static String activityTypeToString(int type) {
         switch (type) {
-            case APPLICATION_ACTIVITY_TYPE: return "APPLICATION_ACTIVITY_TYPE";
-            case HOME_ACTIVITY_TYPE: return "HOME_ACTIVITY_TYPE";
-            case RECENTS_ACTIVITY_TYPE: return "RECENTS_ACTIVITY_TYPE";
-            default: return Integer.toString(type);
+            case APPLICATION_ACTIVITY_TYPE:
+                return "APPLICATION_ACTIVITY_TYPE";
+            case HOME_ACTIVITY_TYPE:
+                return "HOME_ACTIVITY_TYPE";
+            case RECENTS_ACTIVITY_TYPE:
+                return "RECENTS_ACTIVITY_TYPE";
+            default:
+                return Integer.toString(type);
         }
     }
 

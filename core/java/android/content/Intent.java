@@ -4658,10 +4658,11 @@ public class Intent implements Parcelable, Cloneable {
     public static final int FLAG_ACTIVITY_RETAIN_IN_RECENTS = 0x00002000;
 
     /**
-     * This flag is only used in split-screen multi-window mode. The new activity will be displayed
-     * adjacent to the one launching it. This can only be used in conjunction with
+     * This flag is only used in split-screen（分屏） multi-window（多窗口） mode. The new activity will be displayed
+     * adjacent（相邻） to the one launching it. This can only be used in conjunction（联合） with
      * {@link #FLAG_ACTIVITY_NEW_TASK}. Also, setting {@link #FLAG_ACTIVITY_MULTIPLE_TASK} is
      * required if you want a new instance of an existing activity to be created.
+     * 新activity将展示到旧activity相邻的地方；只用于分屏多窗口模式
      */
     public static final int FLAG_ACTIVITY_LAUNCH_ADJACENT = 0x00001000;
 

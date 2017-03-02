@@ -143,52 +143,66 @@ final class TaskRecord {
     String rootAffinity;    // Initial base affinity, or null; does not change from initial root.
     final IVoiceInteractionSession voiceSession;    // Voice interaction session driving task
     final IVoiceInteractor voiceInteractor;         // Associated interactor to provide to app
-    /**启动此任务的第一个Intent对象*/
+    /**
+     * 启动此任务的第一个Intent对象
+     */
     Intent intent;          // The original intent that started the task.
     Intent affinityIntent;  // Intent of affinity-moved activity that started this task.
     int effectiveUid;       // The current effective uid of the identity of this task.
     ComponentName origActivity; // The non-alias(非别名) activity component of the intent.
     ComponentName realActivity; // The actual activity component that started the task.
     boolean realActivitySuspended; // True if the actual activity component that started the
-                                   // task is suspended.
+    // task is suspended.
     long firstActiveTime;   // First time this task was active.
     long lastActiveTime;    // Last time this task was active, including sleep.
-    /**此任务是否在最新列表之中*/
+    /**
+     * 此任务是否在最新列表之中
+     */
     boolean inRecents;      // Actually in the recents list?
     boolean isAvailable;    // Is the activity available to be launched?
     boolean rootWasReset;   // True if the intent at the root of the task had
-                            // the FLAG_ACTIVITY_RESET_TASK_IF_NEEDED flag.
+    // the FLAG_ACTIVITY_RESET_TASK_IF_NEEDED flag.
     boolean autoRemoveRecents;  // If true, we should automatically remove the task from
-                                // recents when activity finishes
+    // recents when activity finishes
     boolean askedCompatMode;// Have asked the user about compat mode for this task.
     boolean hasBeenVisible; // Set if any activities in the task have been visible to the user.
 
     String stringName;      // caching of toString() result.
     int userId;             // user for which this task was created
     boolean mUserSetupComplete; // The user set-up is complete as of the last time the task activity
-                                // was changed.
+    // was changed.
 
     int numFullscreen;      // Number of fullscreen activities.
 
     int mResizeMode;        // The resize mode of this task and its activities.
-                            // Based on the {@link ActivityInfo#resizeMode} of the root activity.
+    // Based on the {@link ActivityInfo#resizeMode} of the root activity.
     boolean mTemporarilyUnresizable; // Separate flag from mResizeMode used to suppress resize
-                                     // changes on a temporary basis.
+    // changes on a temporary basis.
     int mLockTaskMode;      // Which tasklock mode to launch this task in. One of
-                            // ActivityManager.LOCK_TASK_LAUNCH_MODE_*
+    // ActivityManager.LOCK_TASK_LAUNCH_MODE_*
     private boolean mPrivileged;    // The root activity application of this task holds
-                                    // privileged permissions.
+    // privileged permissions.
 
-    /** Can't be put in lockTask mode. */
+    /**
+     * Can't be put in lockTask mode.
+     */
     final static int LOCK_TASK_AUTH_DONT_LOCK = 0;
-    /** Can enter app pinning with user approval. Can never start over existing lockTask task. */
+    /**
+     * Can enter app pinning with user approval. Can never start over existing lockTask task.
+     */
     final static int LOCK_TASK_AUTH_PINNABLE = 1;
-    /** Starts in LOCK_TASK_MODE_LOCKED automatically. Can start over existing lockTask task. */
+    /**
+     * Starts in LOCK_TASK_MODE_LOCKED automatically. Can start over existing lockTask task.
+     */
     final static int LOCK_TASK_AUTH_LAUNCHABLE = 2;
-    /** Can enter lockTask without user approval. Can start over existing lockTask task. */
+    /**
+     * Can enter lockTask without user approval. Can start over existing lockTask task.
+     */
     final static int LOCK_TASK_AUTH_WHITELISTED = 3;
-    /** Priv-app that starts in LOCK_TASK_MODE_LOCKED automatically. Can start over existing
-     * lockTask task. */
+    /**
+     * Priv-app that starts in LOCK_TASK_MODE_LOCKED automatically. Can start over existing
+     * lockTask task.
+     */
     final static int LOCK_TASK_AUTH_LAUNCHABLE_PRIV = 4;
     int mLockTaskAuth = LOCK_TASK_AUTH_PINNABLE;
 
@@ -198,33 +212,47 @@ final class TaskRecord {
     // NOTE: This value needs to be persisted with each task
     TaskDescription lastTaskDescription = new TaskDescription();
 
-    /** List of all activities in the task arranged in history order
+    /**
+     * List of all activities in the task arranged in history order
      * 此list中index越小的activity，越root
      * index=0的activity,为root activity
-     * */
+     */
     final ArrayList<ActivityRecord> mActivities;
 
-    /** Current stack */
+    /**
+     * Current stack
+     */
     ActivityStack stack;
 
-    /** Takes on same set of values as ActivityRecord.mActivityType */
+    /**
+     * Takes on same set of values as ActivityRecord.mActivityType
+     */
     int taskType;
 
-    /** Takes on same value as first root activity */
+    /**
+     * Takes on same value as first root activity
+     */
     boolean isPersistable = false;
     int maxRecents;
 
-    /** Only used for persistable tasks, otherwise 0. The last time this task was moved. Used for
+    /**
+     * Only used for persistable tasks, otherwise 0. The last time this task was moved. Used for
      * determining the order when restoring. Sign indicates whether last task movement was to front
-     * (positive) or back (negative). Absolute value indicates time. */
+     * (positive) or back (negative). Absolute value indicates time.
+     */
     long mLastTimeMoved = System.currentTimeMillis();
 
-    /** Indication of what to run next when task exits. Use ActivityRecord types.
+    /**
+     * Indication of what to run next when task exits. Use ActivityRecord types.
      * ActivityRecord.APPLICATION_ACTIVITY_TYPE indicates to resume the task below this one in the
-     * task stack. */
+     * task stack.
+     */
     private int mTaskToReturnTo = APPLICATION_ACTIVITY_TYPE;
 
-    /** If original intent did not allow relinquishing task identity, save that information */
+    /**
+     * If original intent did not allow relinquishing(转移、交出) task identity, save that information
+     * 禁止转移task identity（baseIntent）
+     */
     boolean mNeverRelinquishIdentity = true;
 
     // Used in the unique case where we are clearing the task in order to reuse it. In that case we
@@ -276,7 +304,7 @@ final class TaskRecord {
     Configuration mOverrideConfig = Configuration.EMPTY;
 
     TaskRecord(ActivityManagerService service, int _taskId, ActivityInfo info, Intent _intent,
-            IVoiceInteractionSession _voiceSession, IVoiceInteractor _voiceInteractor) {
+               IVoiceInteractionSession _voiceSession, IVoiceInteractor _voiceInteractor) {
         mService = service;
         mFilename = String.valueOf(_taskId) + TASK_THUMBNAIL_SUFFIX +
                 TaskPersister.IMAGE_EXTENSION;
@@ -297,7 +325,7 @@ final class TaskRecord {
     }
 
     TaskRecord(ActivityManagerService service, int _taskId, ActivityInfo info, Intent _intent,
-            TaskDescription _taskDescription, TaskThumbnailInfo thumbnailInfo) {
+               TaskDescription _taskDescription, TaskThumbnailInfo thumbnailInfo) {
         mService = service;
         mFilename = String.valueOf(_taskId) + TASK_THUMBNAIL_SUFFIX +
                 TaskPersister.IMAGE_EXTENSION;
@@ -328,16 +356,16 @@ final class TaskRecord {
     }
 
     private TaskRecord(ActivityManagerService service, int _taskId, Intent _intent,
-            Intent _affinityIntent, String _affinity, String _rootAffinity,
-            ComponentName _realActivity, ComponentName _origActivity, boolean _rootWasReset,
-            boolean _autoRemoveRecents, boolean _askedCompatMode, int _taskType, int _userId,
-            int _effectiveUid, String _lastDescription, ArrayList<ActivityRecord> activities,
-            long _firstActiveTime, long _lastActiveTime, long lastTimeMoved,
-            boolean neverRelinquishIdentity, TaskDescription _lastTaskDescription,
-            TaskThumbnailInfo lastThumbnailInfo, int taskAffiliation, int prevTaskId,
-            int nextTaskId, int taskAffiliationColor, int callingUid, String callingPackage,
-            int resizeMode, boolean privileged, boolean _realActivitySuspended,
-            boolean userSetupComplete, int minWidth, int minHeight) {
+                       Intent _affinityIntent, String _affinity, String _rootAffinity,
+                       ComponentName _realActivity, ComponentName _origActivity, boolean _rootWasReset,
+                       boolean _autoRemoveRecents, boolean _askedCompatMode, int _taskType, int _userId,
+                       int _effectiveUid, String _lastDescription, ArrayList<ActivityRecord> activities,
+                       long _firstActiveTime, long _lastActiveTime, long lastTimeMoved,
+                       boolean neverRelinquishIdentity, TaskDescription _lastTaskDescription,
+                       TaskThumbnailInfo lastThumbnailInfo, int taskAffiliation, int prevTaskId,
+                       int nextTaskId, int taskAffiliationColor, int callingUid, String callingPackage,
+                       int resizeMode, boolean privileged, boolean _realActivitySuspended,
+                       boolean userSetupComplete, int minWidth, int minHeight) {
         mService = service;
         mFilename = String.valueOf(_taskId) + TASK_THUMBNAIL_SUFFIX +
                 TaskPersister.IMAGE_EXTENSION;
@@ -392,14 +420,22 @@ final class TaskRecord {
         return System.currentTimeMillis() - lastActiveTime;
     }
 
-    /** Sets the original intent, and the calling uid and package. */
+    /**
+     * Sets the original intent, and the calling uid and package.
+     */
     void setIntent(ActivityRecord r) {
         mCallingUid = r.launchedFromUid;
         mCallingPackage = r.launchedFromPackage;
         setIntent(r.intent, r.info);
     }
 
-    /** Sets the original intent, _without_ updating the calling uid or package. */
+    /**
+     * Sets the original intent, _without_ updating the calling uid or package.
+     * 设置{@link #affinity}、{@link #rootAffinity}、{@link #intent}
+     * {@link #realActivity}、{@link #origActivity}、{@link #rootWasReset}
+     * 、{@link #userId}、{@link #mUserSetupComplete}、{@link #autoRemoveRecents}
+     * 、{@link #mResizeMode}、{@link #mLockTaskMode}、{@link #mPrivileged}等属性
+     */
     private void setIntent(Intent _intent, ActivityInfo info) {
         if (intent == null) {
             mNeverRelinquishIdentity =
@@ -484,7 +520,9 @@ final class TaskRecord {
         setLockTaskAuth();
     }
 
-    /** Sets the original minimal width and height. */
+    /**
+     * Sets the original minimal width and height.
+     */
     private void setMinDimensions(ActivityInfo info) {
         if (info != null && info.windowLayout != null) {
             mMinWidth = info.windowLayout.minWidth;
@@ -573,6 +611,7 @@ final class TaskRecord {
 
     /**
      * Sets the last thumbnail with the current task bounds and the system orientation.
+     *
      * @return whether the thumbnail was set
      */
     boolean setLastThumbnailLocked(Bitmap thumbnail) {
@@ -597,10 +636,11 @@ final class TaskRecord {
 
     /**
      * Sets the last thumbnail with the current task bounds.
+     *
      * @return whether the thumbnail was set
      */
     private boolean setLastThumbnailLocked(Bitmap thumbnail, int taskWidth, int taskHeight,
-            int screenOrientation) {
+                                           int screenOrientation) {
         if (mLastThumbnail != thumbnail) {
             mLastThumbnail = thumbnail;
             mLastThumbnailInfo.taskWidth = taskWidth;
@@ -652,12 +692,16 @@ final class TaskRecord {
         lastDescription = null;
     }
 
-    /** Returns the intent for the root activity for this task */
+    /**
+     * Returns the intent for the root activity for this task
+     */
     Intent getBaseIntent() {
         return intent != null ? intent : affinityIntent;
     }
 
-    /** Returns the first non-finishing activity from the root. */
+    /**
+     * Returns the first non-finishing activity from the root.
+     */
     ActivityRecord getRootActivity() {
         for (int i = 0; i < mActivities.size(); i++) {
             final ActivityRecord r = mActivities.get(i);
@@ -669,6 +713,11 @@ final class TaskRecord {
         return null;
     }
 
+    /**
+     * 返回最晚进入task，且没有finishing的activityrecord
+     *
+     * @return
+     */
     ActivityRecord getTopActivity() {
         for (int i = mActivities.size() - 1; i >= 0; --i) {
             final ActivityRecord r = mActivities.get(i);
@@ -710,7 +759,9 @@ final class TaskRecord {
         setFrontOfTask(null);
     }
 
-    /** Call after activity movement or finish to make sure that frontOfTask is set correctly */
+    /**
+     * Call after activity movement or finish to make sure that frontOfTask is set correctly
+     */
     void setFrontOfTask(ActivityRecord newTop) {
         // If a top candidate is suggested by the caller, go ahead and use it and mark all others
         // as not front. This is needed in situations where the current front activity in the
@@ -745,7 +796,7 @@ final class TaskRecord {
     final void moveActivityToFrontLocked(ActivityRecord newTop) {
         if (DEBUG_ADD_REMOVE) Slog.i(TAG_ADD_REMOVE,
                 "Removing and adding activity " + newTop
-                + " to stack at top callers=" + Debug.getCallers(4));
+                        + " to stack at top callers=" + Debug.getCallers(4));
 
         mActivities.remove(newTop);
         mActivities.add(newTop);
@@ -800,7 +851,9 @@ final class TaskRecord {
         }
     }
 
-    /** @return true if this was the last activity in the task */
+    /**
+     * @return true if this was the last activity in the task
+     */
     boolean removeActivity(ActivityRecord r) {
         if (mActivities.remove(r) && r.fullscreen) {
             // Was previously in list.
@@ -837,7 +890,7 @@ final class TaskRecord {
      */
     final void performClearTaskAtIndexLocked(int activityNdx) {
         int numActivities = mActivities.size();
-        for ( ; activityNdx < numActivities; ++activityNdx) {
+        for (; activityNdx < numActivities; ++activityNdx) {
             final ActivityRecord r = mActivities.get(activityNdx);
             if (r.finishing) {
                 continue;
@@ -878,6 +931,8 @@ final class TaskRecord {
      * stack to the given task, then look for
      * an instance of that activity in the stack and, if found, finish all
      * activities on top of it and return the instance.
+     * 在task中进行搜索
+     * 如果指定的activity的一个实例在task中发现，结束所有在之上的activity,并返回这个实例
      *
      * @param newR Description of the new activity being started.
      * @return Returns the old activity that should be continued to be used,
@@ -892,6 +947,7 @@ final class TaskRecord {
             }
             if (r.realActivity.equals(newR.realActivity)) {
                 // Here it is!  Now finish everything in front...
+                // 找到了，毁灭所有在之上的存在
                 final ActivityRecord ret = r;
 
                 for (++activityNdx; activityNdx < numActivities; ++activityNdx) {
@@ -913,6 +969,8 @@ final class TaskRecord {
                 // Finally, if this is a normal launch mode (that is, not
                 // expecting onNewIntent()), then we will finish the current
                 // instance of the activity so a new fresh one can be started.
+                // 最后，如果这是一个普通的启动模式（也就是说，不期待调用onNewIntent方法），
+                // 我们将结束当前的这个指定activity的实例，所以一个新鲜的实例可以被启动
                 if (ret.launchMode == ActivityInfo.LAUNCH_MULTIPLE
                         && (launchFlags & Intent.FLAG_ACTIVITY_SINGLE_TOP) == 0) {
                     if (!ret.finishing) {
@@ -951,12 +1009,18 @@ final class TaskRecord {
 
     String lockTaskAuthToString() {
         switch (mLockTaskAuth) {
-            case LOCK_TASK_AUTH_DONT_LOCK: return "LOCK_TASK_AUTH_DONT_LOCK";
-            case LOCK_TASK_AUTH_PINNABLE: return "LOCK_TASK_AUTH_PINNABLE";
-            case LOCK_TASK_AUTH_LAUNCHABLE: return "LOCK_TASK_AUTH_LAUNCHABLE";
-            case LOCK_TASK_AUTH_WHITELISTED: return "LOCK_TASK_AUTH_WHITELISTED";
-            case LOCK_TASK_AUTH_LAUNCHABLE_PRIV: return "LOCK_TASK_AUTH_LAUNCHABLE_PRIV";
-            default: return "unknown=" + mLockTaskAuth;
+            case LOCK_TASK_AUTH_DONT_LOCK:
+                return "LOCK_TASK_AUTH_DONT_LOCK";
+            case LOCK_TASK_AUTH_PINNABLE:
+                return "LOCK_TASK_AUTH_PINNABLE";
+            case LOCK_TASK_AUTH_LAUNCHABLE:
+                return "LOCK_TASK_AUTH_LAUNCHABLE";
+            case LOCK_TASK_AUTH_WHITELISTED:
+                return "LOCK_TASK_AUTH_WHITELISTED";
+            case LOCK_TASK_AUTH_LAUNCHABLE_PRIV:
+                return "LOCK_TASK_AUTH_LAUNCHABLE_PRIV";
+            default:
+                return "unknown=" + mLockTaskAuth;
         }
     }
 
@@ -970,7 +1034,7 @@ final class TaskRecord {
         switch (mLockTaskMode) {
             case LOCK_TASK_LAUNCH_MODE_DEFAULT:
                 mLockTaskAuth = isLockTaskWhitelistedLocked() ?
-                    LOCK_TASK_AUTH_WHITELISTED : LOCK_TASK_AUTH_PINNABLE;
+                        LOCK_TASK_AUTH_WHITELISTED : LOCK_TASK_AUTH_PINNABLE;
                 break;
 
             case LOCK_TASK_LAUNCH_MODE_NEVER:
@@ -1054,7 +1118,9 @@ final class TaskRecord {
         return null;
     }
 
-    /** Updates the last task description values. */
+    /**
+     * Updates the last task description values.
+     */
     void updateTaskDescription() {
         // Traverse upwards looking for any break between main task activities and
         // utility activities.
@@ -1063,7 +1129,7 @@ final class TaskRecord {
         final boolean relinquish = numActivities == 0 ? false :
                 (mActivities.get(0).info.flags & ActivityInfo.FLAG_RELINQUISH_TASK_IDENTITY) != 0;
         for (activityNdx = Math.min(numActivities, 1); activityNdx < numActivities;
-                ++activityNdx) {
+             ++activityNdx) {
             final ActivityRecord r = mActivities.get(activityNdx);
             if (relinquish && (r.info.flags & ActivityInfo.FLAG_RELINQUISH_TASK_IDENTITY) == 0) {
                 // This will be the top activity for determining taskDescription. Pre-inc to
@@ -1388,7 +1454,7 @@ final class TaskRecord {
                 realActivitySuspended, userSetupComplete, minWidth, minHeight);
         task.updateOverrideConfiguration(bounds);
 
-        for (int activityNdx = activities.size() - 1; activityNdx >=0; --activityNdx) {
+        for (int activityNdx = activities.size() - 1; activityNdx >= 0; --activityNdx) {
             activities.get(activityNdx).task = task;
         }
 
@@ -1441,6 +1507,7 @@ final class TaskRecord {
 
     /**
      * Update task's override configuration based on the bounds.
+     *
      * @param bounds The bounds of the task.
      * @return Update configuration or null if there is no change.
      */
@@ -1450,7 +1517,8 @@ final class TaskRecord {
 
     /**
      * Update task's override configuration based on the bounds.
-     * @param bounds The bounds of the task.
+     *
+     * @param bounds      The bounds of the task.
      * @param insetBounds The bounds used to calculate the system insets, which is used here to
      *                    subtract the navigation bar/status bar size from the screen size reported
      *                    to the application. See {@link IActivityManager#resizeDockedStack}.
@@ -1532,9 +1600,9 @@ final class TaskRecord {
         // TODO(multidisplay): Update Dp to that of display stack is on.
         final float density = serviceConfig.densityDpi * DisplayMetrics.DENSITY_DEFAULT_SCALE;
         config.screenWidthDp =
-                Math.min((int)(mTmpStableBounds.width() / density), serviceConfig.screenWidthDp);
+                Math.min((int) (mTmpStableBounds.width() / density), serviceConfig.screenWidthDp);
         config.screenHeightDp =
-                Math.min((int)(mTmpStableBounds.height() / density), serviceConfig.screenHeightDp);
+                Math.min((int) (mTmpStableBounds.height() / density), serviceConfig.screenHeightDp);
 
         // TODO: Orientation?
         config.orientation = (config.screenWidthDp <= config.screenHeightDp)
@@ -1549,11 +1617,12 @@ final class TaskRecord {
         // For calculating screen layout, we need to use the non-decor inset screen area for the
         // calculation for compatibility reasons, i.e. screen area without system bars that could
         // never go away in Honeycomb.
-        final int compatScreenWidthDp = (int)(mTmpNonDecorBounds.width() / density);
-        final int compatScreenHeightDp = (int)(mTmpNonDecorBounds.height() / density);
+        final int compatScreenWidthDp = (int) (mTmpNonDecorBounds.width() / density);
+        final int compatScreenHeightDp = (int) (mTmpNonDecorBounds.height() / density);
         final int sl = Configuration.resetScreenLayout(serviceConfig.screenLayout);
         final int longSize = Math.max(compatScreenHeightDp, compatScreenWidthDp);
-        final int shortSize = Math.min(compatScreenHeightDp, compatScreenWidthDp);;
+        final int shortSize = Math.min(compatScreenHeightDp, compatScreenWidthDp);
+        ;
         config.screenLayout = Configuration.reduceScreenLayout(sl, longSize, shortSize);
 
         config.smallestScreenWidthDp = mService.mWindowManager.getSmallestWidthForTaskBounds(
@@ -1620,8 +1689,10 @@ final class TaskRecord {
         return bounds;
     }
 
-    /** Updates the task's bounds and override configuration to match what is expected for the
-     * input stack. */
+    /**
+     * Updates the task's bounds and override configuration to match what is expected for the
+     * input stack.
+     */
     void updateOverrideConfigurationForStack(ActivityStack inStack) {
         if (stack != null && stack == inStack) {
             return;
@@ -1660,7 +1731,9 @@ final class TaskRecord {
         return FULLSCREEN_WORKSPACE_STACK_ID;
     }
 
-    /** Returns the bounds that should be used to launch this task. */
+    /**
+     * Returns the bounds that should be used to launch this task.
+     */
     Rect getLaunchBounds() {
         // If we're over lockscreen, forget about stack bounds and use fullscreen.
         if (mService.mLockScreenShown == LOCK_SCREEN_SHOWN) {
@@ -1683,108 +1756,150 @@ final class TaskRecord {
     }
 
     boolean canMatchRootAffinity() {
-        // We don't allow root affinity matching on the pinned stack as no other task should
+        // We don't allow root affinity matching on the pinned（牵制） stack as no other task should
         // be launching in it based on affinity.
         return rootAffinity != null && (stack == null || stack.mStackId != PINNED_STACK_ID);
     }
 
     void dump(PrintWriter pw, String prefix) {
-        pw.print(prefix); pw.print("userId="); pw.print(userId);
-                pw.print(" effectiveUid="); UserHandle.formatUid(pw, effectiveUid);
-                pw.print(" mCallingUid="); UserHandle.formatUid(pw, mCallingUid);
-                pw.print(" mUserSetupComplete="); pw.print(mUserSetupComplete);
-                pw.print(" mCallingPackage="); pw.println(mCallingPackage);
+        pw.print(prefix);
+        pw.print("userId=");
+        pw.print(userId);
+        pw.print(" effectiveUid=");
+        UserHandle.formatUid(pw, effectiveUid);
+        pw.print(" mCallingUid=");
+        UserHandle.formatUid(pw, mCallingUid);
+        pw.print(" mUserSetupComplete=");
+        pw.print(mUserSetupComplete);
+        pw.print(" mCallingPackage=");
+        pw.println(mCallingPackage);
         if (affinity != null || rootAffinity != null) {
-            pw.print(prefix); pw.print("affinity="); pw.print(affinity);
+            pw.print(prefix);
+            pw.print("affinity=");
+            pw.print(affinity);
             if (affinity == null || !affinity.equals(rootAffinity)) {
-                pw.print(" root="); pw.println(rootAffinity);
+                pw.print(" root=");
+                pw.println(rootAffinity);
             } else {
                 pw.println();
             }
         }
         if (voiceSession != null || voiceInteractor != null) {
-            pw.print(prefix); pw.print("VOICE: session=0x");
+            pw.print(prefix);
+            pw.print("VOICE: session=0x");
             pw.print(Integer.toHexString(System.identityHashCode(voiceSession)));
             pw.print(" interactor=0x");
             pw.println(Integer.toHexString(System.identityHashCode(voiceInteractor)));
         }
         if (intent != null) {
             StringBuilder sb = new StringBuilder(128);
-            sb.append(prefix); sb.append("intent={");
+            sb.append(prefix);
+            sb.append("intent={");
             intent.toShortString(sb, false, true, false, true);
             sb.append('}');
             pw.println(sb.toString());
         }
         if (affinityIntent != null) {
             StringBuilder sb = new StringBuilder(128);
-            sb.append(prefix); sb.append("affinityIntent={");
+            sb.append(prefix);
+            sb.append("affinityIntent={");
             affinityIntent.toShortString(sb, false, true, false, true);
             sb.append('}');
             pw.println(sb.toString());
         }
         if (origActivity != null) {
-            pw.print(prefix); pw.print("origActivity=");
+            pw.print(prefix);
+            pw.print("origActivity=");
             pw.println(origActivity.flattenToShortString());
         }
         if (realActivity != null) {
-            pw.print(prefix); pw.print("realActivity=");
+            pw.print(prefix);
+            pw.print("realActivity=");
             pw.println(realActivity.flattenToShortString());
         }
         if (autoRemoveRecents || isPersistable || taskType != 0 || mTaskToReturnTo != 0
                 || numFullscreen != 0) {
-            pw.print(prefix); pw.print("autoRemoveRecents="); pw.print(autoRemoveRecents);
-                    pw.print(" isPersistable="); pw.print(isPersistable);
-                    pw.print(" numFullscreen="); pw.print(numFullscreen);
-                    pw.print(" taskType="); pw.print(taskType);
-                    pw.print(" mTaskToReturnTo="); pw.println(mTaskToReturnTo);
+            pw.print(prefix);
+            pw.print("autoRemoveRecents=");
+            pw.print(autoRemoveRecents);
+            pw.print(" isPersistable=");
+            pw.print(isPersistable);
+            pw.print(" numFullscreen=");
+            pw.print(numFullscreen);
+            pw.print(" taskType=");
+            pw.print(taskType);
+            pw.print(" mTaskToReturnTo=");
+            pw.println(mTaskToReturnTo);
         }
         if (rootWasReset || mNeverRelinquishIdentity || mReuseTask
                 || mLockTaskAuth != LOCK_TASK_AUTH_PINNABLE) {
-            pw.print(prefix); pw.print("rootWasReset="); pw.print(rootWasReset);
-                    pw.print(" mNeverRelinquishIdentity="); pw.print(mNeverRelinquishIdentity);
-                    pw.print(" mReuseTask="); pw.print(mReuseTask);
-                    pw.print(" mLockTaskAuth="); pw.println(lockTaskAuthToString());
+            pw.print(prefix);
+            pw.print("rootWasReset=");
+            pw.print(rootWasReset);
+            pw.print(" mNeverRelinquishIdentity=");
+            pw.print(mNeverRelinquishIdentity);
+            pw.print(" mReuseTask=");
+            pw.print(mReuseTask);
+            pw.print(" mLockTaskAuth=");
+            pw.println(lockTaskAuthToString());
         }
         if (mAffiliatedTaskId != taskId || mPrevAffiliateTaskId != INVALID_TASK_ID
                 || mPrevAffiliate != null || mNextAffiliateTaskId != INVALID_TASK_ID
                 || mNextAffiliate != null) {
-            pw.print(prefix); pw.print("affiliation="); pw.print(mAffiliatedTaskId);
-                    pw.print(" prevAffiliation="); pw.print(mPrevAffiliateTaskId);
-                    pw.print(" (");
-                    if (mPrevAffiliate == null) {
-                        pw.print("null");
-                    } else {
-                        pw.print(Integer.toHexString(System.identityHashCode(mPrevAffiliate)));
-                    }
-                    pw.print(") nextAffiliation="); pw.print(mNextAffiliateTaskId);
-                    pw.print(" (");
-                    if (mNextAffiliate == null) {
-                        pw.print("null");
-                    } else {
-                        pw.print(Integer.toHexString(System.identityHashCode(mNextAffiliate)));
-                    }
-                    pw.println(")");
+            pw.print(prefix);
+            pw.print("affiliation=");
+            pw.print(mAffiliatedTaskId);
+            pw.print(" prevAffiliation=");
+            pw.print(mPrevAffiliateTaskId);
+            pw.print(" (");
+            if (mPrevAffiliate == null) {
+                pw.print("null");
+            } else {
+                pw.print(Integer.toHexString(System.identityHashCode(mPrevAffiliate)));
+            }
+            pw.print(") nextAffiliation=");
+            pw.print(mNextAffiliateTaskId);
+            pw.print(" (");
+            if (mNextAffiliate == null) {
+                pw.print("null");
+            } else {
+                pw.print(Integer.toHexString(System.identityHashCode(mNextAffiliate)));
+            }
+            pw.println(")");
         }
-        pw.print(prefix); pw.print("Activities="); pw.println(mActivities);
+        pw.print(prefix);
+        pw.print("Activities=");
+        pw.println(mActivities);
         if (!askedCompatMode || !inRecents || !isAvailable) {
-            pw.print(prefix); pw.print("askedCompatMode="); pw.print(askedCompatMode);
-                    pw.print(" inRecents="); pw.print(inRecents);
-                    pw.print(" isAvailable="); pw.println(isAvailable);
+            pw.print(prefix);
+            pw.print("askedCompatMode=");
+            pw.print(askedCompatMode);
+            pw.print(" inRecents=");
+            pw.print(inRecents);
+            pw.print(" isAvailable=");
+            pw.println(isAvailable);
         }
-        pw.print(prefix); pw.print("lastThumbnail="); pw.print(mLastThumbnail);
-                pw.print(" lastThumbnailFile="); pw.println(mLastThumbnailFile);
+        pw.print(prefix);
+        pw.print("lastThumbnail=");
+        pw.print(mLastThumbnail);
+        pw.print(" lastThumbnailFile=");
+        pw.println(mLastThumbnailFile);
         if (lastDescription != null) {
-            pw.print(prefix); pw.print("lastDescription="); pw.println(lastDescription);
+            pw.print(prefix);
+            pw.print("lastDescription=");
+            pw.println(lastDescription);
         }
         if (stack != null) {
-            pw.print(prefix); pw.print("stackId="); pw.println(stack.mStackId);
+            pw.print(prefix);
+            pw.print("stackId=");
+            pw.println(stack.mStackId);
         }
         pw.print(prefix + "hasBeenVisible=" + hasBeenVisible);
-                pw.print(" mResizeMode=" + ActivityInfo.resizeModeToString(mResizeMode));
-                pw.print(" isResizeable=" + isResizeable());
-                pw.print(" firstActiveTime=" + lastActiveTime);
-                pw.print(" lastActiveTime=" + lastActiveTime);
-                pw.println(" (inactive for " + (getInactiveDuration() / 1000) + "s)");
+        pw.print(" mResizeMode=" + ActivityInfo.resizeModeToString(mResizeMode));
+        pw.print(" isResizeable=" + isResizeable());
+        pw.print(" firstActiveTime=" + lastActiveTime);
+        pw.print(" lastActiveTime=" + lastActiveTime);
+        pw.println(" (inactive for " + (getInactiveDuration() / 1000) + "s)");
     }
 
     @Override

@@ -732,6 +732,8 @@ final class ActivityStack {
     /**
      * Returns the top activity in any existing task matching the given Intent in the input result.
      * Returns null if no such task is found.
+     * 从匹配给定intent对象（与新activity一致的）的，已存在的任何task中，返回最上面的activity
+     * 如果没有这样的task，则返回null
      */
     void findTaskLocked(ActivityRecord target, FindTaskResult result) {
         Intent intent = target.intent;
@@ -749,7 +751,7 @@ final class ActivityStack {
         for (int taskNdx = mTaskHistory.size() - 1; taskNdx >= 0; --taskNdx) {
             final TaskRecord task = mTaskHistory.get(taskNdx);
             if (task.voiceSession != null) {
-                // We never match voice sessions; those always run independently.
+                // We never match voice sessions; those always run independently(独立).
                 if (DEBUG_TASKS) Slog.d(TAG_TASKS, "Skipping " + task + ": voice session");
                 continue;
             }
@@ -792,6 +794,7 @@ final class ActivityStack {
             if (taskIntent != null && taskIntent.getComponent() != null &&
                     taskIntent.getComponent().compareTo(cls) == 0 &&
                     Objects.equals(documentData, taskDocumentData)) {
+                // task的intent包含的组件等于新activity的组件
                 if (DEBUG_TASKS) Slog.d(TAG_TASKS, "Found matching class!");
                 //dump();
                 if (DEBUG_TASKS) Slog.d(TAG_TASKS,
@@ -802,6 +805,7 @@ final class ActivityStack {
             } else if (affinityIntent != null && affinityIntent.getComponent() != null &&
                     affinityIntent.getComponent().compareTo(cls) == 0 &&
                     Objects.equals(documentData, taskDocumentData)) {
+                // task的亲和性intent包含的组件等于新activity的组件
                 if (DEBUG_TASKS) Slog.d(TAG_TASKS, "Found matching class!");
                 //dump();
                 if (DEBUG_TASKS) Slog.d(TAG_TASKS,
@@ -812,6 +816,7 @@ final class ActivityStack {
             } else if (!isDocument && !taskIsDocument
                     && result.r == null && task.canMatchRootAffinity()) {
                 if (task.rootAffinity.equals(target.taskAffinity)) {
+                    // rootAffinity相等
                     if (DEBUG_TASKS) Slog.d(TAG_TASKS, "Found matching affinity candidate!");
                     // It is possible for multiple tasks to have the same root affinity especially
                     // if they are in separate stacks. We save off this candidate, but keep looking

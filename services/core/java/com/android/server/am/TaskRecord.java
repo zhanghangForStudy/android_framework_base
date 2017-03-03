@@ -246,6 +246,8 @@ final class TaskRecord {
      * Indication of what to run next when task exits. Use ActivityRecord types.
      * ActivityRecord.APPLICATION_ACTIVITY_TYPE indicates to resume the task below this one in the
      * task stack.
+     * 当task退出后，下一个运行什么的标示。
+     * ActivityRecord.APPLICATION_ACTIVITY_TYPE表示恢复此task之下的task
      */
     private int mTaskToReturnTo = APPLICATION_ACTIVITY_TYPE;
 
@@ -265,6 +267,9 @@ final class TaskRecord {
     private TaskThumbnailInfo mLastThumbnailInfo;
     CharSequence lastDescription; // Last description captured for this item.
 
+    /**
+     * 父任务的id或者自身的任务id
+     */
     int mAffiliatedTaskId; // taskId of parent affiliation or self if no parent.
     int mAffiliatedTaskColor; // color of the parent task affiliation.
     TaskRecord mPrevAffiliate; // previous task in affiliated chain.

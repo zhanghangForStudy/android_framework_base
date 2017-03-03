@@ -516,7 +516,7 @@ public class ActivityManager {
         /** ID of stack where freeform/resized activities are normally launched into. */
         public static final int FREEFORM_WORKSPACE_STACK_ID = FULLSCREEN_WORKSPACE_STACK_ID + 1;
 
-        /** ID of stack that occupies a dedicated region of the screen. */
+        /** ID of stack that occupies（占领，使用） a dedicated（专用） region of the screen. */
         public static final int DOCKED_STACK_ID = FREEFORM_WORKSPACE_STACK_ID + 1;
 
         /** ID of stack that always on top (always visible) when it exist. */

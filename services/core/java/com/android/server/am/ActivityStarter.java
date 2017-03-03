@@ -202,6 +202,9 @@ class ActivityStarter {
      */
     private TaskRecord mInTask;
     private boolean mAddingToTask;
+    /**
+     * 用来运行新activity的Task
+     */
     private TaskRecord mReuseTask;
 
     /**
@@ -218,8 +221,15 @@ class ActivityStarter {
     private ActivityStack mSourceStack;
     private ActivityStack mTargetStack;
     // Indicates that we moved other task and are going to put something on top soon, so
-    // we don't want to show it redundantly or accidentally change what's shown below.
+    // we don't want to show it redundantly（多余的） or accidentally（偶然的） change what's shown below.
+    /**
+     * 用来标识我们移动了其他的task并且即将放置一些内容到顶端
+     */
     private boolean mMovedOtherTask;
+    /**
+     * 是否将某一task移动到了某一个stack的顶部
+     * 此值只会在{@link #setTargetStackAndMoveToFrontIfNeeded(ActivityRecord)}方法修改
+     */
     private boolean mMovedToFront;
     private boolean mNoAnimation;
     private boolean mKeepCurTransition;
@@ -1778,24 +1788,39 @@ class ActivityStarter {
         return intentActivity;
     }
 
+    /**
+     * 设置目标stack，并且如果需要，将此stack移动到前台
+     *
+     * @param intentActivity
+     * @return
+     */
     private ActivityRecord setTargetStackAndMoveToFrontIfNeeded(ActivityRecord intentActivity) {
         mTargetStack = intentActivity.task.stack;
         mTargetStack.mLastPausedActivity = null;
         // If the target task is not in the front, then we need to bring it to the front...
-        // except...  well, with SINGLE_TASK_LAUNCH it's not entirely clear. We'd like to have
+        // except...  well, with SINGLE_TASK_LAUNCH it's not entirely(完全的) clear. We'd like to have
         // the same behavior as if a new instance was being started, which means not bringing it
         // to the front if the caller is not itself in the front.
+        // 如果目标task不在前台，我们需要将它带到前台...
+        // 但是对于SINGLE_TASK而言，则无需完全清除。我们更愿意有一个相同的行为，即便一个新的实例被启动了，
+        // 这意味着，如果调用者本身都没有在前台，那就不需要将它带到前台
         final ActivityStack focusStack = mSupervisor.getFocusedStack();
+        // 当前和用户交互的activity
         ActivityRecord curTop = (focusStack == null)
                 ? null : focusStack.topRunningNonDelayedActivityLocked(mNotTop);
 
+        /**以下代码处理目标task不等于前台task，或者目标stack不是前台stack的情况*/
         if (curTop != null
                 && (curTop.task != intentActivity.task || curTop.task != focusStack.topTask())
                 && !mAvoidMoveToFront) {
+            // 系统允许前台移动，且（目标task不等于当前的前台task，或者目标stack不是当前的前台task）
             mStartActivity.intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
+            /**以下代码处理旧activity为空，或者旧activity位于其对应的statck的顶端task中的情况*/
             if (mSourceRecord == null || (mSourceStack.topActivity() != null &&
                     mSourceStack.topActivity().task == mSourceRecord.task)) {
+                // 旧activity处于其对应的stack的顶端task之中
                 // We really do want to push this one into the user's face, right now.
+                // 这种情况下，我们真实的期望立即将它置于用户面前。
                 if (mLaunchTaskBehind && mSourceRecord != null) {
                     intentActivity.setTaskToAffiliateWith(mSourceRecord.task);
                 }
@@ -1807,16 +1832,24 @@ class ActivityStarter {
                 // resuming, plus enter AND exit transitions.
                 // Here we only want to bring the target stack forward. Transition will be applied
                 // to the new activity that's started after the old ones are gone.
+                // 如果启动标志既含有NEW_TASK和CLEAR_TASK，则task的activity将很快被清除
+                // 所以不要在此处指定重新运行的任何activity，这样做只是浪费了一个额外的重运行，以及进入和退出的过渡。
+                // 在此处我们只想将目标task提前，在旧activity消失之后，过渡动画将被提供给新activity
                 final boolean willClearTask =
                         (mLaunchFlags & (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK))
                                 == (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK);
+                // 如果不清除task
                 if (!willClearTask) {
+                    // 一般getLaunchStack返回为null？
                     final ActivityStack launchStack = getLaunchStack(
                             mStartActivity, mLaunchFlags, mStartActivity.task, mOptions);
                     if (launchStack == null || launchStack == mTargetStack) {
                         // We only want to move to the front, if we aren't going to launch on a
                         // different stack. If we launch on a different stack, we will put the
                         // task on top there.
+                        // 如果我们不运行到一个不同的stack上，我们只会移动到前台。
+                        // 如果我们运行到一个不同的stack上，我们则将目标task移动到顶部
+                        // 将目标task移动到目标stack的顶部
                         mTargetStack.moveTaskToFrontLocked(
                                 intentActivity.task, mNoAnimation, mOptions,
                                 mStartActivity.appTimeTracker, "bringingFoundTaskToFront");
@@ -1844,7 +1877,15 @@ class ActivityStarter {
                 }
                 updateTaskReturnToType(intentActivity.task, mLaunchFlags, focusStack);
             }
+            /**以上代码处理旧activity为空，或者旧activity不位于当前statck的顶端task中的情况*/
         }
+        /**以上代码处理目标task不等于前台task，或者目标stack不是前台stack的情况*/
+
+        // 如果没有将相应的task移动到指定的stack的顶部
+        // 但是又需要重新启动（新的activity）
+        // 如果目标task不是顶端task，或者旧activity并不位于其task的顶端（旧activity不在用户面前，可能被其他stack覆盖了），
+        // 或者需要清除task，或者期望的stack与目标stack不一致
+        // 直接将整个目标stack移动到前台
         if (!mMovedToFront && mDoResume) {
             if (DEBUG_TASKS) Slog.d(TAG_TASKS, "Bring to front target: " + mTargetStack
                     + " from " + intentActivity);

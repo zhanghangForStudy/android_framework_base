@@ -271,6 +271,8 @@ final class ActivityStack {
      * This is the last activity that we put into the paused state.  This is
      * used to determine if we need to do an activity transition while sleeping,
      * when we normally hold the top activity paused.
+     * 上一个被置入暂停状态的activity。这被用来决定当随眠的时候，我们是否需要执行一个activity过渡，
+     *
      */
     ActivityRecord mLastPausedActivity = null;
 
@@ -680,6 +682,8 @@ final class ActivityStack {
     }
 
     /**
+     * 将当前stack移动到整个显示屏幕的顶端
+     * 并通知WMS将当前stack对应的top task移动到顶端
      * @param reason The reason for moving the stack to the front.
      * @param task If non-null, the task will be moved to the top of the stack.
      * */
@@ -4300,6 +4304,14 @@ final class ActivityStack {
         }
     }
 
+    /**
+     * 将指定的task移动到当前stack的顶端
+     * @param tr
+     * @param noAnimation
+     * @param options
+     * @param timeTracker
+     * @param reason
+     */
     final void moveTaskToFrontLocked(TaskRecord tr, boolean noAnimation, ActivityOptions options,
             AppTimeTracker timeTracker, String reason) {
         if (DEBUG_SWITCH) Slog.v(TAG_SWITCH, "moveTaskToFront: " + tr);
@@ -4325,9 +4337,11 @@ final class ActivityStack {
 
         // Shift all activities with this task up to the top
         // of the stack, keeping them in the same internal order.
+        // 将此task中的所有activity都转移到此stack的顶部，并保持它们在task中的顺序
         insertTaskAtTop(tr, null);
 
         // Don't refocus if invisible to current user
+        // 如果最顶部的activity对于用户不可见，则不通知WMS重新聚焦
         ActivityRecord top = tr.getTopActivity();
         if (!okToShowLocked(top)) {
             addRecentActivityLocked(top);

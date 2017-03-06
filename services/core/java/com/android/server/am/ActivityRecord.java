@@ -160,7 +160,10 @@ final class ActivityRecord {
     // should never be altered directly.
     Configuration taskConfigOverride;
     CompatibilityInfo compat;// last used compatibility mode
-    ActivityRecord resultTo; // who started this entry, so will get our reply接收此Acitivity结束后的结果的activity
+    /**
+     * 接收此Acitivity结束后的结果的activity
+     */
+    ActivityRecord resultTo; // who started this entry, so will get our reply
     final String resultWho; // additional（额外的） identifier for use by resultTo.
     final int requestCode;  // code given by requester (resultTo)
     /**

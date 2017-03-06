@@ -1896,6 +1896,7 @@ class ActivityStarter {
                 mTargetStack.mStackId);
 
         // If the caller has requested that the target task be reset, then do so.
+        // 如果调用者请求目标task重置，执行之
         if ((mLaunchFlags & FLAG_ACTIVITY_RESET_TASK_IF_NEEDED) != 0) {
             return mTargetStack.resetTaskIfNeededLocked(intentActivity, mStartActivity);
         }

@@ -218,6 +218,7 @@ public class ActivityInfo extends ComponentInfo
      * relaunched from home, this activity should be finished.
      * Set from the
      * {@link android.R.attr#finishOnTaskLaunch} attribute.
+     * 当此activity所在的task重新被系统运行时，结束此activity
      */
     public static final int FLAG_FINISH_ON_TASK_LAUNCH = 0x0002;
     /**
@@ -228,6 +229,10 @@ public class ActivityInfo extends ComponentInfo
      * This flag only applies to activities that
      * are used to start the root of a new task.  Set from the
      * {@link android.R.attr#clearTaskOnLaunch} attribute.
+     * 当activity是一个task的根，则当用户每次从home重启此activity的时候
+     * d=都需要清除此acitivty对应的task对应的栈。
+     * 作为一个结果，用户将总是返回到此task顶部的那个activity.
+     * 此标志只支持被用来启动一个新task的root的activity.
      */
     public static final int FLAG_CLEAR_TASK_ON_LAUNCH = 0x0004;
     /**
@@ -254,6 +259,7 @@ public class ActivityInfo extends ComponentInfo
      * Bit in {@link #flags} that indicates that the activity can be moved
      * between tasks based on its task affinity.  Set from the
      * {@link android.R.attr#allowTaskReparenting} attribute.
+     * activity能够在基于其任务亲和性的任务集合中移动
      */
     public static final int FLAG_ALLOW_TASK_REPARENTING = 0x0040;
     /**

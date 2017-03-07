@@ -32,19 +32,23 @@ import android.util.Log;
  * <p>A TextureView can be used to display a content stream. Such a content
  * stream can for instance be a video or an OpenGL scene. The content stream
  * can come from the application's process as well as a remote process.</p>
- *
+ * 一个textureview被用来展示一个内容流（例如视频流或者OpenGL场景）。
+ * 内容流可来至于应用的进程，也可以来至于远程进程。
  * <p>TextureView can only be used in a hardware accelerated window. When
  * rendered in software, TextureView will draw nothing.</p>
- *
+ * TextureView只能被用作硬件加速窗口。当在软件上渲染时，TextureView将不会绘制任何东西
  * <p>Unlike {@link SurfaceView}, TextureView does not create a separate
  * window but behaves as a regular View. This key difference allows a
  * TextureView to be moved, transformed, animated, etc. For instance, you
- * can make a TextureView semi-translucent by calling
- * <code>myView.setAlpha(0.5f)</code>.</p>
+ * can make a TextureView semi-translucent（半透明） by calling
+ * <code>myView.setAlpha(0.5f)</code>.
+ * 与SurfaceView不同，TextureView不会创造一个独立的窗口，但是会有一系列像正规view的行为。
+ * 关键的不同是运行一个TextureView被移动，被改观以及被动画等等。
+ * </p>
  *
  * <p>Using a TextureView is simple: all you need to do is get its
  * {@link SurfaceTexture}. The {@link SurfaceTexture} can then be used to
- * render content. The following example demonstrates how to render the
+ * render content. The following example demonstrates（展示） how to render the
  * camera preview into a TextureView:</p>
  *
  * <pre>
@@ -92,8 +96,10 @@ import android.util.Log;
  * {@link #getSurfaceTexture()} or by using a {@link SurfaceTextureListener}.
  * It is important to know that a SurfaceTexture is available only after the
  * TextureView is attached to a window (and {@link #onAttachedToWindow()} has
- * been invoked.) It is therefore highly recommended you use a listener to
- * be notified when the SurfaceTexture becomes available.</p>
+ * been invoked.) It is therefore（因此） highly recommended you use a listener to
+ * be notified when the SurfaceTexture becomes available.
+ *
+ * </p>
  *
  * <p>It is important to note that only one producer can use the TextureView.
  * For instance, if you use a TextureView to display the camera preview, you
@@ -111,6 +117,9 @@ public class TextureView extends View {
     private SurfaceTextureListener mListener;
     private boolean mHadSurface;
 
+    /**
+     * 是否不透明
+     */
     private boolean mOpaque = true;
 
     private final Matrix mMatrix = new Matrix();
@@ -266,7 +275,7 @@ public class TextureView extends View {
      * considered to act as a hardware layer. The optional paint supplied to this
      * method will however be taken into account when rendering the content of
      * this TextureView.
-     *
+     * TextureView的layer类型是被忽略的，因为一个TextureView总是被当做一个硬件layer。
      * @param layerType The type of layer to use with this view, must be one of
      *        {@link #LAYER_TYPE_NONE}, {@link #LAYER_TYPE_SOFTWARE} or
      *        {@link #LAYER_TYPE_HARDWARE}
@@ -326,12 +335,15 @@ public class TextureView extends View {
      */
     @Override
     public final void draw(Canvas canvas) {
-        // NOTE: Maintain this carefully (see View#draw)
+        // NOTE: Maintain（保持） this carefully (see View#draw)
         mPrivateFlags = (mPrivateFlags & ~PFLAG_DIRTY_MASK) | PFLAG_DRAWN;
 
-        /* Simplify drawing to guarantee the layer is the only thing drawn - so e.g. no background,
+        /* Simplify（简化） drawing to guarantee the layer is the only thing drawn - so e.g. no background,
         scrolling, or fading edges. This guarantees all drawing is in the layer, so drawing
-        properties (alpha, layer paint) affect all of the content of a TextureView. */
+        properties (alpha, layer paint) affect all of the content of a TextureView.
+        * 简化绘制，只生成唯一可绘制的东西——layer。
+        * 这样保证了所有的绘制都由此layer完成，所以绘制属性影响一个TextureView的所有内容
+        */
 
         if (canvas.isHardwareAccelerated()) {
             DisplayListCanvas displayListCanvas = (DisplayListCanvas) canvas;

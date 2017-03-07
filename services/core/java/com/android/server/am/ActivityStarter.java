@@ -16,6 +16,49 @@
 
 package com.android.server.am;
 
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.ActivityOptions;
+import android.app.AppGlobals;
+import android.app.IActivityContainer;
+import android.app.IActivityManager;
+import android.app.IApplicationThread;
+import android.app.KeyguardManager;
+import android.app.PendingIntent;
+import android.app.ProfilerInfo;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.IIntentSender;
+import android.content.Intent;
+import android.content.IntentSender;
+import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.pm.UserInfo;
+import android.content.res.Configuration;
+import android.graphics.Rect;
+import android.os.Binder;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.os.PowerManagerInternal;
+import android.os.RemoteException;
+import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.UserManager;
+import android.service.voice.IVoiceInteractionSession;
+import android.util.EventLog;
+import android.util.Slog;
+import android.view.Display;
+
+import com.android.internal.app.HeavyWeightSwitcherActivity;
+import com.android.internal.app.IVoiceInteractor;
+import com.android.server.am.ActivityStackSupervisor.PendingActivityLaunch;
+import com.android.server.wm.WindowManagerService;
+
+import java.util.ArrayList;
+
 import static android.app.Activity.RESULT_CANCELED;
 import static android.app.ActivityManager.START_CLASS_NOT_FOUND;
 import static android.app.ActivityManager.START_DELIVERED_TO_TOP;
@@ -77,50 +120,6 @@ import static com.android.server.am.ActivityStackSupervisor.PRESERVE_WINDOWS;
 import static com.android.server.am.ActivityStackSupervisor.TAG_TASKS;
 import static com.android.server.am.EventLogTags.AM_NEW_INTENT;
 
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityOptions;
-import android.app.AppGlobals;
-import android.app.IActivityContainer;
-import android.app.IActivityManager;
-import android.app.IApplicationThread;
-import android.app.KeyguardManager;
-import android.app.PendingIntent;
-import android.app.ProfilerInfo;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.IIntentSender;
-import android.content.Intent;
-import android.content.IntentSender;
-import android.content.pm.ActivityInfo;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
-import android.content.pm.UserInfo;
-import android.content.res.Configuration;
-import android.graphics.Rect;
-import android.os.Binder;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.os.PowerManagerInternal;
-import android.os.Process;
-import android.os.RemoteException;
-import android.os.SystemClock;
-import android.os.UserHandle;
-import android.os.UserManager;
-import android.service.voice.IVoiceInteractionSession;
-import android.util.EventLog;
-import android.util.Slog;
-import android.view.Display;
-
-import com.android.internal.app.HeavyWeightSwitcherActivity;
-import com.android.internal.app.IVoiceInteractor;
-import com.android.server.am.ActivityStackSupervisor.PendingActivityLaunch;
-import com.android.server.wm.WindowManagerService;
-
-import java.util.ArrayList;
-
 /**
  * Controller for interpreting how and then launching activities.
  * 接受如何启动activity，并启动activity的控制器
@@ -156,7 +155,7 @@ class ActivityStarter {
      */
     private ActivityRecord mStartActivity;
     /**
-     * 已经展示或者即将展示的 activity
+     * 已经展示或者即将展示的最top activity
      */
     private ActivityRecord mReusedActivity;
     /**
@@ -189,7 +188,13 @@ class ActivityStarter {
 
     private Rect mLaunchBounds;
 
+    /**
+     * 不能作为top的activity
+     */
     private ActivityRecord mNotTop;
+    /**
+     * 当前系统是否可以恢复一个activity
+     */
     private boolean mDoResume;
     private int mStartFlags;
     /**
@@ -201,6 +206,9 @@ class ActivityStarter {
      * 用来运行新activity的Task(TaskRecord对象)，可能为空
      */
     private TaskRecord mInTask;
+    /**
+     * 是否需要将新activity添加至一个已存在的task之中
+     */
     private boolean mAddingToTask;
     /**
      * 用来运行新activity的Task
@@ -1242,7 +1250,7 @@ class ActivityStarter {
         // 此处的mReusedActivity分为两种情况：
         // 1、如果新activity是single_instance模式，或者启动标志位上含有FLAG_ACTIVITY_LAUNCH_ADJACENT（分屏多窗口模式，手机暂不考虑），
         //    则返回的ActivityRecord表示与新activity组件名或intent相等的activityrecord。
-        // 2、除此之外，返回一个task的top activity，此activity满足一下三个条件：
+        // 2、除此之外，返回一个task的top activity，此task满足一下三个条件：
         //     1）task的初始intent包含的组件与新activity对应的组件相等；
         //     2）task的亲和性intent包含的组件与新activity对应的组件相等；
         //     3）task的rootAffinity等于新activity的taskAffinity;
@@ -1302,21 +1310,27 @@ class ActivityStarter {
 
             // 一些电源处理
             sendPowerHintForLaunchStartIfNeeded(false /* forceSend */);
-
+            // 将目标task移动至前台
             mReusedActivity = setTargetStackAndMoveToFrontIfNeeded(mReusedActivity);
 
             if ((mStartFlags & START_FLAG_ONLY_IF_NEEDED) != 0) {
                 // We don't need to start a new activity, and the client said not to do anything
                 // if that is the case, so this is it!  And for paranoia, make sure we have
                 // correctly resumed the top activity.
+                // 我们不需要启动一个新的activtiy,如果是这样，客户端不做任何事情。
+                // resumeTargetStackIfNeeded确保我们正确的重新开始top activity
                 resumeTargetStackIfNeeded();
                 return START_RETURN_INTENT_TO_CALLER;
             }
+
+            // 因为重排会引起task的一些变化，所以需要此方法进一步进行调整
             setTaskFromIntentActivity(mReusedActivity);
 
             if (!mAddingToTask && mReuseTask == null) {
                 // We didn't do anything...  but it was needed (a.k.a., client don't use that
                 // intent!)  And for paranoia, make sure we have correctly resumed the top activity.
+                // 此分支下，我们不需要做任何事情...
+                // 但是需要保我们正确的重新开始top activity
                 resumeTargetStackIfNeeded();
                 return START_TASK_TO_FRONT;
             }
@@ -1324,6 +1338,7 @@ class ActivityStarter {
         /**以上代码是对找到了合适的task的处理*/
 
         if (mStartActivity.packageName == null) {
+            // 如果新activity没有包名，则向旧activity发送一个取消结果，并返回值
             if (mStartActivity.resultTo != null && mStartActivity.resultTo.task.stack != null) {
                 mStartActivity.resultTo.task.stack.sendActivityResultLocked(
                         -1, mStartActivity.resultTo, mStartActivity.resultWho,
@@ -1333,10 +1348,18 @@ class ActivityStarter {
             return START_CLASS_NOT_FOUND;
         }
 
+        /**以下代码处理singletop,且当前焦点stack的top activity就是新activity的情况*/
         // If the activity being launched is the same as the one currently at the top, then
         // we need to check if it should only be launched once.
+        // 如果新activity与top activity一致，我们需要检测是否需要立即运行之
         final ActivityStack topStack = mSupervisor.mFocusedStack;
+        // 找到焦点stack中的top activity
         final ActivityRecord top = topStack.topRunningNonDelayedActivityLocked(mNotTop);
+        // 如果新activity的结果接收者为空，且
+        // 焦点stack中的top activity与新activity同为一个类的两个对象，且
+        // 两者的userid相同，且
+        // 焦点stack中的top activity所在的进程存在，且
+        // 启动标志为singletop，则不运行新activity
         final boolean dontStart = top != null && mStartActivity.resultTo == null
                 && top.realActivity.equals(mStartActivity.realActivity)
                 && top.userId == mStartActivity.userId
@@ -1346,8 +1369,10 @@ class ActivityStarter {
         if (dontStart) {
             ActivityStack.logStartActivity(AM_NEW_INTENT, top, top.task);
             // For paranoia, make sure we have correctly resumed the top activity.
+            // 为了面对一些不确定的情况，确保焦点stack中的top activity运行
             topStack.mLastPausedActivity = null;
             if (mDoResume) {
+                // 为了面对一些不确定的情况，确保焦点stack中的top activity运行
                 mSupervisor.resumeFocusedStackTopActivityLocked();
             }
             ActivityOptions.abort(mOptions);
@@ -1356,6 +1381,7 @@ class ActivityStarter {
                 // anything if that is the case, so this is it!
                 return START_RETURN_INTENT_TO_CALLER;
             }
+            // 传递new intent
             top.deliverNewIntentLocked(
                     mCallingUid, mStartActivity.intent, mStartActivity.launchedFromPackage);
 
@@ -1366,12 +1392,14 @@ class ActivityStarter {
 
             return START_DELIVERED_TO_TOP;
         }
+        /**以上代码处理singletop,且当前焦点stack的top activity就是新activity的情况*/
 
         boolean newTask = false;
         final TaskRecord taskToAffiliate = (mLaunchTaskBehind && mSourceRecord != null)
                 ? mSourceRecord.task : null;
 
         // Should this be considered a new task?
+        // 是否应该看作一个新的task?
         if (mStartActivity.resultTo == null && mInTask == null && !mAddingToTask
                 && (mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0) {
             newTask = true;
@@ -1790,9 +1818,12 @@ class ActivityStarter {
 
     /**
      * 设置目标stack，并且如果需要，将此stack移动到前台
+     * 如果当前stack是前台stack，则移动相应的task至前台；
+     * 如果当前stack不是前台stack，则移动整个stack至前台；
+     * 最后，如果需要reset task，则reset之
      *
      * @param intentActivity
-     * @return
+     * @return top task的top activity
      */
     private ActivityRecord setTargetStackAndMoveToFrontIfNeeded(ActivityRecord intentActivity) {
         mTargetStack = intentActivity.task.stack;
@@ -1920,29 +1951,52 @@ class ActivityStarter {
         task.setTaskToReturnTo(APPLICATION_ACTIVITY_TYPE);
     }
 
+    /**
+     * <p>
+     * 主要处理一下四种情况：<br>
+     * 1、对于需要FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK的启动模式，移除指定task中的所有activity，并将新activity的intent设置为task的启动intent；<br>
+     * 2、对于需要清除TOP的启动标志，清除顶部；如果清除顶部后;<br>
+     * 3、如果启动指定task的activity类名对于新activity的类名，则分为一下两种情况处理：<br>
+     * <ul>
+     * <li>1）如果是single top，并且task的top的类名也等于新activity的类名，直接向top activity发送new intent；</li>
+     * <li>2）如果task的启动intent不等于新activity的启动intent(也就是说类名相同，但是intent不相同)，则将新activity添加到指定task的top运行；</li>
+     * </ul>
+     * 4、对于没有FLAG_ACTIVITY_RESET_TASK_IF_NEEDED的启动标志而言，将新activity添加至指定task中的top运行；<br>
+     * </p>
+     *
+     * @param intentActivity
+     */
     private void setTaskFromIntentActivity(ActivityRecord intentActivity) {
         if ((mLaunchFlags & (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK))
                 == (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK)) {
             // The caller has requested to completely replace any existing task with its new
             // activity. Well that should not be too hard...
+            // 调用者请求完全替换任何存在的task
             mReuseTask = intentActivity.task;
+            // 移除此task中所有的activity，如果需要会finish activity
             mReuseTask.performClearTaskLocked();
             mReuseTask.setIntent(mStartActivity);
             // When we clear the task - focus will be adjusted, which will bring another task
             // to top before we launch the activity we need. This will temporary swap their
             // mTaskToReturnTo values and we don't want to overwrite them accidentally.
+            // 我们清除了此task，焦点将会被调整，在我们运行新activity之前，需要将其他一个任务放置前台。
+            // 我们会临时替换它们的mTaskToReturnTo值，并且我们不想意外的重写他们
             mMovedOtherTask = true;
         } else if ((mLaunchFlags & FLAG_ACTIVITY_CLEAR_TOP) != 0
                 || mLaunchSingleInstance || mLaunchSingleTask) {
+            // 清除顶部
             ActivityRecord top = intentActivity.task.performClearTaskLocked(mStartActivity,
                     mLaunchFlags);
             if (top == null) {
                 // A special case: we need to start the activity because it is not currently
                 // running, and the caller has asked to clear the current task to have this
                 // activity at the top.
+                // 一个特殊的情况：我们需要启动新activity，因为它当前并没运行，调用者请求清除当前task,
+                // 使得新activity位于顶部
                 mAddingToTask = true;
-                // Now pretend like this activity is being started by the top of its task, so it
+                // Now pretend(假装) like this activity is being started by the top of its task, so it
                 // is put in the right place.
+                // 假装此activity是由当前的top activity启动，以便将新activity放置正确的位置
                 mSourceRecord = intentActivity;
                 final TaskRecord task = mSourceRecord.task;
                 if (task != null && task.stack == null) {
@@ -1959,8 +2013,14 @@ class ActivityStarter {
             // so we take that as a request to bring the task to the foreground. If the top
             // activity in the task is the root activity, deliver this new intent to it if it
             // desires.
+            // 此分支中，新activity的类名等于启动指定task的启动activity类名?
+            // 所以我们将把指定task提至前台作为一个请求。
+            // 如果top activity是一个root activity,则将一个new intent发送给它，如果它需要的话
             if (((mLaunchFlags & FLAG_ACTIVITY_SINGLE_TOP) != 0 || mLaunchSingleTop)
                     && intentActivity.realActivity.equals(mStartActivity.realActivity)) {
+                // 此分支中，新activity的realactivity，指定task的启动activity的realactivity
+                // 以及task的top activity的realactivity相等
+                // 并且新activity singletop
                 ActivityStack.logStartActivity(AM_NEW_INTENT, mStartActivity,
                         intentActivity.task);
                 if (intentActivity.frontOfTask) {
@@ -1971,6 +2031,8 @@ class ActivityStarter {
             } else if (!intentActivity.task.isSameIntentFilter(mStartActivity)) {
                 // In this case we are launching the root activity of the task, but with a
                 // different intent. We should start a new instance on top.
+                // 此分支中，指定task的启动activity的realactivity等于新activity的realactivity
+                // 但是两者的intent不同，则我们在顶部启动一个新的实例
                 mAddingToTask = true;
                 mSourceRecord = intentActivity;
             }
@@ -1979,6 +2041,9 @@ class ActivityStarter {
             // resetting that task. This is typically the situation of launching an activity
             // from a notification or shortcut. We want to place the new activity on top of the
             // current task.
+            // 此分支中，新activity将在一个已存在的，无需重置的task中被运行。
+            // 通常的场景是从一个通知或者快捷方式运行一个activity.
+            // 我们期望将新activity定位到当前task的顶部
             mAddingToTask = true;
             mSourceRecord = intentActivity;
         } else if (!intentActivity.task.rootWasReset) {
@@ -1987,6 +2052,10 @@ class ActivityStarter {
             // we'd probably like to place this new task at the bottom of its stack, but that's
             // a little hard to do with the current organization of the code so for now we'll
             // just drop it.
+            // 在这种情况下我们在一个已经存在的，并没有被其前门启动的task中运行。
+            // 指定的task被提至前台。
+            // 理想的情况下，我们会将新task定位到stack的底部，但是就目前的代码组织而言，这样做有点小困难，
+            // 所以现在我们只是丢弃它
             intentActivity.task.setIntent(mStartActivity);
         }
     }

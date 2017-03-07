@@ -16,6 +16,60 @@
 
 package com.android.server.am;
 
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningTaskInfo;
+import android.app.ActivityManager.StackId;
+import android.app.ActivityOptions;
+import android.app.AppGlobals;
+import android.app.IActivityController;
+import android.app.ResultInfo;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.net.Uri;
+import android.os.Binder;
+import android.os.Bundle;
+import android.os.Debug;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
+import android.os.PersistableBundle;
+import android.os.RemoteException;
+import android.os.SystemClock;
+import android.os.Trace;
+import android.os.UserHandle;
+import android.service.voice.IVoiceInteractionSession;
+import android.util.ArraySet;
+import android.util.EventLog;
+import android.util.Log;
+import android.util.Slog;
+import android.view.Display;
+
+import com.android.internal.app.IVoiceInteractor;
+import com.android.internal.content.ReferrerIntent;
+import com.android.internal.os.BatteryStatsImpl;
+import com.android.server.Watchdog;
+import com.android.server.am.ActivityManagerService.ItemMatcher;
+import com.android.server.am.ActivityStackSupervisor.ActivityContainer;
+import com.android.server.wm.TaskGroup;
+import com.android.server.wm.WindowManagerService;
+
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import static android.app.ActivityManager.StackId.DOCKED_STACK_ID;
 import static android.app.ActivityManager.StackId.FREEFORM_WORKSPACE_STACK_ID;
 import static android.app.ActivityManager.StackId.FULLSCREEN_WORKSPACE_STACK_ID;
@@ -85,60 +139,6 @@ import static com.android.server.wm.AppTransition.TRANSIT_TASK_OPEN;
 import static com.android.server.wm.AppTransition.TRANSIT_TASK_OPEN_BEHIND;
 import static com.android.server.wm.AppTransition.TRANSIT_TASK_TO_BACK;
 import static com.android.server.wm.AppTransition.TRANSIT_TASK_TO_FRONT;
-
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningTaskInfo;
-import android.app.ActivityManager.StackId;
-import android.app.ActivityOptions;
-import android.app.AppGlobals;
-import android.app.IActivityController;
-import android.app.ResultInfo;
-import android.content.ComponentName;
-import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.content.pm.ApplicationInfo;
-import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.net.Uri;
-import android.os.Binder;
-import android.os.Bundle;
-import android.os.Debug;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
-import android.os.PersistableBundle;
-import android.os.RemoteException;
-import android.os.SystemClock;
-import android.os.Trace;
-import android.os.UserHandle;
-import android.service.voice.IVoiceInteractionSession;
-import android.util.ArraySet;
-import android.util.EventLog;
-import android.util.Log;
-import android.util.Slog;
-import android.view.Display;
-
-import com.android.internal.app.IVoiceInteractor;
-import com.android.internal.content.ReferrerIntent;
-import com.android.internal.os.BatteryStatsImpl;
-import com.android.server.Watchdog;
-import com.android.server.am.ActivityManagerService.ItemMatcher;
-import com.android.server.am.ActivityStackSupervisor.ActivityContainer;
-import com.android.server.wm.TaskGroup;
-import com.android.server.wm.WindowManagerService;
-
-import java.io.FileDescriptor;
-import java.io.PrintWriter;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * State and management of a single stack of activities.
@@ -580,6 +580,11 @@ final class ActivityStack {
         return null;
     }
 
+    /**
+     * 找到此stack中，最top的非结束、非延迟重新启动、非入参且可以显示的activity
+     * @param notTop
+     * @return
+     */
     final ActivityRecord topRunningNonDelayedActivityLocked(ActivityRecord notTop) {
         for (int taskNdx = mTaskHistory.size() - 1; taskNdx >= 0; --taskNdx) {
             final TaskRecord task = mTaskHistory.get(taskNdx);
@@ -3130,7 +3135,7 @@ final class ActivityStack {
                 // up those remaining activities.  (This only happens if
                 // someone starts an activity in a new task from an activity
                 // in a task that is not currently on top.)
-                // 如果topTask已经重置了，且topTask的亲和力与当前目标的亲和力一直
+                // 如果topTask已经重置了，且topTask的亲和力与当前目标activity的亲和力一致
                 if (forceReset || finishOnTaskLaunch) {
                     // 如果需要结束目标activity
                     final int start = replyChainEnd >= 0 ? replyChainEnd : i;
@@ -3198,7 +3203,7 @@ final class ActivityStack {
     /**
      * @param taskTop     位于任务顶部的activity
      * @param newActivity 新activity
-     * @return
+     * @return reset后的top activity
      */
     final ActivityRecord resetTaskIfNeededLocked(ActivityRecord taskTop,
                                                  ActivityRecord newActivity) {
@@ -3235,12 +3240,14 @@ final class ActivityStack {
                 topOptions = resetTargetTaskIfNeededLocked(task, forceReset);
                 taskFound = true;
             } else {
+                // 将其他task中亲和性与top task的亲和性相同的activity全部移动至top task之中
                 reparentInsertionPoint = resetAffinityTaskIfNeededLocked(targetTask, task,
                         taskFound, forceReset, reparentInsertionPoint);
             }
         }
 
         int taskNdx = mTaskHistory.indexOf(task);
+        // 寻找重置后的top activity
         if (taskNdx >= 0) {
             do {
                 taskTop = mTaskHistory.get(taskNdx--).getTopActivity();

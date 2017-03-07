@@ -4512,8 +4512,8 @@ public class Intent implements Parcelable, Cloneable {
      * be used as the top, with the assumption being that the current activity
      * will finish itself immediately.
      * 如果设置了此标志，且此intent对象被用来从一个已经存在的旧activity启动一个新的activity,
-     * 则新activity将不会被视为决定intent对象应该交互给自己，而不是启动一个新的activity的top activity
-     * 旧activity将会作为top activity,并且会假设新activity会立即结束自己？
+     * 则新activity将不会成为top activity,并且此标志的设定，决定了是否将启动intent传递给top activity而不是启动一个新activity实例
+     * 旧activity将依旧会作为top activity,并且会假设新activity会立即结束自己
      */
     public static final int FLAG_ACTIVITY_PREVIOUS_IS_TOP = 0x01000000;
     /**
@@ -6038,10 +6038,11 @@ public class Intent implements Parcelable, Cloneable {
      * services.
      * 返回一个Intent的MIME数据类型，只被intent解析所需有。
      * 一般不会为应用开发所用。此数据类型，一般被framework用来和后端系统服务通信
-<<<<<<< Updated upstream
-=======
+     * <<<<<<< Updated upstream
+     * =======
+     * <p>
+     * >>>>>>> Stashed changes
      *
->>>>>>> Stashed changes
      * @param resolver A ContentResolver that can be used to determine the MIME
      *                 type of the intent's data.
      * @return The MIME type of this intent, or null if it is unknown or not

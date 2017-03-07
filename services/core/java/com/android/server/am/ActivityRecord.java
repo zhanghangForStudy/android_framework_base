@@ -121,6 +121,9 @@ final class ActivityRecord {
     final String launchedFromPackage; // always the package who started the activity.
     final int userId;          // Which user is this running for?
     final Intent intent;    // the original intent that generated(生成) us
+    /**
+     * activity真正的组件名
+     */
     final ComponentName realActivity;  // the intent component, or target of an alias.
     final String shortComponentName; // the short component name of the intent
     final String resolvedType; // as per original caller;
@@ -224,7 +227,10 @@ final class ActivityRecord {
     ActivityContainer mInitialActivityContainer;
 
     TaskDescription taskDescription; // the recents information for this activity
-    boolean mLaunchTaskBehind; // this activity is actively being launched with
+    /**
+     * 表示此activity是否被积极的运行？
+     */
+    boolean mLaunchTaskBehind; // this activity is actively(积极的) being launched with
     // ActivityOptions.setLaunchTaskBehind, will be cleared once launch is completed.
 
     // These configurations are collected from application's resources based on size-sensitive

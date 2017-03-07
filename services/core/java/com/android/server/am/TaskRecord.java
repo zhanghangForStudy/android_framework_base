@@ -149,7 +149,13 @@ final class TaskRecord {
     Intent intent;          // The original intent that started the task.
     Intent affinityIntent;  // Intent of affinity-moved activity that started this task.
     int effectiveUid;       // The current effective uid of the identity of this task.
+    /**
+     * 别名？
+     */
     ComponentName origActivity; // The non-alias(非别名) activity component of the intent.
+    /**
+     * 启动此task的真正activity
+     */
     ComponentName realActivity; // The actual activity component that started the task.
     boolean realActivitySuspended; // True if the actual activity component that started the
     // task is suspended.
@@ -454,6 +460,8 @@ final class TaskRecord {
             // If this task already has an intent associated with it, don't set the root
             // affinity -- we don't want it changing after initially set, but the initially
             // set value may be null.
+            // 如果task已经有一个与之相关的intent，不要重新设置root affinity——在初始值被设置后，我们不想它
+            // 再改变。但是初始值可能为空
             rootAffinity = affinity;
         }
         effectiveUid = info.applicationInfo.uid;
@@ -974,8 +982,8 @@ final class TaskRecord {
                 // Finally, if this is a normal launch mode (that is, not
                 // expecting onNewIntent()), then we will finish the current
                 // instance of the activity so a new fresh one can be started.
-                // 最后，如果这是一个普通的启动模式（也就是说，不期待调用onNewIntent方法），
-                // 我们将结束当前的这个指定activity的实例，所以一个新鲜的实例可以被启动
+                // 最后，如果top activity一个普通的启动模式（也就是说，不期待调用onNewIntent方法），
+                // 我们将结束当前的这个指定activity的实例，以便一个新鲜的实例可以被启动
                 if (ret.launchMode == ActivityInfo.LAUNCH_MULTIPLE
                         && (launchFlags & Intent.FLAG_ACTIVITY_SINGLE_TOP) == 0) {
                     if (!ret.finishing) {

@@ -153,6 +153,7 @@ public class ActivityInfo extends ComponentInfo
     /**
      * If this is an activity alias, this is the real activity class to run
      * for it.  Otherwise, this is null.
+     * 如果此activity有一个别名，则此值表示这是一个activity真正的类名;如果没有别名，则此值为空
      */
     public String targetActivity;
 

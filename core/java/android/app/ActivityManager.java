@@ -630,7 +630,7 @@ public class ActivityManager {
         public static final int HOME_STACK_ID = FIRST_STATIC_STACK_ID;
 
         /**
-         * ID of stack where fullscreen activities are normally launched into.
+         * ID of stack where fullscreen activities are normally（一般） launched into.
          */
         public static final int FULLSCREEN_WORKSPACE_STACK_ID = 1;
 

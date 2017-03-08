@@ -186,6 +186,9 @@ class ActivityStarter {
      */
     private int mLaunchFlags;
 
+    /**
+     * 运行范围，一般为null
+     */
     private Rect mLaunchBounds;
 
     /**
@@ -224,9 +227,12 @@ class ActivityStarter {
      */
     private Intent mNewTaskIntent;
     /**
-     * 启动新activity的栈
+     * 启动旧activity的栈
      */
     private ActivityStack mSourceStack;
+    /**
+     * 启动新activity的栈
+     */
     private ActivityStack mTargetStack;
     // Indicates that we moved other task and are going to put something on top soon, so
     // we don't want to show it redundantly（多余的） or accidentally（偶然的） change what's shown below.
@@ -240,6 +246,9 @@ class ActivityStarter {
      */
     private boolean mMovedToFront;
     private boolean mNoAnimation;
+    /**
+     * 保持当前过渡？
+     */
     private boolean mKeepCurTransition;
     private boolean mAvoidMoveToFront;
     private boolean mPowerHintSent;
@@ -1393,7 +1402,7 @@ class ActivityStarter {
             return START_DELIVERED_TO_TOP;
         }
         /**以上代码处理singletop,且当前焦点stack的top activity就是新activity的情况*/
-
+        // 是否新建一个task
         boolean newTask = false;
         final TaskRecord taskToAffiliate = (mLaunchTaskBehind && mSourceRecord != null)
                 ? mSourceRecord.task : null;
@@ -1402,26 +1411,36 @@ class ActivityStarter {
         // 是否应该看作一个新的task?
         if (mStartActivity.resultTo == null && mInTask == null && !mAddingToTask
                 && (mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0) {
+            // 如果没有接收结果的activity，且
+            // 没有添加到一个已存在的task中，且
+            // 启动标志中含有在新task中运行
             newTask = true;
+            // 如果mReuseTask不为空，则以mReuseTask为新activity的task；
+            // 否则新建一个task，作为新activity的task
             setTaskFromReuseOrCreateNewTask(taskToAffiliate);
 
             if (mSupervisor.isLockTaskModeViolation(mStartActivity.task)) {
-                Slog.e(TAG, "Attempted Lock Task Mode violation mStartActivity=" + mStartActivity);
+                Slog.e(TAG, "Attempted Lock Task Mode violation（违反） mStartActivity=" + mStartActivity);
                 return START_RETURN_LOCK_TASK_MODE_VIOLATION;
             }
             if (!mMovedOtherTask) {
                 // If stack id is specified in activity options, usually it means that activity is
                 // launched not from currently focused stack (e.g. from SysUI or from shell) - in
                 // that case we check the target stack.
+                // 如果stack id是由activity options指定，则通常意味这activity并不是由当前焦点stack启动（可能是有SysUI 或者shell启动的）
+                // 在这种情况下我们需要检测目标stack
                 updateTaskReturnToType(mStartActivity.task, mLaunchFlags,
                         preferredLaunchStackId != INVALID_STACK_ID ? mTargetStack : topStack);
             }
         } else if (mSourceRecord != null) {
+            // 如果旧activity不为空
             if (mSupervisor.isLockTaskModeViolation(mSourceRecord.task)) {
                 Slog.e(TAG, "Attempted Lock Task Mode violation mStartActivity=" + mStartActivity);
                 return START_RETURN_LOCK_TASK_MODE_VIOLATION;
             }
 
+            // 从旧activity中设置目标task和目标stack，并将将目标task移动到对应stack的top，将目标stack设置为焦点stack
+            // setTaskFromSourceRecord会处理FLAG_ACTIVITY_CLEAR_TOP、FLAG_ACTIVITY_CLEAR_TOP的情况；
             final int result = setTaskFromSourceRecord();
             if (result != START_SUCCESS) {
                 return result;
@@ -1441,6 +1460,8 @@ class ActivityStarter {
         } else {
             // This not being started from an existing activity, and not part of a new task...
             // just put it in the top task, though these days this case should never happen.
+            // 新activity没有从一个已存在的activity运行，也不是一个new task的一部分...
+            // 直接将top task作为目标task，尽管这些天（也许是android诞生以来的这些天）来这个分支从来没有被触发过
             setTaskToCurrentTopOrCreateNewTask();
         }
 
@@ -1681,6 +1702,7 @@ class ActivityStarter {
                 // 如果task不为空，且调用者请求将新activity作为一个新task的root，则我们不会真正的想将新activity
                 // 在mInTask之中启动，我们会将mInTask放置到前段，并且可能会给它一个新intent
             } else if ((mLaunchFlags & FLAG_ACTIVITY_NEW_TASK) != 0) {
+                // 如果root不为空，且存在FLAG_ACTIVITY_NEW_TASK标志
                 mAddingToTask = false;
 
             } else {
@@ -1728,7 +1750,7 @@ class ActivityStarter {
     }
 
     /**
-     * 确定启动新activity的栈
+     * 确定启动旧activity的栈
      * 如果旧activityfinish了，则按照FLAG_ACTIVITY_NEW_TASK的行为，运行新activity
      * 这种情况下新task的信息与旧activity相关的task信息一致
      */
@@ -1927,13 +1949,20 @@ class ActivityStarter {
                 mTargetStack.mStackId);
 
         // If the caller has requested that the target task be reset, then do so.
-        // 如果调用者请求目标task重置，执行之
+        // 如果调用者请求目标stack重置，执行之
         if ((mLaunchFlags & FLAG_ACTIVITY_RESET_TASK_IF_NEEDED) != 0) {
             return mTargetStack.resetTaskIfNeededLocked(intentActivity, mStartActivity);
         }
         return intentActivity;
     }
 
+    /**
+     * 更新此task的返回类型；也就是当此task结束后，返回到哪个stack上去？
+     *
+     * @param task
+     * @param launchFlags
+     * @param focusedStack
+     */
     private void updateTaskReturnToType(
             TaskRecord task, int launchFlags, ActivityStack focusedStack) {
         if ((launchFlags & (FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_TASK_ON_HOME))
@@ -1953,6 +1982,7 @@ class ActivityStarter {
 
     /**
      * <p>
+     * 从intentActivity中设置目标task
      * 主要处理一下四种情况：<br>
      * 1、对于需要FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK的启动模式，移除指定task中的所有activity，并将新activity的intent设置为task的启动intent；<br>
      * 2、对于需要清除TOP的启动标志，清除顶部；如果清除顶部后;<br>
@@ -2074,10 +2104,21 @@ class ActivityStarter {
         mSupervisor.updateUserStackLocked(mStartActivity.userId, mTargetStack);
     }
 
+    /**
+     * 确定目标stack和目标task
+     * 确定目标stack的标准与{@link #computeSourceStack()}一致
+     * 确定目标task的标准如下：
+     * 如果mReuseTask存在，则以mReuseTask为新activity的task；
+     * 如果mReuseTask不存在，则创建一个task,以此tack为新activity的task
+     *
+     * @param taskToAffiliate
+     */
     private void setTaskFromReuseOrCreateNewTask(TaskRecord taskToAffiliate) {
+        // 确定目标栈
         mTargetStack = computeStackFocus(mStartActivity, true, mLaunchBounds, mLaunchFlags,
                 mOptions);
 
+        // 确定目标stack
         if (mReuseTask == null) {
             final TaskRecord task = mTargetStack.createTaskRecord(
                     mSupervisor.getNextTaskIdForUserLocked(mStartActivity.userId),
@@ -2102,11 +2143,26 @@ class ActivityStarter {
         }
     }
 
+    /**
+     * 从旧activity中确定目标task和目标stack;
+     * 旧activity的task就是目标task；
+     * 步骤如下：
+     * 1、将旧activity的task设置为目标task；
+     * 2、判断是否允许替换stack;如果允许，且能替换，则替换stack；并确定目标stack；
+     * 3、将目标task移动到对应stack的top，将目标stack设置为焦点stack；
+     * 4、处理FLAG_ACTIVITY_CLEAR_TOP、FLAG_ACTIVITY_CLEAR_TOP的情况；主要是调整目标task的序列；
+     * 5、将新activity的task设置为目标task。
+     *
+     * @return 如果FLAG_ACTIVITY_CLEAR_TOP或者FLAG_ACTIVITY_CLEAR_TOP，则返回值会立即返回结果，流程不用继续走下去了
+     */
     private int setTaskFromSourceRecord() {
         final TaskRecord sourceTask = mSourceRecord.task;
+
+        /**以下代码处理替换stack的情况，只有旧activity不为其对应stack的top task的时候，才可能替换stack*/
         // We only want to allow changing stack if the target task is not the top one,
         // otherwise we would move the launching task to the other side, rather than show
         // two side by side.
+        // 我们只允许在目标task并不在此task所在的stack的top的时候，改变stack，
         final boolean moveStackAllowed = sourceTask.stack.topTask() != sourceTask;
         if (moveStackAllowed) {
             mTargetStack = getLaunchStack(mStartActivity, mLaunchFlags, mStartActivity.task,
@@ -2116,20 +2172,29 @@ class ActivityStarter {
         if (mTargetStack == null) {
             mTargetStack = sourceTask.stack;
         } else if (mTargetStack != sourceTask.stack) {
+            // 移动任务到运行的stack之中
             mSupervisor.moveTaskToStackLocked(sourceTask.taskId, mTargetStack.mStackId,
                     ON_TOP, FORCE_FOCUS, "launchToSide", !ANIMATE);
         }
+        /**以上代码处理替换stack的情况，只有旧activity不为其对应stack的top task的时候，才可能替换stack*/
+
+        /**以下代码将目标task移动到对应stack的top，将目标stack设置为焦点stack*/
         if (mDoResume) {
+            // 将stack提前
             mTargetStack.moveToFront("sourceStackToFront");
         }
         final TaskRecord topTask = mTargetStack.topTask();
+        // 将目标tack移动到目标stack的顶端
         if (topTask != sourceTask && !mAvoidMoveToFront) {
             mTargetStack.moveTaskToFrontLocked(sourceTask, mNoAnimation, mOptions,
                     mStartActivity.appTimeTracker, "sourceTaskToFront");
         }
+        /**以上代码将目标task移动到对应stack的top，将目标stack设置为焦点stack*/
+        /**以下代码处理FLAG_ACTIVITY_CLEAR_TOP和FLAG_ACTIVITY_REORDER_TO_FRONT的情况*/
         if (!mAddingToTask && (mLaunchFlags & FLAG_ACTIVITY_CLEAR_TOP) != 0) {
             // In this case, we are adding the activity to an existing task, but the caller has
             // asked to clear that task if the activity is already running.
+            // 如果不需要将activity添加到一个已经存在的task中，但是调用者请求清除新activity之上的activity,如果新activity已经运行了
             ActivityRecord top = sourceTask.performClearTaskLocked(mStartActivity, mLaunchFlags);
             mKeepCurTransition = true;
             if (top != null) {
@@ -2161,6 +2226,7 @@ class ActivityStarter {
                 return START_DELIVERED_TO_TOP;
             }
         }
+        /**以上代码处理FLAG_ACTIVITY_CLEAR_TOP和FLAG_ACTIVITY_REORDER_TO_FRONT的情况*/
 
         // An existing activity is starting this new activity, so we want to keep the new one in
         // the same task as the one that is starting it.
@@ -2278,18 +2344,34 @@ class ActivityStarter {
         }
     }
 
+    /**
+     * @param r
+     * @param newTask
+     * @param bounds
+     * @param launchFlags
+     * @param aOptions
+     * @return 如果activity及其对用的task皆非应用相关，则直接返回home stack；
+     * 如果mReuseTask存在，且其对应的stack不为空，则返回此stack；
+     * 如果activity本身找到了task，且其对应的stack不为空，则返回此stack；
+     * 如果activity的初始ActivityContainer不为空，则返回ActivityContainer对应的stack
+     * 如果以上如果都不存在，则判断运行范围（mLunchBound）是否存在，
+     * 如果不存在，返回全屏栈（FULLSCREEN_WORKSPACE_STACK_ID），否则返回任意栈（FREEFORM_WORKSPACE_STACK_ID）
+     */
     private ActivityStack computeStackFocus(ActivityRecord r, boolean newTask, Rect bounds,
                                             int launchFlags, ActivityOptions aOptions) {
         final TaskRecord task = r.task;
+        // 如果activity不是应用activity，且task不是应用task，直接返回HOME STACK
         if (!(r.isApplicationActivity() || (task != null && task.isApplicationTask()))) {
             return mSupervisor.mHomeStack;
         }
 
+        // 一般而言getLaunchStack返回mReuseTask对应的stack，要么返回null
         ActivityStack stack = getLaunchStack(r, launchFlags, task, aOptions);
         if (stack != null) {
             return stack;
         }
 
+        // 如果activity已经找到了task，且此task的stack不为空，则返回此stack
         if (task != null && task.stack != null) {
             stack = task.stack;
             if (stack.isOnHomeDisplay()) {
@@ -2306,6 +2388,7 @@ class ActivityStarter {
             return stack;
         }
 
+        // ActivityContainer不为空的情况
         final ActivityStackSupervisor.ActivityContainer container = r.mInitialActivityContainer;
         if (container != null) {
             // The first time put it on the desired stack, after this put on task stack.
@@ -2317,6 +2400,11 @@ class ActivityStarter {
         // or not. So, we let the task go in the fullscreen task if it is the focus stack.
         // If the freeform or docked stack has focus, and the activity to be launched is resizeable,
         // we can also put it in the focused stack.
+        // 如果全屏stack可以包含任何忽视其本身的可调大小性的task，
+        // 且这个全全屏stack是焦点stack，
+        // 则我们将此task加入全屏stack.
+        // 如果自由或者缩减stack是焦点，且即将被运行的activity是自由
+        // 则我们也会将其放入焦点stack之中
         final int focusedStackId = mSupervisor.mFocusedStack.mStackId;
         final boolean canUseFocusedStack = focusedStackId == FULLSCREEN_WORKSPACE_STACK_ID
                 || (focusedStackId == DOCKED_STACK_ID && r.canGoInDockedStack())
@@ -2329,6 +2417,7 @@ class ActivityStarter {
         }
 
         // We first try to put the task in the first dynamic stack.
+        // 我们首先将此task放入第一个动态stack之中
         final ArrayList<ActivityStack> homeDisplayStacks = mSupervisor.mHomeStack.mStacks;
         for (int stackNdx = homeDisplayStacks.size() - 1; stackNdx >= 0; --stackNdx) {
             stack = homeDisplayStacks.get(stackNdx);
@@ -2349,6 +2438,15 @@ class ActivityStarter {
         return stack;
     }
 
+    /**
+     * 一般而言getLaunchStack返回mReuseTask对应的stack，要么返回null
+     *
+     * @param r
+     * @param launchFlags
+     * @param task
+     * @param aOptions
+     * @return
+     */
     private ActivityStack getLaunchStack(ActivityRecord r, int launchFlags, TaskRecord task,
                                          ActivityOptions aOptions) {
 
@@ -2380,7 +2478,7 @@ class ActivityStarter {
                 : mSupervisor.mFocusedStack;
 
         if (parentStack != mSupervisor.mFocusedStack) {
-            // If task's parent stack is not focused - use it during adjacent launch.
+            // If task's parent stack is not focused - use it during adjacent(相邻的) launch.
             return parentStack;
         } else {
             if (mSupervisor.mFocusedStack != null && task == mSupervisor.mFocusedStack.topTask()) {

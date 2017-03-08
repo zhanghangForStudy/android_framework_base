@@ -4601,14 +4601,19 @@ public class Intent implements Parcelable, Cloneable {
      * If set in an Intent passed to {@link Context#startActivity Context.startActivity()},
      * this flag will cause the launched activity to be brought to the front of its
      * task's history stack if it is already running.
+     * 如果在一个通过{@link Context#startActivity Context.startActivity()}传递而来的intent中
+     * 设置此标志，将会引起新activity被带到其对应的tasck的前台，如果它已经被运行了。
      * <p>
      * <p>For example, consider a task consisting of four activities: A, B, C, D.
      * If D calls startActivity() with an Intent that resolves to the component
      * of activity B, then B will be brought to the front of the history stack,
      * with this resulting order:  A, C, D, B.
+     * 例如，考虑这样一个task，此task包含了4个activity:A,B,C,D.
+     * 如果D调用了startActivity()启动B，则B将会被带到前台，结果顺序为：A,C,D,B.
      * <p>
      * This flag will be ignored if {@link #FLAG_ACTIVITY_CLEAR_TOP} is also
      * specified.
+     * 此标识会忽略FLAG_ACTIVITY_CLEAR_TOP
      */
     public static final int FLAG_ACTIVITY_REORDER_TO_FRONT = 0X00020000;
     /**

@@ -334,6 +334,7 @@ final class ActivityStack {
     final ActivityContainer mActivityContainer;
     /**
      * The other stacks, in order, on the attached display. Updated at attach/detach time.
+     * 同一个display中的其他stack，按照stack添加至display中的顺序
      */
     ArrayList<ActivityStack> mStacks;
     /**
@@ -582,6 +583,7 @@ final class ActivityStack {
 
     /**
      * 找到此stack中，最top的非结束、非延迟重新启动、非入参且可以显示的activity
+     *
      * @param notTop
      * @return
      */
@@ -704,6 +706,7 @@ final class ActivityStack {
 
     /**
      * 将当前stack移动到整个显示屏幕的顶端
+     * 并将此stack设置为焦点stack
      * 并通知WMS将当前stack对应的top task移动到顶端
      *
      * @param reason The reason for moving the stack to the front.

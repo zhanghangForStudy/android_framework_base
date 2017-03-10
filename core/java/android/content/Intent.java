@@ -4552,13 +4552,18 @@ public class Intent implements Parcelable, Cloneable {
      * by this Intent. Through the use of this flag, or its equivalent attribute,
      * {@link android.R.attr#documentLaunchMode} multiple instances of the same activity
      * containing different documents will appear in the recent tasks list.
-     * 此标志被用来打开至
+     * 此标志被用来打开一个文档至一个以此intent启动的activity为根的新任务之中。
+     * 通过使用此标志，或者此标志的等价物（documentLaunchMode）,同一个activity类下，包含了不同文档的不同对象，
+     * 将会出现在最近任务列表之中
      * <p>
      * <p>The use of the activity attribute form of this,
      * {@link android.R.attr#documentLaunchMode}, is
      * preferred over the Intent flag described here. The attribute form allows the
      * Activity to specify multiple document behavior for all launchers of the Activity
-     * whereas using this flag requires each Intent that launches the Activity to specify it.
+     * whereas（反之） using this flag requires each Intent that launches the Activity to specify it.
+     * 相对于此标志而言，此标志的等价物（documentLaunchMode）更加被推荐使用。documentLaunchMode属性形式
+     * 允许其对应的activity，针对此activity所有的启动者，指定不同的文档行为，反之，使用此标志，则需要每个启动此
+     * activity的intent指定其文档行为。
      * <p>
      * <p>Note that the default semantics of this flag w.r.t. whether the recents entry for
      * it is kept after the activity is finished is different than the use of
@@ -4566,8 +4571,12 @@ public class Intent implements Parcelable, Cloneable {
      * this flag is being used to create a new recents entry, then by default that entry
      * will be removed once the activity is finished.  You can modify this behavior with
      * {@link #FLAG_ACTIVITY_RETAIN_IN_RECENTS}.
+     * 注意此标志关于某个activity的最近实体，在此activity结束后，是否保持的语义，与FLAG_ACTIVITY_NEW_TASK
+     * 和documentLaunchMode的用法不同。
+     * 如果此标志正在被用来创建一个新的最近实体，默认的，一旦activity结束了，就会删除这个实体。
+     * 可以通过FLAG_ACTIVITY_RETAIN_IN_RECENTS标志来修改此行为
      * <p>
-     * <p>FLAG_ACTIVITY_NEW_DOCUMENT may be used in conjunction with {@link
+     * <p>FLAG_ACTIVITY_NEW_DOCUMENT may be used in conjunction（连接物） with {@link
      * #FLAG_ACTIVITY_MULTIPLE_TASK}. When used alone it is the
      * equivalent of the Activity manifest specifying {@link
      * android.R.attr#documentLaunchMode}="intoExisting". When used with
@@ -4575,7 +4584,9 @@ public class Intent implements Parcelable, Cloneable {
      * {@link android.R.attr#documentLaunchMode}="always".
      * <p>
      * Refer to {@link android.R.attr#documentLaunchMode} for more information.
-     *
+     * FLAG_ACTIVITY_NEW_DOCUMENT可以和FLAG_ACTIVITY_MULTIPLE_TASK一起使用。
+     * 此标志独立使用，等价与documentLaunchMode="intoExisting".
+     * 此标志联合FLAG_ACTIVITY_MULTIPLE_TASK使用，则等价于documentLaunchMode="always"
      * @see android.R.attr#documentLaunchMode
      * @see #FLAG_ACTIVITY_MULTIPLE_TASK
      */

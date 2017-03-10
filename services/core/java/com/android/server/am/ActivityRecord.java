@@ -221,6 +221,9 @@ final class ActivityRecord {
     static final int STARTING_WINDOW_SHOWN = 1;
     static final int STARTING_WINDOW_REMOVED = 2;
     int mStartingWindowState = STARTING_WINDOW_NOT_SHOWN;
+    /**
+     * 该activity总是在其对应task的其他activity的顶部
+     */
     boolean mTaskOverlay = false; // Task is always on-top of other activities in the task.
 
     boolean mUpdateTaskThumbnailWhenHidden;

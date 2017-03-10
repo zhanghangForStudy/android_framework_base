@@ -74,11 +74,29 @@ public class VideoView extends SurfaceView
 
     // all possible internal states
     private static final int STATE_ERROR = -1;
+    /**
+     * 空闲状态
+     */
     private static final int STATE_IDLE = 0;
+    /**
+     * 正在准备状态
+     */
     private static final int STATE_PREPARING = 1;
+    /**
+     * 完成准备状态
+     */
     private static final int STATE_PREPARED = 2;
+    /**
+     * 正在播放状态
+     */
     private static final int STATE_PLAYING = 3;
+    /**
+     * 暂停完成状态
+     */
     private static final int STATE_PAUSED = 4;
+    /**
+     * 播放完成状态
+     */
     private static final int STATE_PLAYBACK_COMPLETED = 5;
 
     private final Vector<Pair<InputStream, MediaFormat>> mPendingSubtitleTracks = new Vector<>();

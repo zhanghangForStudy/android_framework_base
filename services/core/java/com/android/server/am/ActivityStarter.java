@@ -1226,6 +1226,11 @@ class ActivityStarter {
     /**
      * 应用进程通过跨进程通信，调用的第五个方法；
      * 此方法线程不安全
+     * 此方法的主要功能是找到目标task及目标stack,
+     * 并且如果需要，则调整相关task的顺序。
+     * 步骤如下：
+     * 1、重置ActivityStarter的一些属性值（这些属性值标示启动新activity的一些重要属性，不同的acitivty启动对应不同的属性值），适当修改一些运行标志；
+     * 2、尝试找到某个task，此task的启动intent,所包含的组件，与启动新activity的intent所包含的组件一直，返回这样task的top task,否则为null;
      *
      * @param r               新activity对应的activityrecord记录
      * @param sourceRecord    旧activity对应的activityrecord记录
@@ -1402,6 +1407,7 @@ class ActivityStarter {
             return START_DELIVERED_TO_TOP;
         }
         /**以上代码处理singletop,且当前焦点stack的top activity就是新activity的情况*/
+        /**以下代码最终确定目标task和目标stack*/
         // 是否新建一个task
         boolean newTask = false;
         final TaskRecord taskToAffiliate = (mLaunchTaskBehind && mSourceRecord != null)
@@ -1464,10 +1470,12 @@ class ActivityStarter {
             // 直接将top task作为目标task，尽管这些天（也许是android诞生以来的这些天）来这个分支从来没有被触发过
             setTaskToCurrentTopOrCreateNewTask();
         }
+        /**以上代码最终确定目标task和目标stack*/
 
         mService.grantUriPermissionFromIntentLocked(mCallingUid, mStartActivity.packageName,
                 mIntent, mStartActivity.getUriPermissionsLocked(), mStartActivity.userId);
 
+        /*设置目标任务的返回类型*/
         if (mSourceRecord != null && mSourceRecord.isRecentsActivity()) {
             mStartActivity.task.setTaskToReturnTo(RECENTS_ACTIVITY_TYPE);
         }
@@ -1477,22 +1485,25 @@ class ActivityStarter {
         }
         ActivityStack.logStartActivity(
                 EventLogTags.AM_CREATE_ACTIVITY, mStartActivity, mStartActivity.task);
+        // 将目标stack的上一个被暂停的activity设置为空
         mTargetStack.mLastPausedActivity = null;
-
+        // 一些电源处理
         sendPowerHintForLaunchStartIfNeeded(false /* forceSend */);
-
+        // OK,到达第六个主要的方法了，直接让stack启动新activity了
         mTargetStack.startActivityLocked(mStartActivity, newTask, mKeepCurTransition, mOptions);
         if (mDoResume) {
             if (!mLaunchTaskBehind) {
                 // TODO(b/26381750): Remove this code after verification that all the decision
                 // points above moved targetStack to the front which will also set the focus
                 // activity.
+                // 设置整个AMS中的焦点activity，并同步至WMS
                 mService.setFocusedActivityLocked(mStartActivity, "startedActivity");
             }
             final ActivityRecord topTaskActivity = mStartActivity.task.topRunningActivityLocked();
             if (!mTargetStack.isFocusable()
                     || (topTaskActivity != null && topTaskActivity.mTaskOverlay
                     && mStartActivity != topTaskActivity)) {
+                // 新activity不能成为focuse
                 // If the activity is not focusable, we can't resume it, but still would like to
                 // make sure it becomes visible as it starts (this will also trigger entry
                 // animation). An example of this are PIP activities.
@@ -1751,7 +1762,7 @@ class ActivityStarter {
 
     /**
      * 确定启动旧activity的栈
-     * 如果旧activityfinish了，则按照FLAG_ACTIVITY_NEW_TASK的行为，运行新activity
+     * 如果旧activity finish了，则按照FLAG_ACTIVITY_NEW_TASK的行为，运行新activity
      * 这种情况下新task的信息与旧activity相关的task信息一致
      */
     private void computeSourceStack() {
@@ -1793,6 +1804,8 @@ class ActivityStarter {
      * 1）task的初始intent包含的组件与新activity对应的组件相等；
      * 2）task的亲和性intent包含的组件与新activity对应的组件相等；
      * 3）task的rootAffinity等于新activity的taskAffinity;
+     * 总体而言，此方法专门处理FLAG_ACTIVITY_NEW_TASK且不是由一个activity启动的activity;
+     * 对与第二种情况，优先找到一个由新activity的某个实例启动的task
      */
     private ActivityRecord getReusableIntentActivity() {
         // We may want to try to place the new activity in to an existing task.  We always
@@ -1862,7 +1875,7 @@ class ActivityStarter {
         ActivityRecord curTop = (focusStack == null)
                 ? null : focusStack.topRunningNonDelayedActivityLocked(mNotTop);
 
-        /**以下代码处理目标task不等于前台task，或者目标stack不是前台stack的情况*/
+        /**以下代码处理目标task不等于前台task*/
         if (curTop != null
                 && (curTop.task != intentActivity.task || curTop.task != focusStack.topTask())
                 && !mAvoidMoveToFront) {

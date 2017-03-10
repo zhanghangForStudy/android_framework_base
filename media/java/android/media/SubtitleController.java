@@ -31,7 +31,8 @@ import android.view.accessibility.CaptioningManager;
  * The subtitle controller provides the architecture to display subtitles for a
  * media source.  It allows specifying which tracks to display, on which anchor
  * to display them, and also allows adding external, out-of-band subtitle tracks.
- *
+ * 字幕控制器提供了展示字幕的体系结构。
+ * 此控制器指定了哪些轨道可以展示，在哪个描点上面显示字幕，也允许添加额外的字幕轨迹
  * @hide
  */
 public class SubtitleController {

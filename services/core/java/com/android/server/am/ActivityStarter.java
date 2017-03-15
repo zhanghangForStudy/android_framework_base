@@ -1230,7 +1230,8 @@ class ActivityStarter {
      * 并且如果需要，则调整相关task的顺序。
      * 步骤如下：
      * 1、重置ActivityStarter的一些属性值（这些属性值标示启动新activity的一些重要属性，不同的acitivty启动对应不同的属性值），适当修改一些运行标志；
-     * 2、尝试找到某个task，此task的启动intent,所包含的组件，与启动新activity的intent所包含的组件一直，返回这样task的top task,否则为null;
+     * 2、对于new_task的标志，尝试找到某个task，一般而言需要找到与新activity的taskAffinity属性一致的task,否则为null;
+     * 3、
      *
      * @param r               新activity对应的activityrecord记录
      * @param sourceRecord    旧activity对应的activityrecord记录

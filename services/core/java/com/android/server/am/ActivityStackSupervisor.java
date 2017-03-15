@@ -2766,6 +2766,12 @@ public final class ActivityStackSupervisor implements DisplayListener {
         resumeFocusedStackTopActivityLocked();
     }
 
+    /**
+     * 根据入参activity，找到合适的task
+     *
+     * @param r
+     * @return
+     */
     ActivityRecord findTaskLocked(ActivityRecord r) {
         mTmpFindTaskResult.r = null;
         mTmpFindTaskResult.matchedByRootAffinity = false;

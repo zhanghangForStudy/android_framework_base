@@ -845,10 +845,10 @@ final class ActivityStack {
             } else if (!isDocument && !taskIsDocument
                     && result.r == null && task.canMatchRootAffinity()) {
                 if (task.rootAffinity.equals(target.taskAffinity)) {
-                    // rootAffinity相等
+                    // rootAffinity相等,且FLAG_ACTIVITY_NEW_DOCUMENT不存在
                     if (DEBUG_TASKS) Slog.d(TAG_TASKS, "Found matching affinity candidate!");
-                    // It is possible for multiple tasks to have the same root affinity especially
-                    // if they are in separate stacks. We save off this candidate, but keep looking
+                    // It is possible for multiple tasks to have the same root affinity especially（尤其）
+                    // if they are in separate stacks. We save off this candidate（候选）, but keep looking
                     // to see if there is a better candidate.
                     result.r = r;
                     result.matchedByRootAffinity = true;

@@ -248,6 +248,7 @@ class ActivityStarter {
     private boolean mNoAnimation;
     /**
      * 保持当前过渡？
+     * 不需要转换新旧activity的task，且新activity需要clean top
      */
     private boolean mKeepCurTransition;
     private boolean mAvoidMoveToFront;
@@ -1230,8 +1231,12 @@ class ActivityStarter {
      * 并且如果需要，则调整相关task的顺序。
      * 步骤如下：
      * 1、重置ActivityStarter的一些属性值（这些属性值标示启动新activity的一些重要属性，不同的acitivty启动对应不同的属性值），适当修改一些运行标志；
-     * 2、对于new_task的标志，尝试找到某个task，一般而言需要找到与新activity的taskAffinity属性一致的task,否则为null;
-     * 3、
+     * 2、对于new_task的标志，尝试找到某个可用来运行新activity的task，一般而言需要找到与新activity的taskAffinity属性一致的task,否则为null;
+     * 3、如果找到了合适的task，根据一些启动标志对其已有的activity进行清除、移动和重排；
+     * 4、对singletop,且当前焦点stack的top activity就是新activity的情况的特殊处理；
+     * 5、确定最终的目标task和目标stack；
+     * 6、将启动的新activity的任务，继续移交给目标stack处理；
+     * 7、扫尾处理，更新焦点activity等。
      *
      * @param r               新activity对应的activityrecord记录
      * @param sourceRecord    旧activity对应的activityrecord记录

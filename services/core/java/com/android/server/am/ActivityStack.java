@@ -2665,6 +2665,7 @@ final class ActivityStack {
     private void insertTaskAtTop(TaskRecord task, ActivityRecord newActivity) {
         boolean isLastTaskOverHome = false;
         // If the moving task is over home stack, transfer its return type to next task
+        // 如果task是在home stack之上，则将此task的返回类型转移至+next task
         if (task.isOverHomeStack()) {
             final TaskRecord nextTask = getNextTask(task);
             if (nextTask != null) {
@@ -2676,6 +2677,7 @@ final class ActivityStack {
 
         // If this is being moved to the top by another activity or being launched from the home
         // activity, set mTaskToReturnTo accordingly.
+        // 如果此task被其他activity移动至顶部，或者被home activity启动，则相应的更新mTaskToReturnTo
         if (isOnHomeDisplay()) {
             ActivityStack lastStack = mStackSupervisor.getLastStack();
             final boolean fromHome = lastStack.isHomeStack();
@@ -2715,21 +2717,33 @@ final class ActivityStack {
         updateTaskMovement(task, true);
     }
 
+    /**
+     * 应用进程通过跨进程通信，调用的第六个方法；
+     *
+     * @param r                 新activity
+     * @param newTask           新activity是否在一个新创建的task上
+     * @param keepCurTransition 如果为true则表示不需要转换新旧activity的task，且新activity需要clean top
+     * @param options           一些定义新activity如何启动的可选项；如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
+     */
     final void startActivityLocked(ActivityRecord r, boolean newTask, boolean keepCurTransition,
                                    ActivityOptions options) {
         TaskRecord rTask = r.task;
         final int taskId = rTask.taskId;
         // mLaunchTaskBehind tasks get placed at the back of the task stack.
+        // mLaunchTaskBehind任务将被定位到此stack的后面
         if (!r.mLaunchTaskBehind && (taskForIdLocked(taskId) == null || newTask)) {
             // Last activity in task had been removed or ActivityManagerService is reusing task.
             // Insert or replace.
             // Might not even be in.
+            // 在目标task中的最后一个activity被移除了，或者AMS重建了一个任务
+            // 将新activity放置目标task的顶部，并同步WMS
             insertTaskAtTop(rTask, r);
             mWindowManager.moveTaskToTop(taskId);
         }
         TaskRecord task = null;
         if (!newTask) {
             // If starting in an existing task, find where that is...
+            // 如果从一个已存在的task中启动，找到目标task的位置
             boolean startIt = true;
             for (int taskNdx = mTaskHistory.size() - 1; taskNdx >= 0; --taskNdx) {
                 task = mTaskHistory.get(taskNdx);
@@ -2741,6 +2755,9 @@ final class ActivityStack {
                     // Here it is!  Now, if this is not yet visible to the
                     // user, then just add it without starting; it will
                     // get started when the user navigates back to it.
+                    // 目标task在这里！
+                    // 不过如果现在目标task对用户不可见，则只是添加它而不用启动它；
+                    // 新activity将被启动，当用户返回到目标task上时。
                     if (!startIt) {
                         if (DEBUG_ADD_REMOVE) Slog.i(TAG, "Adding activity " + r + " to task "
                                 + task, new RuntimeException("here").fillInStackTrace());
@@ -2755,6 +2772,8 @@ final class ActivityStack {
                     }
                     break;
                 } else if (task.numFullscreen > 0) {
+                    // 此task在目标task的上面，且此task存在全屏activity，所以
+                    // 位于此task下的目标task，一定不可见，故而不必启动此task中的新activity
                     startIt = false;
                 }
             }
@@ -2762,11 +2781,14 @@ final class ActivityStack {
 
         // Place a new activity at top of stack, so it is next to interact
         // with the user.
+        // 将新activity放置在stack的顶部，以便新acitivity是下一个与用户交互的activity
 
         // If we are not placing the new activity frontmost, we do not want
         // to deliver the onUserLeaving callback to the actual frontmost
         // activity
+        // 如果我们并没有将新activity放置最前面，我们则不会进行当前最前面的activity的onUserLeaving回调。
         if (task == r.task && mTaskHistory.indexOf(task) != (mTaskHistory.size() - 1)) {
+            // 目标任务并不是当前最前面的任务
             mStackSupervisor.mUserLeaving = false;
             if (DEBUG_USER_LEAVING) Slog.v(TAG_USER_LEAVING,
                     "startActivity() behind front, mUserLeaving=false");
@@ -2777,14 +2799,18 @@ final class ActivityStack {
         // Slot the activity into the history stack and proceed
         if (DEBUG_ADD_REMOVE) Slog.i(TAG, "Adding activity " + r + " to stack to task " + task,
                 new RuntimeException("here").fillInStackTrace());
+        // 将新activity添加至目标task的顶部
         task.addActivityToTop(r);
+        // 遍历task的所有activity，找到第一个activity(root activity)
         task.setFrontOfTask();
 
         r.putInHistory();
         if (!isHomeStack() || numActivities() > 0) {
+            // 如果当前stack，不是home stack，或者此stack存在activiry
             // We want to show the starting preview window if we are
             // switching to a new task, or the next activity's process is
             // not currently running.
+            // 如果我们正在切换至一个新activity,或者新activity的进程并没有运行，则我们期待显示一个预览窗口
             boolean showStartingIcon = newTask;
             ProcessRecord proc = r.app;
             if (proc == null) {
@@ -2807,6 +2833,7 @@ final class ActivityStack {
                 mNoAnimActivities.remove(r);
             }
             addConfigOverride(r, task);
+            // 是否显示新activity
             boolean doShow = true;
             if (newTask) {
                 // Even though this activity is starting fresh, we still need
@@ -2814,6 +2841,9 @@ final class ActivityStack {
                 // existing activities from other tasks in to it.
                 // If the caller has requested that the target task be
                 // reset, then do so.
+                // 尽管新activity是最新的，我们依然需要重置它，以确保我们适用亲和性，
+                // 将任何存在的activity从其他task中移动到目标task中。
+                // 如果调用者请求目标任务重置，则重置目标任务
                 if ((r.intent.getFlags() & Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED) != 0) {
                     resetTaskIfNeededLocked(r, r);
                     doShow = topRunningNonDelayedActivityLocked(null) == r;

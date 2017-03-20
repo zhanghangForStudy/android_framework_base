@@ -178,6 +178,9 @@ final class TaskRecord {
     boolean mUserSetupComplete; // The user set-up is complete as of the last time the task activity
     // was changed.
 
+    /**
+     * 全屏activity的数目
+     */
     int numFullscreen;      // Number of fullscreen activities.
 
     int mResizeMode;        // The resize mode of this task and its activities.

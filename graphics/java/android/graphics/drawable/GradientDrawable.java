@@ -1067,6 +1067,7 @@ public class GradientDrawable extends Drawable {
      * This checks mGradientIsDirty, and if it is true, recomputes both our drawing
      * rectangle (mRect) and the gradient itself, since it depends on our
      * rectangle too.
+     * 检测mGradientIsDirty,如果它的值为true，重新计算绘制范围和渐变方式，
      * @return true if the resulting rectangle is not empty, false otherwise
      */
     private boolean ensureValidRect() {

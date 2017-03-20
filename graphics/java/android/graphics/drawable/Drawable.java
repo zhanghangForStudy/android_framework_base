@@ -769,12 +769,14 @@ public abstract class Drawable {
      * Specify the level for the drawable.  This allows a drawable to vary its
      * imagery based on a continuous controller, for example to show progress
      * or volume level.
-     *
+     * 指定可绘物的水平。此值允许一个可绘物，基于一个持续的控制器，来变化其肖像。
+     * 例如显示进度或者声音水平。
      * <p>If the new level you are supplying causes the appearance of the
      * Drawable to change, then it is responsible for calling
      * {@link #invalidateSelf} in order to have itself redrawn, <em>and</em>
      * true will be returned from this function.
-     *
+     * 如果提供的新的水平值引起了可绘制物的外观发生了变化，则会调用invalidateSelf方法来响应，以便
+     * 此可绘制物能重绘自己，并且这种情况下此方法将返回true。
      * @param level The new level, from 0 (minimum) to 10000 (maximum).
      *
      * @return Returns true if this change in level has caused the appearance

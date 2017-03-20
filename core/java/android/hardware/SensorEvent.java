@@ -65,14 +65,14 @@ public class SensorEvent {
      * Sensor.TYPE_ACCELEROMETER}:</h4> All values are in SI units (m/s^2)
      *
      * <ul>
-     * <li> values[0]: Acceleration minus Gx on the x-axis </li>
-     * <li> values[1]: Acceleration minus Gy on the y-axis </li>
-     * <li> values[2]: Acceleration minus Gz on the z-axis </li>
+     * <li> values[0]: Acceleration minus（减号） Gx on the x-axis </li>
+     * <li> values[1]: Acceleration minus（减号） Gy on the y-axis </li>
+     * <li> values[2]: Acceleration minus（减号） Gz on the z-axis </li>
      * </ul>
      *
      * <p>
      * A sensor of this type measures the acceleration applied to the device
-     * (<b>Ad</b>). Conceptually, it does so by measuring forces applied to the
+     * (<b>Ad</b>). Conceptually（概念的）, it does so by measuring forces applied to the
      * sensor itself (<b>Fs</b>) using the relation:
      * </p>
      *
@@ -98,10 +98,11 @@ public class SensorEvent {
      * </p>
      *
      * <p>
-     * It should be apparent that in order to measure the real acceleration of
-     * the device, the contribution of the force of gravity must be eliminated.
-     * This can be achieved by applying a <i>high-pass</i> filter. Conversely, a
-     * <i>low-pass</i> filter can be used to isolate the force of gravity.
+     * It should be apparent（显而易见的） that in order to measure the real acceleration of
+     * the device, the contribution of the force of gravity must be eliminated（排除）.
+     * 显而易见的，为了测出设备真正的加速度，重力的贡献应该被排除
+     * This can be achieved（获取） by applying a <i>high-pass</i> filter. Conversely（相反）, a
+     * <i>low-pass</i> filter can be used to isolate（孤立） the force of gravity.
      * </p>
      *
      * <pre class="prettyprint">
@@ -128,16 +129,21 @@ public class SensorEvent {
      * <u>Examples</u>:
      * <ul>
      * <li>When the device lies flat on a table and is pushed on its left side
-     * toward the right, the x acceleration value is positive.</li>
+     * toward the right, the x acceleration value is positive.
+     * 当设备平躺在桌面上时，且从它的左边往右边推动时，x轴的加速度为正
+     * </li>
      *
      * <li>When the device lies flat on a table, the acceleration value is
      * +9.81, which correspond to the acceleration of the device (0 m/s^2) minus
-     * the force of gravity (-9.81 m/s^2).</li>
+     * the force of gravity (-9.81 m/s^2).
+     * 当设备平躺在桌面上是，重力加速度的值是+9.81，重力加速度的值等于，设备真正的加速度值(0 m/s^2)减去重力加速度(-9.81 m/s^2)。
+     * </li>
      *
      * <li>When the device lies flat on a table and is pushed toward the sky
      * with an acceleration of A m/s^2, the acceleration value is equal to
      * A+9.81 which correspond to the acceleration of the device (+A m/s^2)
      * minus the force of gravity (-9.81 m/s^2).</li>
+     * 当设备平躺在桌面上，并且朝着天空以加速度A推动，则重力加速度等于A+9.81,即设备的真正加速度A减去重力加速度(-9.81 m/s^2);
      * </ul>
      *
      *
@@ -248,7 +254,7 @@ public class SensorEvent {
      *  to that of the accelerometer.</p>
      *
      *  <h4>{@link android.hardware.Sensor#TYPE_LINEAR_ACCELERATION Sensor.TYPE_LINEAR_ACCELERATION}:</h4>
-     *  A three dimensional vector indicating acceleration along each device axis, not including
+     *  A three dimensional(尺寸) vector indicating acceleration along each device axis, not including
      *  gravity.  All values have units of m/s^2.  The coordinate system is the same as is used by the
      *  acceleration sensor.
      *  <p>The output of the accelerometer, gravity and  linear-acceleration sensors must obey the

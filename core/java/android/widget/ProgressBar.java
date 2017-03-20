@@ -72,6 +72,10 @@ import java.util.ArrayList;
  * forward.  There is also a secondary progress displayable on a progress bar
  * which is useful for displaying intermediate progress, such as the buffer
  * level during a streaming playback progress bar.
+ * 一些操作进度的视觉标识。为用户展示了一个进度条，用来表示此操作执行了多少了；
+ * app能够改变进度的数值（修改进度条的长度），当此进度条朝前移动。
+ * 一个进度条也有一个第二进度展示,第二进度展示用以展示中间进度，例如
+ * 一个流播放进度条的缓冲级别
  * </p>
  *
  * <p>
@@ -79,6 +83,8 @@ import java.util.ArrayList;
  * progress bar shows a cyclic animation without an indication of progress. This mode is used by
  * applications when the length of the task is unknown. The indeterminate progress bar can be either
  * a spinning wheel or a horizontal bar.
+ * 进度条能够被模糊的制造。在模糊模式中，进度条显示一个并没有进度标示的旋转动画，
+ * 当任务的长度未知时，此模式被app使用。模糊进度条既可以是一个旋转轮，又可以是一个横向进度条
  * </p>
  *
  * <p>The following code example shows how a progress bar can be used from
@@ -122,7 +128,8 @@ import java.util.ArrayList;
  * <p>To add a progress bar to a layout file, you can use the {@code <ProgressBar>} element.
  * By default, the progress bar is a spinning wheel (an indeterminate indicator). To change to a
  * horizontal progress bar, apply the {@link android.R.style#Widget_ProgressBar_Horizontal
- * Widget.ProgressBar.Horizontal} style, like so:</p>
+ * Widget.ProgressBar.Horizontal} style, like so:
+ * </p>
  *
  * <pre>
  * &lt;ProgressBar
@@ -459,7 +466,7 @@ public class ProgressBar extends View {
     }
 
     /**
-     * Converts a drawable to a tiled version of itself. It will recursively
+     * Converts a drawable to a tiled(平铺的) version of itself. It will recursively（递归的）
      * traverse layer and state list drawables.
      */
     private Drawable tileify(Drawable drawable, boolean clip) {
@@ -846,7 +853,7 @@ public class ProgressBar extends View {
     }
 
     /**
-     * Applies the progress tints in order of increasing specificity.
+     * Applies the progress tints(色彩) in order of increasing specificity.
      */
     private void applyProgressTints() {
         if (mProgressDrawable != null && mProgressTintInfo != null) {

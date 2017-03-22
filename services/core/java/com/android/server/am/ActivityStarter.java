@@ -166,6 +166,10 @@ class ActivityStarter {
      * 启动新activity的用户id
      */
     private int mCallingUid;
+
+    /**
+     * 一些定义新activity如何启动的可选项；如果通过{@link Activity#startActivity(Intent)}调用，则此值固定为null
+     */
     private ActivityOptions mOptions;
 
     /**
@@ -1516,11 +1520,14 @@ class ActivityStarter {
                 // Also, we don't want to resume activities in a task that currently has an overlay
                 // as the starting activity just needs to be in the visible paused state until the
                 // over is removed.
+                // 如果新activity不可聚焦，我们不用启动它，但是依旧愿意确保新activity是可见的（如此亦会触发实际的动画）。
+                // 这种case的一个例子就是 PIP activity.
                 mTargetStack.ensureActivitiesVisibleLocked(null, 0, !PRESERVE_WINDOWS);
                 // Go ahead and tell window manager to execute app transition for this activity
                 // since the app transition will not be triggered through the resume channel.
                 mWindowManager.executeAppTransition();
             } else {
+                // 到达第七个主要的方法，显示新activity，暂停旧activity
                 mSupervisor.resumeFocusedStackTopActivityLocked(mTargetStack, mStartActivity,
                         mOptions);
             }

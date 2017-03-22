@@ -268,6 +268,9 @@ final class ActivityStack {
     /**
      * When we are in the process of pausing an activity, before starting the
      * next one, this variable holds the activity that is currently being paused.
+     * <br>
+     * 正在被暂停的acitivity<br>
+     * 当我们在一个暂停activity的流程中，则在启动next之前，此变量持有正在被暂停的acitivity
      */
     ActivityRecord mPausingActivity = null;
 
@@ -288,7 +291,7 @@ final class ActivityStack {
 
     /**
      * Current activity that is resumed, or null if there is none.
-     * 已经被重新的activity
+     * 已经被启动的activity
      */
     ActivityRecord mResumedActivity = null;
 
@@ -315,6 +318,9 @@ final class ActivityStack {
     boolean mConfigWillChange;
 
     // Whether or not this stack covers the entire screen; by default stacks are fullscreen
+    /**
+     * 此stack是否覆盖了整个屏幕，默认是覆盖了整个屏幕
+     */
     boolean mFullscreen = true;
     // Current bounds of the stack or null if fullscreen.
     Rect mBounds = null;
@@ -1109,15 +1115,22 @@ final class ActivityStack {
     /**
      * Start pausing the currently resumed activity.  It is an error to call this if there
      * is already an activity being paused or there is no resumed activity.
-     *
+     * 暂停当前已经被启动的activity。如果已经有一个activity被暂停了或者没有被启动的activity
+     * 则调用此方法是一个错误。
      * @param userLeaving True if this should result in an onUserLeaving to the current activity.
+     *                    是否调用当前被启动的activity的onUserLeaving方法
      * @param uiSleeping  True if this is happening with the user interface going to sleep (the
      *                    screen turning off).
+     *                    如果屏幕关闭了则为true
      * @param resuming    The activity we are currently trying to resume or null if this is not being
      *                    called as part of resuming the top activity, so we shouldn't try to instigate
      *                    a resume here if not null.
+     *                    我们当前尝试启动的activity，如果为null，则表示此次调用并不是启动top activity的一部分，
+     *                    所以，如果此参数不为空，则我们不应该在此次尝试启动
+     *
      * @param dontWait    True if the caller does not want to wait for the pause to complete.  If
      *                    set to true, we will immediately complete the pause here before returning.
+     *                    true表示调用者不想等待暂停的完成，这种情况下，我们将在返回前，立即完成暂停
      * @return Returns true if an activity now is in the PAUSING state, and we are waiting for
      * it to tell us when it is done.
      */
@@ -1135,6 +1148,7 @@ final class ActivityStack {
         }
         ActivityRecord prev = mResumedActivity;
         if (prev == null) {
+            // 如果此stack没有已启动的activity，则恢复焦点stack的top activity
             if (resuming == null) {
                 Slog.wtf(TAG, "Trying to pause when nothing is resumed");
                 mStackSupervisor.resumeFocusedStackTopActivityLocked();
@@ -1149,17 +1163,21 @@ final class ActivityStack {
 
         if (DEBUG_STATES) Slog.v(TAG_STATES, "Moving to PAUSING: " + prev);
         else if (DEBUG_PAUSE) Slog.v(TAG_PAUSE, "Start pausing: " + prev);
+        // ‘删除’已启动的activity,将当前以启动的activity变化为正在暂停的acitvity,以及上一次被暂停的acitvity
         mResumedActivity = null;
         mPausingActivity = prev;
         mLastPausedActivity = prev;
         mLastNoHistoryActivity = (prev.intent.getFlags() & Intent.FLAG_ACTIVITY_NO_HISTORY) != 0
                 || (prev.info.flags & ActivityInfo.FLAG_NO_HISTORY) != 0 ? prev : null;
+        // 当前以启动的activity的状态变化为正在暂停中...
         prev.state = ActivityState.PAUSING;
         prev.task.touchActiveTime();
         clearLaunchTime(prev);
         final ActivityRecord next = mStackSupervisor.topRunningActivityLocked();
         if (mService.mHasRecents
                 && (next == null || next.noDisplay || next.task != prev.task || uiSleeping)) {
+            // 如果系统的top activity为空，或者没有展示，或者task不等于正在暂停的activity对应的task，
+            // 或者已经关屏，则正在暂停的activity需要更新任务缩略图
             prev.mUpdateTaskThumbnailWhenHidden = true;
         }
         stopFullyDrawnTraceIfNeeded();
@@ -1167,6 +1185,7 @@ final class ActivityStack {
         mService.updateCpuStats();
 
         if (prev.app != null && prev.app.thread != null) {
+            // 调用应用进程，执行暂停操作
             if (DEBUG_PAUSE) Slog.v(TAG_PAUSE, "Enqueueing pending pause: " + prev);
             try {
                 EventLog.writeEvent(EventLogTags.AM_PAUSE_ACTIVITY,
@@ -1183,6 +1202,8 @@ final class ActivityStack {
                 mLastNoHistoryActivity = null;
             }
         } else {
+            // 如果对应的应用进程不存在，所有正在暂停的activity不需要暂停了
+            // 清空正在暂停的activity，上一次暂停的acitvity
             mPausingActivity = null;
             mLastPausedActivity = null;
             mLastNoHistoryActivity = null;
@@ -1190,6 +1211,7 @@ final class ActivityStack {
 
         // If we are not going to sleep, we want to ensure the device is
         // awake until the next activity is started.
+        // 如果我们没有睡眠，我们则期望确保设备是唤醒中的，直到下一个activity被启动
         if (!uiSleeping && !mService.isSleepingOrShuttingDownLocked()) {
             mStackSupervisor.acquireLaunchWakelock();
         }
@@ -1199,6 +1221,9 @@ final class ActivityStack {
             // activity has started.  If we're pausing the activity just because
             // the screen is being turned off and the UI is sleeping, don't interrupt
             // key dispatch; the same activity will pick it up again on wakeup.
+            // 与WMS交互，让wms暂停它的按键分配，直到下一个activity被启动
+            // 如果我们暂停activity只是因为屏幕关闭以及UI随眠了，则不必中断事件分发；
+            // 相同的activity将恢复它
             if (!uiSleeping) {
                 prev.pauseKeyDispatchingLocked();
             } else if (DEBUG_PAUSE) {
@@ -1212,6 +1237,7 @@ final class ActivityStack {
                 return false;
 
             } else {
+                // 暂停超时处理
                 // Schedule a pause timeout in case the app doesn't respond.
                 // We don't give it much time because this directly impacts the
                 // responsiveness seen by the user.
@@ -2097,6 +2123,9 @@ final class ActivityStack {
      * If any activities below the top running one are in the INITIALIZING state and they have a
      * starting window displayed then remove that starting window. It is possible that the activity
      * in this state will never resumed in which case that starting window will be orphaned.
+     * 如果任何位于在top运行的activity之下的acitivty处于INITIALIZING状态，
+     * 并且它们有一个启动窗口显示，则移除启动窗口。此状态下的activity永远不会启动是可能的，而在这种情况下
+     * 启动窗口将被孤立
      */
     void cancelInitializingActivities() {
         final ActivityRecord topActivity = topRunningActivityLocked();
@@ -2139,10 +2168,13 @@ final class ActivityStack {
     }
 
     /**
+     * 应用进程通过跨进程通信，调用的第八个方法；
      * Ensure that the top activity in the stack is resumed.
+     * 此方法确保此stack的顶部activity是被运行的
      *
      * @param prev    The previously resumed activity, for when in the process
      *                of pausing; can be null to call from elsewhere.
+     *                在暂停过程中，上一个被运行的activity,从别处调用时，可为null
      * @param options Activity options.
      * @return Returns true if something is being resumed, or false if
      * nothing happened.
@@ -2173,11 +2205,19 @@ final class ActivityStack {
         return result;
     }
 
+    /**
+     * 应用进程通过跨进程通信，调用的第九个方法；
+     *
+     * @param prev    在暂停过程中，上一个被运行的activity,从别处调用时，可为null
+     * @param options
+     * @return
+     */
     private boolean resumeTopActivityInnerLocked(ActivityRecord prev, ActivityOptions options) {
         if (DEBUG_LOCKSCREEN) mService.logLockScreen("");
 
         if (!mService.mBooting && !mService.mBooted) {
             // Not ready yet!
+            // 系统还未准备好
             return false;
         }
 
@@ -2192,15 +2232,18 @@ final class ActivityStack {
         mStackSupervisor.cancelInitializingActivities();
 
         // Find the first activity that is not finishing.
+        // 找到并没有结束的最顶部窗口
         final ActivityRecord next = topRunningActivityLocked();
 
         // Remember how we'll process this pause/resume situation, and ensure
         // that the state is reset however we wind up proceeding.
+        // 记住我们将如何处理暂停/启动的情况，并且确保状态被重置了，无论我们怎样结束进度
         final boolean userLeaving = mStackSupervisor.mUserLeaving;
         mStackSupervisor.mUserLeaving = false;
 
         final TaskRecord prevTask = prev != null ? prev.task : null;
         if (next == null) {
+            // 所有的activity都被finish了
             // There are no more activities!
             final String reason = "noMoreActivities";
             final int returnTaskType = prevTask == null || !prevTask.isOverHomeStack()
@@ -2225,6 +2268,7 @@ final class ActivityStack {
         next.delayedResume = false;
 
         // If the top activity is the resumed one, nothing to do.
+        // 如果top activity就是即将启动的，不做任何事情
         if (mResumedActivity == next && next.state == ActivityState.RESUMED &&
                 mStackSupervisor.allResumedActivitiesComplete()) {
             // Make sure we have executed any pending transitions, since there
@@ -2241,12 +2285,20 @@ final class ActivityStack {
         final TaskRecord nextTask = next.task;
         if (prevTask != null && prevTask.stack == this &&
                 prevTask.isOverHomeStack() && prev.finishing && prev.frontOfTask) {
+            // 如果上一个被恢复的task不为空
+            // 且上一个被恢复的task位于当前stack
+            // 且上一起被恢复的task在home stack之上
+            // 且上一个被恢复的activity被结束了
+            // 且上一个被恢复的actvity是root activity
             if (DEBUG_STACK) mStackSupervisor.validateTopActivitiesLocked();
             if (prevTask == nextTask) {
+                // 上一次被恢复的task等于top task
                 prevTask.setFrontOfTask();
             } else if (prevTask != topTask()) {
                 // This task is going away but it was supposed to return to the home stack.
                 // Now the task above it has to return to the home task instead.
+                // pretask即将消失，但是它被假定返回到home stack.
+                // 使位于pretask之上的task，返回home stack
                 final int taskNdx = mTaskHistory.indexOf(prevTask) + 1;
                 mTaskHistory.get(taskNdx).setTaskToReturnTo(HOME_ACTIVITY_TYPE);
             } else if (!isOnHomeDisplay()) {
@@ -2263,6 +2315,8 @@ final class ActivityStack {
 
         // If we are sleeping, and there is no resumed activity, and the top
         // activity is paused, well that is the state we want.
+        // 如果我们正在睡眠，并且没被启动的activity，并且top activity正在处于睡眠中。
+        // 则当前状态就是我们所期待的。
         if (mService.isSleepingOrShuttingDownLocked()
                 && mLastPausedActivity == next
                 && mStackSupervisor.allPausedActivitiesComplete()) {
@@ -2280,6 +2334,8 @@ final class ActivityStack {
         // Make sure that the user who owns this activity is started.  If not,
         // we will just leave it as is because someone should be bringing
         // another user's activities to the top of the stack.
+        // 确保拥有top activity的用户被开始了。如果不是，我们则离开，因为一些用户
+        // 将其他用户的activity带到了此stack的top
         if (!mService.mUserController.hasStartedUserState(next.userId)) {
             Slog.w(TAG, "Skipping resume of top activity " + next
                     + ": user " + next.userId + " is stopped");
@@ -2289,6 +2345,7 @@ final class ActivityStack {
 
         // The activity may be waiting for stop, but that is no longer
         // appropriate for it.
+        // top activity可能正在等待停止，但是这种等待永远不需要了
         mStackSupervisor.mStoppingActivities.remove(next);
         mStackSupervisor.mGoingToSleepActivities.remove(next);
         next.sleeping = false;
@@ -2297,6 +2354,7 @@ final class ActivityStack {
         if (DEBUG_SWITCH) Slog.v(TAG_SWITCH, "Resuming " + next);
 
         // If we are currently pausing an activity, then don't do anything until that is done.
+        // 如果我们正在暂停一个activity，我们不做任何事情，直到暂停结束
         if (!mStackSupervisor.allPausedActivitiesComplete()) {
             if (DEBUG_SWITCH || DEBUG_PAUSE || DEBUG_STATES) Slog.v(TAG_PAUSE,
                     "resumeTopActivityLocked: Skip resume: some activity pausing.");
@@ -2307,9 +2365,12 @@ final class ActivityStack {
         mStackSupervisor.setLaunchSource(next.info.applicationInfo.uid);
 
         // We need to start pausing the current activity so the top one can be resumed...
+        // 我们需要开始暂停当前的activity了，这样才能让top stack（next）被启动...
+        // 是否需要等待暂停
         final boolean dontWaitForPause = (next.info.flags & FLAG_RESUME_WHILE_PAUSING) != 0;
         boolean pausing = mStackSupervisor.pauseBackStacks(userLeaving, next, dontWaitForPause);
         if (mResumedActivity != null) {
+            // 如果当前stack中存在已启动的activity,暂停
             if (DEBUG_STATES) Slog.d(TAG_STATES,
                     "resumeTopActivityLocked: Pausing " + mResumedActivity);
             pausing |= startPausingLocked(userLeaving, false, next, dontWaitForPause);
@@ -2321,10 +2382,13 @@ final class ActivityStack {
             // at the top of the LRU list, since we know we will be needing it
             // very soon and it would be a waste to let it get killed if it
             // happens to be sitting towards the end.
+            // 在此处我们希望将即将启动的activity对应的进程放入LRU列表的顶部，因为我们直到
+            // 我们很快将需要它；如果让这个进程被杀死了，会是一个浪费。
             if (next.app != null && next.app.thread != null) {
                 mService.updateLruProcessLocked(next.app, true, null);
             }
             if (DEBUG_STACK) mStackSupervisor.validateTopActivitiesLocked();
+            // 返回，等待应用进程暂停activity
             return true;
         } else if (mResumedActivity == next && next.state == ActivityState.RESUMED &&
                 mStackSupervisor.allResumedActivitiesComplete()) {
@@ -2662,11 +2726,19 @@ final class ActivityStack {
         updateTaskMovement(task, true);
     }
 
+    /**
+     * 设置入参task的返回类型，其将入参activity放置入参task的顶部
+     *
+     * @param task
+     * @param newActivity
+     */
     private void insertTaskAtTop(TaskRecord task, ActivityRecord newActivity) {
+        // 是否是home stack之上的第一个task
         boolean isLastTaskOverHome = false;
         // If the moving task is over home stack, transfer its return type to next task
         // 如果task是在home stack之上，则将此task的返回类型转移至+next task
         if (task.isOverHomeStack()) {
+            // nextTask表示入参task的上一个task
             final TaskRecord nextTask = getNextTask(task);
             if (nextTask != null) {
                 nextTask.setTaskToReturnTo(task.getTaskToReturnTo());
@@ -2680,10 +2752,14 @@ final class ActivityStack {
         // 如果此task被其他activity移动至顶部，或者被home activity启动，则相应的更新mTaskToReturnTo
         if (isOnHomeDisplay()) {
             ActivityStack lastStack = mStackSupervisor.getLastStack();
+            // 此stack是否在home stack之上
             final boolean fromHome = lastStack.isHomeStack();
             if (!isHomeStack() && (fromHome || topTask() != task)) {
+                // 如果此stack不是home stack，并且（此stack在home stack之上，或者此stack的top task不等于入参task）
                 // If it's a last task over home - we default to keep its return to type not to
                 // make underlying task focused when this one will be finished.
+                // 如果入参task是home stack之上的最后一个task，我们默认保持它的返回类型，
+                // 而不是保持下层的task获取焦点，当入参task完成之后
                 int returnToType = isLastTaskOverHome
                         ? task.getTaskToReturnTo() : APPLICATION_ACTIVITY_TYPE;
                 if (fromHome && StackId.allowTopTaskToReturnHome(mStackId)) {
@@ -2719,6 +2795,7 @@ final class ActivityStack {
 
     /**
      * 应用进程通过跨进程通信，调用的第六个方法；
+     * 主要确保新activity位于目标task的顶部，并进行过渡动画
      *
      * @param r                 新activity
      * @param newTask           新activity是否在一个新创建的task上
@@ -2729,6 +2806,7 @@ final class ActivityStack {
                                    ActivityOptions options) {
         TaskRecord rTask = r.task;
         final int taskId = rTask.taskId;
+        /****以下代码分情况，确保新activity被放入目标task的顶部了，如果需要，与WMS同步***************/
         // mLaunchTaskBehind tasks get placed at the back of the task stack.
         // mLaunchTaskBehind任务将被定位到此stack的后面
         if (!r.mLaunchTaskBehind && (taskForIdLocked(taskId) == null || newTask)) {
@@ -2737,7 +2815,7 @@ final class ActivityStack {
             // Might not even be in.
             // 在目标task中的最后一个activity被移除了，或者AMS重建了一个任务
             // 将新activity放置目标task的顶部，并同步WMS
-            insertTaskAtTop(rTask, r);
+            insertTaskAtTop(rTask, r);// 设置目标task的返回类型，且将新activity放置目标task的顶部
             mWindowManager.moveTaskToTop(taskId);
         }
         TaskRecord task = null;
@@ -2805,6 +2883,9 @@ final class ActivityStack {
         task.setFrontOfTask();
 
         r.putInHistory();
+
+        /****以上代码分情况，确保新activity被放入目标task的顶部了，如果需要，与WMS同步***************/
+        /**以下代码主要与WMS协作，处理过渡动画的情况*/
         if (!isHomeStack() || numActivities() > 0) {
             // 如果当前stack，不是home stack，或者此stack存在activiry
             // We want to show the starting preview window if we are
@@ -2883,6 +2964,7 @@ final class ActivityStack {
             ActivityOptions.abort(options);
             options = null;
         }
+        /**以上代码主要与WMS协作，处理过渡动画的情况*/
         if (VALIDATE_TOKENS) {
             validateAppTokensLocked();
         }

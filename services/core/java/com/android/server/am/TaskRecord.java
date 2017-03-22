@@ -777,6 +777,7 @@ final class TaskRecord {
 
     /**
      * Call after activity movement or finish to make sure that frontOfTask is set correctly
+     * 在activity移动或者结束后调用，用来确保frontOfTask被正确设置
      */
     void setFrontOfTask(ActivityRecord newTop) {
         // If a top candidate is suggested by the caller, go ahead and use it and mark all others

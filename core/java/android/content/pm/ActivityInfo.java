@@ -330,9 +330,10 @@ public class ActivityInfo extends ComponentInfo
      */
     public static final int FLAG_AUTO_REMOVE_FROM_RECENTS = 0x2000;
     /**
-     * Bit in {@link #flags} indicating that this activity can start is creation/resume
+     * Bit in {@link #flags} indicating that this activity can start its creation/resume
      * while the previous activity is still pausing.  Corresponds to
      * {@link android.R.attr#resumeWhilePausing}
+     * 标示当上一个暂停的acitvity正在暂停时，本activity可以开始它的创建或者恢复
      */
     public static final int FLAG_RESUME_WHILE_PAUSING = 0x4000;
     /**

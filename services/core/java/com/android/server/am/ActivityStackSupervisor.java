@@ -1017,12 +1017,14 @@ public final class ActivityStackSupervisor implements DisplayListener {
 
     /**
      * Pause all activities in either all of the stacks or just the back stacks.
-     *
+     * 暂停所有的stack中的所有activity，或者只是暂停后面的stack
+     * 暂停非焦点stack中的已启动acitivty(mResumedActivity).
      * @param userLeaving Passed to pauseActivity() to indicate whether to call onUserLeaving().
-     * @param resuming    The resuming activity.
+     *                    是否回调onUserLeaving()方法
+     * @param resuming    The resuming activity.即将启动的activity;
      * @param dontWait    The resuming activity isn't going to wait for all activities to be paused
-     *                    before resuming.
-     * @return true if any activity was paused as a result of this call.
+     *                    before resuming.即将启动的activity，在启动之前不会等待所有的activity都被暂停了
+     * @return true if any activity was paused as a result of this call.如果任何一个activity被暂停了，就会返回true
      */
     boolean pauseBackStacks(boolean userLeaving, ActivityRecord resuming, boolean dontWait) {
         boolean someActivityPaused = false;
@@ -1899,9 +1901,18 @@ public final class ActivityStackSupervisor implements DisplayListener {
         return resumeFocusedStackTopActivityLocked(null, null, null);
     }
 
+    /**
+     * 应用进程通过跨进程通信，调用的第七个方法；
+     * 确保启动焦点stack的top activity
+     * @param targetStack   目标stack
+     * @param target        新activity
+     * @param targetOptions
+     * @return
+     */
     boolean resumeFocusedStackTopActivityLocked(
             ActivityStack targetStack, ActivityRecord target, ActivityOptions targetOptions) {
         if (targetStack != null && isFocusedStack(targetStack)) {
+            // 如果目标stack是焦点stack，则运行其顶部的activity
             return targetStack.resumeTopActivityUncheckedLocked(target, targetOptions);
         }
         final ActivityRecord r = mFocusedStack.topRunningActivityLocked();

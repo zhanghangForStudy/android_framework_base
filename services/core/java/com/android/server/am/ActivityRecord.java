@@ -226,6 +226,9 @@ final class ActivityRecord {
      */
     boolean mTaskOverlay = false; // Task is always on-top of other activities in the task.
 
+    /**
+     * 更新任务缩略图
+     */
     boolean mUpdateTaskThumbnailWhenHidden;
     ActivityContainer mInitialActivityContainer;
 

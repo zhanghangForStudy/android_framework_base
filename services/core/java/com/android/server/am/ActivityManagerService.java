@@ -1280,7 +1280,7 @@ public final class ActivityManagerService extends ActivityManagerNative
     static final int LOCK_SCREEN_LEAVING = 1;
     static final int LOCK_SCREEN_SHOWN = 2;
     /**
-     * State of external call telling us if the lock screen is shown.
+     * State of external(外部的) call telling us if the lock screen is shown.
      */
     int mLockScreenShown = LOCK_SCREEN_HIDDEN;
 

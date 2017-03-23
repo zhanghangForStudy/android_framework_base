@@ -341,6 +341,8 @@ public final class ActivityStackSupervisor implements DisplayListener {
      * If this is the same as mFocusedStack then the activity on the top of the focused stack has
      * been resumed. If stacks are changing position this will hold the old stack until the new
      * stack becomes resumed after which it will be set to mFocusedStack.
+     * 如果是属性值相同于mFocusedStack，则在mFocusedStack顶部的activity已经被启动了。
+     * 如果stack列表正在改变位置，这此属性值将持有旧stack直到，新的一个stack被启动成功，且设置为mFocusedStack后
      */
     private ActivityStack mLastFocusedStack;
 
@@ -1019,6 +1021,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
      * Pause all activities in either all of the stacks or just the back stacks.
      * 暂停所有的stack中的所有activity，或者只是暂停后面的stack
      * 暂停非焦点stack中的已启动acitivty(mResumedActivity).
+     *
      * @param userLeaving Passed to pauseActivity() to indicate whether to call onUserLeaving().
      *                    是否回调onUserLeaving()方法
      * @param resuming    The resuming activity.即将启动的activity;
@@ -1264,6 +1267,16 @@ public final class ActivityStackSupervisor implements DisplayListener {
         return resolveActivity(intent, rInfo, startFlags, profilerInfo);
     }
 
+    /**
+     * 通知应用进程运行指定的activity
+     *
+     * @param r           指定开始的activity
+     * @param app         指定的应用进程
+     * @param andResume   是否启动
+     * @param checkConfig 是否检查配置
+     * @return
+     * @throws RemoteException
+     */
     final boolean realStartActivityLocked(ActivityRecord r, ProcessRecord app,
                                           boolean andResume, boolean checkConfig) throws RemoteException {
 
@@ -1472,6 +1485,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
         r.task.stack.setLaunchTime(r);
 
         if (app != null && app.thread != null) {
+            // 指定运行的activity已经运行了
             try {
                 if ((r.info.flags & ActivityInfo.FLAG_MULTIPROCESS) == 0
                         || !"android".equals(r.info.packageName)) {
@@ -1492,7 +1506,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
             // If a dead object exception was thrown -- fall through to
             // restart the application.
         }
-
+        // 先启动对应的应用进程
         mService.startProcessLocked(r.processName, r.info.applicationInfo, true, 0,
                 "activity", r.intent.getComponent(), false, false, true);
     }
@@ -1904,6 +1918,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
     /**
      * 应用进程通过跨进程通信，调用的第七个方法；
      * 确保启动焦点stack的top activity
+     *
      * @param targetStack   目标stack
      * @param target        新activity
      * @param targetOptions

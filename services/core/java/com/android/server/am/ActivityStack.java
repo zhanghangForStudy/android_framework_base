@@ -2392,11 +2392,13 @@ final class ActivityStack {
             return true;
         } else if (mResumedActivity == next && next.state == ActivityState.RESUMED &&
                 mStackSupervisor.allResumedActivitiesComplete()) {
+            // 如果期望启动的activity已经启动了，则不需要做其他的事情
             // It is possible for the activity to be resumed when we paused back stacks above if the
             // next activity doesn't have to wait for pause to complete.
             // So, nothing else to-do except:
             // Make sure we have executed any pending transitions, since there
             // should be nothing left to do at this point.
+            // 当我们暂停回来后，如果期望启动的activity没有等待暂停而已经完成了启动，这对于期望启动的activity而言是可能的。
             mWindowManager.executeAppTransition();
             mNoAnimActivities.clear();
             ActivityOptions.abort(options);
@@ -2409,6 +2411,8 @@ final class ActivityStack {
         // If the most recent activity was noHistory but was only stopped rather
         // than stopped+finished because the device went to sleep, we need to make
         // sure to finish it as we're making a new activity topmost.
+        // 如果最近的activity是无历史记录的，但是这个activity只是因为设备随眠而停止，且不是停止+结束；
+        // 则我们需要结束之，因为我们正在使一个新的activity处于顶端
         if (mService.isSleepingLocked() && mLastNoHistoryActivity != null &&
                 !mLastNoHistoryActivity.finishing) {
             if (DEBUG_STATES) Slog.d(TAG_STATES,
@@ -2433,6 +2437,13 @@ final class ActivityStack {
                 // the resumed activity to be shown so we can decide if the
                 // previous should actually be hidden depending on whether the
                 // new one is found to be full-screen or not.
+                // 期望启动的activity已经可视了，所以隐藏上一个activity的窗口
+                // 以便我们能可能块的显示新的activity.
+                // 如果上一个activity已经结束了，就以为意味着它位于即将启动的activity的上面，
+                // 所以快速隐藏它是可以的。
+                // 否则，我们仍期望按照一般的，允许即将启动的activity显示的路线处理，这样
+                // 我们能够决定是否上一个activity应该确切的被隐藏；而这个决定主要依赖于
+                // 新activity是否已经被发现是一个全屏的activity
                 if (prev.finishing) {
                     mWindowManager.setAppVisibility(prev.appToken, false);
                     if (DEBUG_SWITCH) Slog.v(TAG_SWITCH,
@@ -2451,6 +2462,7 @@ final class ActivityStack {
 
         // Launching this app's activity, make sure the app is no longer
         // considered stopped.
+        // 运行此app的activity了，所以需要确保其对应的app不在被视为停止的
         try {
             AppGlobals.getPackageManager().setPackageStoppedState(
                     next.packageName, false, next.userId); /* TODO: Verify if correct userid */
@@ -2463,6 +2475,8 @@ final class ActivityStack {
         // We are starting up the next activity, so tell the window manager
         // that the previous one will be hidden soon.  This way it can know
         // to ignore it when computing the desired screen orientation.
+        // 我们将启动期望启动的activity，所以告诉WMS，上一个activity应该很快被隐藏了。
+        // 这样做了之后，WMS将知道当计算期望的屏幕方向时，可忽略上一个activity
         boolean anim = true;
         if (prev != null) {
             if (prev.finishing) {
@@ -2514,6 +2528,7 @@ final class ActivityStack {
 
         ActivityStack lastStack = mStackSupervisor.getLastStack();
         if (next.app != null && next.app.thread != null) {
+            // 即将启动的activity已经在某个应用进程中运行了
             if (DEBUG_SWITCH) Slog.v(TAG_SWITCH, "Resume running: " + next
                     + " stopped=" + next.stopped + " visible=" + next.visible);
 
@@ -2524,17 +2539,20 @@ final class ActivityStack {
             // Launcher is already visible in this case. If we don't add it to opening
             // apps, maybeUpdateTransitToWallpaper() will fail to identify this as a
             // TRANSIT_WALLPAPER_OPEN animation, and run some funny animation.
+            // 判断上一个activity是否是半透明的
             final boolean lastActivityTranslucent = lastStack != null
                     && (!lastStack.mFullscreen
                     || (lastStack.mLastPausedActivity != null
                     && !lastStack.mLastPausedActivity.fullscreen));
 
             // This activity is now becoming visible.
+            // 确保即将启动的activity可见
             if (!next.visible || next.stopped || lastActivityTranslucent) {
                 mWindowManager.setAppVisibility(next.appToken, true);
             }
 
             // schedule launch ticks to collect information about slow apps.
+            // 调度运行记录用以收集运行缓慢app的信息
             next.startLaunchTickingLocked();
 
             ActivityRecord lastResumedActivity =
@@ -2544,6 +2562,7 @@ final class ActivityStack {
             mService.updateCpuStats();
 
             if (DEBUG_STATES) Slog.v(TAG_STATES, "Moving to RESUMED: " + next + " (in existing)");
+            // 更新即将启动activity的状态，更新此stack中的已启动activity，以及更新一些lru列表
             next.state = ActivityState.RESUMED;
             mResumedActivity = next;
             next.task.touchActiveTime();
@@ -2554,6 +2573,7 @@ final class ActivityStack {
 
             // Have the window manager re-evaluate the orientation of
             // the screen based on the new activity order.
+            // 通知WMS基于新activity的顺序，重新评估屏幕的方向
             boolean notUpdated = true;
             if (mStackSupervisor.isFocusedStack(this)) {
                 Configuration config = mWindowManager.updateOrientationFromAppTokens(
@@ -2570,7 +2590,9 @@ final class ActivityStack {
                 // instance of the activity, and instead started a new one.
                 // We should be all done, but let's just make sure our activity
                 // is still at the top and schedule another run if something
-                // weird happened.
+                // weird（奇怪的） happened.
+                // 配置更新不能保持期望启动的activity的已存在的实例，因此开始一个新的实例。
+                // 我们所能做的一切只是确保期望启动的activity依旧位于顶部，并且如果有一些奇怪的事情发生了，则运行另一个
                 ActivityRecord nextNext = topRunningActivityLocked();
                 if (DEBUG_SWITCH || DEBUG_STATES) Slog.i(TAG_STATES,
                         "Activity config changed during resume: " + next
@@ -2590,6 +2612,7 @@ final class ActivityStack {
 
             try {
                 // Deliver all pending results.
+                // 分配结果
                 ArrayList<ResultInfo> a = next.results;
                 if (a != null) {
                     final int N = a.size();
@@ -2602,10 +2625,11 @@ final class ActivityStack {
 
                 boolean allowSavedSurface = true;
                 if (next.newIntents != null) {
-                    // Restrict saved surface to launcher start, or there is no intent at all
+                    // Restrict（限制） saved surface to launcher start, or there is no intent at all
                     // (eg. task being brought to front). If the intent is something else,
                     // likely the app is going to show some specific page or view, instead of
                     // what's left last time.
+                    //限制保存启动activity开始的surface，或者并没有intent。
                     for (int i = next.newIntents.size() - 1; i >= 0; i--) {
                         final Intent intent = next.newIntents.get(i);
                         if (intent != null && !ActivityRecord.isMainIntent(intent)) {
@@ -2619,6 +2643,7 @@ final class ActivityStack {
 
                 // Well the app will no longer be stopped.
                 // Clear app token stopped state in window manager if needed.
+                // 清空wms中app token的停止状态
                 mWindowManager.notifyAppResumed(next.appToken, next.stopped, allowSavedSurface);
 
                 EventLog.writeEvent(EventLogTags.AM_RESUME_ACTIVITY, next.userId,
@@ -2630,6 +2655,7 @@ final class ActivityStack {
                 next.app.pendingUiClean = true;
                 next.app.forceProcessStateUpTo(mService.mTopProcessState);
                 next.clearOptionsLocked();
+                // 调度应用进程启动activity
                 next.app.thread.scheduleResumeActivity(next.appToken, next.app.repProcState,
                         mService.isNextTransitionForward(), resumeAnimOptions);
 

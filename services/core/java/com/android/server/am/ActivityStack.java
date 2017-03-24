@@ -1117,6 +1117,7 @@ final class ActivityStack {
      * is already an activity being paused or there is no resumed activity.
      * 暂停当前已经被启动的activity。如果已经有一个activity被暂停了或者没有被启动的activity
      * 则调用此方法是一个错误。
+     *
      * @param userLeaving True if this should result in an onUserLeaving to the current activity.
      *                    是否调用当前被启动的activity的onUserLeaving方法
      * @param uiSleeping  True if this is happening with the user interface going to sleep (the
@@ -1127,7 +1128,6 @@ final class ActivityStack {
      *                    a resume here if not null.
      *                    我们当前尝试启动的activity，如果为null，则表示此次调用并不是启动top activity的一部分，
      *                    所以，如果此参数不为空，则我们不应该在此次尝试启动
-     *
      * @param dontWait    True if the caller does not want to wait for the pause to complete.  If
      *                    set to true, we will immediately complete the pause here before returning.
      *                    true表示调用者不想等待暂停的完成，这种情况下，我们将在返回前，立即完成暂停
@@ -1192,6 +1192,7 @@ final class ActivityStack {
                         prev.userId, System.identityHashCode(prev),
                         prev.shortComponentName);
                 mService.updateUsageStats(prev, false);
+                // 向schedulePauseActivity方法，会向应用进程的主线程发送一个消息后，就立即返回
                 prev.app.thread.schedulePauseActivity(prev.appToken, prev.finishing,
                         userLeaving, prev.configChangeFlags, dontWait);
             } catch (Exception e) {
@@ -1260,6 +1261,12 @@ final class ActivityStack {
         }
     }
 
+    /**
+     * 由应用进程报告暂停activity的处理结果
+     *
+     * @param token     ActivityRecord的代表
+     * @param timeout   应用进程处理是否暂停操作超时
+     */
     final void activityPausedLocked(IBinder token, boolean timeout) {
         if (DEBUG_PAUSE) Slog.v(TAG_PAUSE,
                 "Activity paused: token=" + token + ", timeout=" + timeout);
@@ -1270,9 +1277,11 @@ final class ActivityStack {
             if (mPausingActivity == r) {
                 if (DEBUG_STATES) Slog.v(TAG_STATES, "Moving to PAUSED: " + r
                         + (timeout ? " (due to timeout)" : " (pause complete)"));
+                // 完成暂停操作的后续处理，并且开始启动next activity(completePauseLocked方法的第一个入参为true)
                 completePauseLocked(true, null);
                 return;
             } else {
+                // 已经做过超时处理了
                 EventLog.writeEvent(EventLogTags.AM_FAILED_TO_PAUSE,
                         r.userId, System.identityHashCode(r), r.shortComponentName,
                         mPausingActivity != null
@@ -1341,6 +1350,11 @@ final class ActivityStack {
         }
     }
 
+    /**
+     * 完成暂停处理
+     * @param resumeNext    是否启动next activity
+     * @param resuming      指定开始启动的activity，可为null
+     */
     private void completePauseLocked(boolean resumeNext, ActivityRecord resuming) {
         ActivityRecord prev = mPausingActivity;
         if (DEBUG_PAUSE) Slog.v(TAG_PAUSE, "Complete pause: " + prev);
@@ -1359,28 +1373,36 @@ final class ActivityStack {
                             "Complete pause, no longer waiting: " + prev);
                 }
                 if (prev.deferRelaunchUntilPaused) {
-                    // Complete the deferred relaunch that was waiting for pause to complete.
+                    // Complete the deferred(延迟) relaunch（重启动） that was waiting for pause to complete.
+                    // 完成延迟的重启动
                     if (DEBUG_PAUSE) Slog.v(TAG_PAUSE, "Re-launching after pause: " + prev);
                     relaunchActivityLocked(prev, prev.configChangeFlags, false,
                             prev.preserveWindowOnDeferredRelaunch);
                 } else if (wasStopping) {
                     // We are also stopping, the stop request must have gone soon after the pause.
-                    // We can't clobber it, because the stop confirmation will not be handled.
+                    // We can't clobber（连续停止） it, because the stop confirmation（确认） will not be handled.
                     // We don't need to schedule another stop, we only need to let it happen.
+                    // 在处理暂停的阶段中，此activity又因为一些其他的原因而停止，停止请求一定会在暂停之后很快消失。
+                    // 我们不能连续停止一个acitivity,因为停止确认将不会被处理。
+                    // 我们不需要调度另一个停止，我们只需继续让其发生即可
                     prev.state = ActivityState.STOPPING;
                 } else if ((!prev.visible && !hasVisibleBehindActivity())
                         || mService.isSleepingOrShuttingDownLocked()) {
                     // If we were visible then resumeTopActivities will release resources before
                     // stopping.
+                    // 如果不可见了，则进入停止？
                     addToStopping(prev, true /* immediate */);
                 }
             } else {
+                // activity对应的进程挂掉了
                 if (DEBUG_PAUSE) Slog.v(TAG_PAUSE, "App died during pause, not stopping: " + prev);
                 prev = null;
             }
             // It is possible the activity was freezing the screen before it was paused.
             // In that case go ahead and remove the freeze this activity has on the screen
             // since it is no longer visible.
+            // 在暂停之前，activity正在冻结屏幕是可能的。
+            // 如果是那样的话，前进异步并且移除此冻结，因为此activity不在可见了
             if (prev != null) {
                 prev.stopFreezingScreenLocked(true /*force*/);
             }

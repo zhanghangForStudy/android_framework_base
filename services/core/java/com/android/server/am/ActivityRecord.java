@@ -108,6 +108,9 @@ final class ActivityRecord {
     static final String ACTIVITY_ICON_SUFFIX = "_activity_icon_";
 
     final ActivityManagerService service; // owner
+    /**
+     * ActivityRecord的bind代表
+     */
     final IApplicationToken.Stub appToken; // window manager token
     final ActivityInfo info; // all about me
     final ApplicationInfo appInfo; // information about activity's app

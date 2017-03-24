@@ -1463,6 +1463,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
         // launching the initial activity (that is, home), so that it can have
         // a chance to initialize itself while in the background, making the
         // switch back to it faster and look better.
+        // 如果需要，运行新版本安装屏幕。
         if (isFocusedStack(stack)) {
             mService.startSetupActivityLocked();
         }

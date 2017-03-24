@@ -1522,7 +1522,10 @@ public class Instrumentation {
         try {
             intent.migrateExtraStreamToClipData();
             intent.prepareToLeaveProcess(who);
-            // 与AMS跨进程通信
+            // 与AMS跨进程通信,此处与AMS的远程方法执行完成后，
+            // 一般而言新activity，在焦点stack,顶部的task的top activity了；
+            // 但是此时还没有启动，同时旧activity即将暂停（在当前主线程的下一（几）轮轮询中执行暂停操作）
+            // 同时到这一点，AMS已经通知了WMS此activity对按键、触摸事件的接受
             int result = ActivityManagerNative.getDefault()
                 .startActivity(whoThread, who.getBasePackageName(), intent,
                         intent.resolveTypeIfNeeded(who.getContentResolver()),

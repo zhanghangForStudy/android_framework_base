@@ -252,7 +252,7 @@ public abstract class PagerAdapter {
     /**
      * Called when the host view is attempting to determine if an item's position
      * has changed. Returns {@link #POSITION_UNCHANGED} if the position of the given
-     * item has not changed or {@link #POSITION_NONE} if the item is no longer present
+     * item has not changed or {@link #POSITION_NONE} if the item is no longer present(出现)
      * in the adapter.
      *
      * <p>The default implementation assumes that items will never

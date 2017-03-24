@@ -211,7 +211,13 @@ public class ViewPager extends ViewGroup {
     private PageTransformer mPageTransformer;
 
     private static final int DRAW_ORDER_DEFAULT = 0;
+    /**
+     * 超前绘制
+     */
     private static final int DRAW_ORDER_FORWARD = 1;
+    /**
+     * 反转绘制
+     */
     private static final int DRAW_ORDER_REVERSE = 2;
     private int mDrawingOrder;
     private ArrayList<View> mDrawingOrderedChildren;
@@ -388,7 +394,7 @@ public class ViewPager extends ViewGroup {
 
         mScrollState = newState;
         if (mPageTransformer != null) {
-            // PageTransformers can do complex things that benefit from hardware layers.
+            // PageTransformers can do complex things that benefit(利益) from hardware layers.
             enableLayers(newState != SCROLL_STATE_IDLE);
         }
         if (mOnPageChangeListener != null) {
@@ -521,8 +527,9 @@ public class ViewPager extends ViewGroup {
         final int pageLimit = mOffscreenPageLimit;
         if (item > (mCurItem + pageLimit) || item < (mCurItem - pageLimit)) {
             // We are doing a jump by more than one page.  To avoid
-            // glitches, we want to keep all current pages in the view
+            // glitches（差错）, we want to keep all current pages in the view
             // until the scroll ends.
+            // 我们正在跳跃多页。为了避免差错，我们期望保持视图中所有当前的页，知道滚动结束
             for (int i = 0; i < mItems.size(); i++) {
                 mItems.get(i).scrolling = true;
             }
@@ -532,6 +539,8 @@ public class ViewPager extends ViewGroup {
         if (mFirstLayout) {
             // We don't have any idea how big we are yet and shouldn't have any pages either.
             // Just set things up and let the pending layout handle things.
+            // 我们没有任何办法知道视图有多大，并且不应该有任何页面。
+            // 只是设置好属性并让即将到来的布局处理这些属性
             mCurItem = item;
             if (dispatchSelected && mOnPageChangeListener != null) {
                 mOnPageChangeListener.onPageSelected(item);
@@ -548,6 +557,14 @@ public class ViewPager extends ViewGroup {
         return true;
     }
 
+    /**
+     * 滚动至某个item
+     *
+     * @param position         滚动的目的位置
+     * @param smoothScroll     是否光滑滚动；true表示真正的滚动，false表示没有滚动动画
+     * @param velocity
+     * @param dispatchSelected 是否通知监听器
+     */
     private void scrollToItem(int position, boolean smoothScroll, int velocity,
                               boolean dispatchSelected) {
         final int destX = getLeftEdgeForItem(position);
@@ -607,13 +624,17 @@ public class ViewPager extends ViewGroup {
      * Set a {@link PageTransformer} that will be called for each attached page whenever
      * the scroll position is changed. This allows the application to apply custom property
      * transformations to each page, overriding the default sliding look and feel.
+     * 无论滚动位置在什么时候改变了，此方法都会被每个粘贴的页面调用。
+     * 此方法运行app为每个页面提供个性化属性变化，用以覆盖默认的滑动外观和感觉。
      * <p>
      * <p><em>Note:</em> Prior to Android 3.0 the property animation APIs did not exist.
      * As a result, setting a PageTransformer prior to Android 3.0 (API 11) will have no effect.</p>
      *
      * @param reverseDrawingOrder true if the supplied PageTransformer requires page views
      *                            to be drawn from last to first instead of first to last.
+     *                            true表示提供的页面转换需要从最后到最前绘制页面视图
      * @param transformer         PageTransformer that will modify each page's animation properties
+     *                            修改每一个页面的动画属性
      */
     public void setPageTransformer(boolean reverseDrawingOrder, PageTransformer transformer) {
         final boolean hasTransformer = transformer != null;
@@ -648,10 +669,12 @@ public class ViewPager extends ViewGroup {
     }
 
     /**
-     * Returns the number of pages that will be retained to either side of the
+     * Returns the number of pages that will be retained(保存) to either side of the
      * current page in the view hierarchy in an idle state. Defaults to 1.
-     *
+     * 返回页面数目，此页面数目表示，一个空闲状态下，视图树中，当前页两边锁保存的页面数。默认为1
+     * 即当前页的左右两边各缓存一个页面
      * @return How many pages will be kept offscreen on either side
+     *         当前页的两边会有多少个页面被保存在屏幕之外
      * @see #setOffscreenPageLimit(int)
      */
     public int getOffscreenPageLimit() {
@@ -660,15 +683,19 @@ public class ViewPager extends ViewGroup {
 
     /**
      * Set the number of pages that should be retained to either side of the
-     * current page in the view hierarchy in an idle state. Pages beyond this
+     * current page in the view hierarchy in an idle state. Pages beyond(超过) this
      * limit will be recreated from the adapter when needed.
+     * 超过这个限制的页面将通过适配器被重新创建。
      * <p>
      * <p>This is offered as an optimization. If you know in advance the number
      * of pages you will need to support or have lazy-loading mechanisms in place
-     * on your pages, tweaking this setting can have benefits in perceived smoothness
+     * on your pages, tweaking（调整） this setting can have benefits in perceived（认为） smoothness
      * of paging animations and interaction. If you have a small number of pages (3-4)
      * that you can keep active all at once, less time will be spent in layout for
-     * newly created view subtrees as the user pages back and forth.</p>
+     * newly created view subtrees as the user pages back and forth.
+     * 此方法被提供作为i一种优化。如果你事先知道即将需要提供懒加载机制的页面数量，通过此方法调整设定
+     * 能够对页面动画和交互是有益的。如果有一个始终保持活跃的小页面数（3-4），更少的时间将被花费在布局之上
+     * </p>
      * <p>
      * <p>You should keep this limit low, especially if your pages have complex layouts.
      * This setting defaults to 1.</p>
@@ -752,8 +779,10 @@ public class ViewPager extends ViewGroup {
 
     // We want the duration of the page snap animation to be influenced by the distance that
     // the screen has to travel, however, we don't want this duration to be effected in a
-    // purely linear fashion. Instead, we use this method to moderate the effect that the distance
+    // purely（纯粹的） linear fashion. Instead, we use this method to moderate（适度） the effect that the distance
     // of travel has on the overall snap duration.
+    // 我们期望页面快照动画持续时间，被屏幕移动的距离影响，然而我们并不期望这个时间并不是被一个纯粹的线性方式影响。
+    // 相反，我们使用此方法缓和移动距离对整个快照时间的影响
     float distanceInfluenceForSnapDuration(float f) {
         f -= 0.5f; // center the values about 0.
         f *= 0.3f * Math.PI / 2.0f;
@@ -836,6 +865,7 @@ public class ViewPager extends ViewGroup {
 
         final int adapterCount = mAdapter.getCount();
         mExpectedAdapterCount = adapterCount;
+        // 第一个判断如果为true，就表示需要缓存了
         boolean needPopulate = mItems.size() < mOffscreenPageLimit * 2 + 1 &&
                 mItems.size() < adapterCount;
         int newCurrItem = mCurItem;
@@ -844,11 +874,12 @@ public class ViewPager extends ViewGroup {
         for (int i = 0; i < mItems.size(); i++) {
             final ItemInfo ii = mItems.get(i);
             final int newPos = mAdapter.getItemPosition(ii.object);
-
+            // 如果新位置并未改变则什么都不做
             if (newPos == PagerAdapter.POSITION_UNCHANGED) {
                 continue;
             }
 
+            // 如果新位置没有了，从mItems中删除，调用适配器的destroyItem进行item销毁
             if (newPos == PagerAdapter.POSITION_NONE) {
                 mItems.remove(i);
                 i--;
@@ -874,7 +905,7 @@ public class ViewPager extends ViewGroup {
                     // Our current item changed position. Follow it.
                     newCurrItem = newPos;
                 }
-
+                // 根据适配器计算出的位置更新mItems中的位置数据
                 ii.position = newPos;
                 needPopulate = true;
             }
@@ -924,6 +955,8 @@ public class ViewPager extends ViewGroup {
         // on creating views from the time the user releases their finger to
         // fling to a new position until we have finished the scroll to
         // that position, avoiding glitches from happening at that point.
+        // 从用户释放他们的指尖开始抛动到一个新位置，到我们完成了到新位置的滚动为止，将会延迟新视图的创建
+        // 以此避免一些小差别
         if (mPopulatePending) {
             if (DEBUG) Log.i(TAG, "populate is pending, skipping for now...");
             sortChildDrawingOrder();
@@ -940,8 +973,10 @@ public class ViewPager extends ViewGroup {
         mAdapter.startUpdate(this);
 
         final int pageLimit = mOffscreenPageLimit;
+        // 开始缓存页的的未知
         final int startPos = Math.max(0, mCurItem - pageLimit);
         final int N = mAdapter.getCount();
+        // 结束缓存也的位置
         final int endPos = Math.min(N - 1, mCurItem + pageLimit);
 
         if (N != mExpectedAdapterCount) {
@@ -960,6 +995,7 @@ public class ViewPager extends ViewGroup {
         }
 
         // Locate the currently focused item or add it if needed.
+        // 定位当前焦点item，如果需要添加它
         int curIndex = -1;
         ItemInfo curItem = null;
         for (curIndex = 0; curIndex < mItems.size(); curIndex++) {
@@ -977,15 +1013,24 @@ public class ViewPager extends ViewGroup {
         // Fill 3x the available width or up to the number of offscreen
         // pages requested to either side, whichever is larger.
         // If we have no current item we have no work to do.
+        // 填充3倍或者界面外缓存页面数倍的可用宽度或者。
         if (curItem != null) {
+            // 实际需要向左边填充的宽度
             float extraWidthLeft = 0.f;
+            // 当前位置的左边一个位置
             int itemIndex = curIndex - 1;
             ItemInfo ii = itemIndex >= 0 ? mItems.get(itemIndex) : null;
+            // 除去左右padding的宽度
             final int clientWidth = getPaddedWidth();
+            // 期望向左边填充的位置宽度
             final float leftWidthNeeded = clientWidth <= 0 ? 0 :
                     2.f - curItem.widthFactor + (float) getPaddingLeft() / (float) clientWidth;
             for (int pos = mCurItem - 1; pos >= 0; pos--) {
                 if (extraWidthLeft >= leftWidthNeeded && pos < startPos) {
+                    // 真正左边填充的宽度已经大于等于期望左边填充的宽度，
+                    // 并且左边缓存在画面之外的页数也满足了限制，则走此分支
+                    // 此分支不会继续增加extraWidthLeft的值了
+                    // 此分支一个额外的功能是删除不可滚动的item
                     if (ii == null) {
                         break;
                     }
@@ -1001,6 +1046,9 @@ public class ViewPager extends ViewGroup {
                         ii = itemIndex >= 0 ? mItems.get(itemIndex) : null;
                     }
                 } else if (ii != null && pos == ii.position) {
+                    // 真正左边填充的宽度还未达到期望左边填充的宽度；
+                    // 或者左边缓存在画面之外的页数还未达到限制数，则走此分支
+                    // 此分支会继续增加extraWidthLeft的值，且会继续向左遍历
                     extraWidthLeft += ii.widthFactor;
                     itemIndex--;
                     ii = itemIndex >= 0 ? mItems.get(itemIndex) : null;
@@ -1011,10 +1059,11 @@ public class ViewPager extends ViewGroup {
                     ii = itemIndex >= 0 ? mItems.get(itemIndex) : null;
                 }
             }
-
+            // 右边实际要填充的宽度
             float extraWidthRight = curItem.widthFactor;
             itemIndex = curIndex + 1;
             if (extraWidthRight < 2.f) {
+                // 右边实际要填充的宽度还未达到最小期望的填充宽度，则继续向右遍历增加向右实际要填充的宽度
                 ii = itemIndex < mItems.size() ? mItems.get(itemIndex) : null;
                 final float rightWidthNeeded = clientWidth <= 0 ? 0 :
                         (float) getPaddingRight() / (float) clientWidth + 2.f;
@@ -1067,7 +1116,7 @@ public class ViewPager extends ViewGroup {
             final LayoutParams lp = (LayoutParams) child.getLayoutParams();
             lp.childIndex = i;
             if (!lp.isDecor && lp.widthFactor == 0.f) {
-                // 0 means requery the adapter for this, it doesn't have a valid width.
+                // 0 means requery(重新查询) the adapter for this, it doesn't have a valid width.
                 final ItemInfo ii = infoForChild(child);
                 if (ii != null) {
                     lp.widthFactor = ii.widthFactor;
@@ -1121,15 +1170,19 @@ public class ViewPager extends ViewGroup {
 
     private void calculatePageOffsets(ItemInfo curItem, int curIndex, ItemInfo oldCurInfo) {
         final int N = mAdapter.getCount();
+        // 除去paddingleft和paddingrigth的宽度
         final int width = getPaddedWidth();
         final float marginOffset = width > 0 ? (float) mPageMargin / width : 0;
 
         // Fix up offsets for later layout.
+        // 为稍后的布局修复偏移量
         if (oldCurInfo != null) {
             final int oldCurPosition = oldCurInfo.position;
 
             // Base offsets off of oldCurInfo.
+            // 基于老current item 的偏移
             if (oldCurPosition < curItem.position) {
+                // 如果老current item位于新current item的左边
                 int itemIndex = 0;
                 float offset = oldCurInfo.offset + oldCurInfo.widthFactor + marginOffset;
                 for (int pos = oldCurPosition + 1; pos <= curItem.position && itemIndex < mItems.size(); pos++) {

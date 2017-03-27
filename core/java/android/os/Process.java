@@ -475,18 +475,20 @@ public class Process {
 
     /**
      * Start a new process.
-     * 
+     * 启动一个新进程
      * <p>If processes are enabled, a new process is created and the
      * static main() function of a <var>processClass</var> is executed there.
      * The process will continue running after this function returns.
-     * 
+     * 如果新进程可用，一个新的进程被创建并且一个进程类的静态main方法将会被执行。
+     * 此方法返回后，进程会继续运行。
      * <p>If processes are not enabled, a new thread in the caller's
      * process is created and main() of <var>processClass</var> called there.
-     * 
+     * 如果进程不可用，在调用者所在的进程中一个新的线程将被创建，且由此线程运行指定类的静态main方法。
      * <p>The niceName parameter, if not an empty string, is a custom name to
      * give to the process instead of using processClass.  This allows you to
      * make easily identifyable processes even if you are using the same base
      * <var>processClass</var> to start them.
+     *
      * 
      * @param processClass The class to use as the process's main entry
      *                     point.

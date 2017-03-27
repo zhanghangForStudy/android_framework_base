@@ -1409,11 +1409,13 @@ final class ActivityStack {
             mPausingActivity = null;
         }
 
+        // 继续启动即将启动的activity
         if (resumeNext) {
             final ActivityStack topStack = mStackSupervisor.getFocusedStack();
             if (!mService.isSleepingOrShuttingDownLocked()) {
                 mStackSupervisor.resumeFocusedStackTopActivityLocked(topStack, prev, null);
             } else {
+                // 当前系统正在休眠，或者正在关闭，或者处于其他一些不活跃的状态中
                 mStackSupervisor.checkReadyForSleepLocked();
                 ActivityRecord top = topStack.topRunningActivityLocked();
                 if (top == null || (prev != null && top != prev)) {
@@ -1421,11 +1423,13 @@ final class ActivityStack {
                     // something. Also if the top activity on the stack is not the just paused
                     // activity, we need to go ahead and resume it to ensure we complete an
                     // in-flight app switch.
+                    // 如果并没有其他的可见的activity在运行，则总会启动一些东西。
+                    // 或者焦点stack的top activity并不是被暂停的activity，我们需要向前一步启动它，从而确保我们完成了一次app切换。
                     mStackSupervisor.resumeFocusedStackTopActivityLocked();
                 }
             }
         }
-
+        /**以下代码处理电量相关的操作，更新正在暂停的activity对应的进程cpu的使用时间***/
         if (prev != null) {
             prev.resumeKeyDispatchingLocked();
 
@@ -1447,10 +1451,13 @@ final class ActivityStack {
             }
             prev.cpuTimeAtResume = 0; // reset it
         }
+        /**以上代码处理电量相关的操作，更新正在暂停的activity对应的进程cpu的使用时间***/
 
         // Notify when the task stack has changed, but only if visibilities changed (not just
         // focus). Also if there is an active pinned stack - we always want to notify it about
         // task stack changes, because its positioning may depend on it.
+        // 当stack发生了改变，但是只是可见性改变（不仅仅是焦点）。如果有一个活跃的固定的stack我们总是想提醒它关于
+        // 任务stack发生了改变，因为这个固定的stack可能依赖于它定位
         if (mStackSupervisor.mAppVisibilitiesChangedSinceLastPause
                 || mService.mStackSupervisor.getStack(PINNED_STACK_ID) != null) {
             mService.notifyTaskStackChangedLocked();
@@ -2494,6 +2501,7 @@ final class ActivityStack {
                     + next.packageName + ": " + e);
         }
 
+        /**以下代码主要与WMS通信，处理窗口切换的相关操作*/
         // We are starting up the next activity, so tell the window manager
         // that the previous one will be hidden soon.  This way it can know
         // to ignore it when computing the desired screen orientation.
@@ -2536,6 +2544,7 @@ final class ActivityStack {
                 mWindowManager.prepareAppTransition(TRANSIT_ACTIVITY_OPEN, false);
             }
         }
+        /**以上代码主要与WMS通信，处理窗口切换的相关操作*/
 
         Bundle resumeAnimOptions = null;
         if (anim) {

@@ -1294,7 +1294,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
             r.startFreezingScreenLocked(app, 0);
             mWindowManager.setAppVisibility(r.appToken, true);
 
-            // schedule launch ticks to collect information about slow apps.
+            // schedule launch ticks to collect information about slow(迟钝) apps.
             r.startLaunchTickingLocked();
         }
 
@@ -1304,6 +1304,9 @@ public final class ActivityStackSupervisor implements DisplayListener {
         // manager with a new orientation.  We don't care about that,
         // because the activity is not currently running so we are
         // just restarting it anyway.
+        // 使WMS，基于新activity顺序，重新评估屏幕的方向。
+        // 注意，作为此操作的一个结果，可以通过一个新的方向回调AMS。
+        // 我们不用关系它，因为此activity并不是当前正在运行的，所以我们只需重启它就OK
         if (checkConfig) {
             Configuration config = mWindowManager.updateOrientationFromAppTokens(
                     mService.mConfiguration,
@@ -1355,6 +1358,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
             }
             if (r.isHomeActivity()) {
                 // Home process is the root process of the task.
+                // 更新home所在的进程
                 mService.mHomeProcess = task.mActivities.get(0).app;
             }
             mService.notifyPackageUse(r.intent.getComponent().getPackageName(),
@@ -1364,6 +1368,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
             mService.showUnsupportedZoomDialogIfNeededLocked(r);
             mService.showAskCompatModeDialogLocked(r);
             r.compat = mService.compatibilityInfoForPackageLocked(r.info.applicationInfo);
+            /**以下代码处理AMS的轮廓app的更新操作*/
             ProfilerInfo profilerInfo = null;
             if (mService.mProfileApp != null && mService.mProfileApp.equals(app.processName)) {
                 if (mService.mProfileProc == null || mService.mProfileProc == app) {
@@ -1390,6 +1395,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
                     }
                 }
             }
+            /**以上代码处理AMS的轮廓app的更新操作*/
 
             if (andResume) {
                 app.hasShownUi = true;
@@ -1449,6 +1455,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
         if (andResume) {
             // As part of the process of launching, ActivityThread also performs
             // a resume.
+            // 作为运行activity流程，应用进程也需要执行on resume流程
             stack.minimalResumeActivityLocked(r);
         } else {
             // This activity is not starting in the resumed state... which should look like we asked

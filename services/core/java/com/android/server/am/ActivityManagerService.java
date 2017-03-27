@@ -11748,7 +11748,7 @@ public final class ActivityManagerService extends ActivityManagerNative
     }
 
     // Actually is sleeping or shutting down or whatever else in the future
-    // is an inactive state.
+    // is an inactive(无效的，不活跃的) state.
     boolean isSleepingOrShuttingDownLocked() {
         return isSleepingLocked() || mShuttingDown;
     }

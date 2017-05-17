@@ -1413,6 +1413,7 @@ public final class ActivityStackSupervisor implements DisplayListener {
                 // manager will ensure that only activity can run in the main
                 // process of the .apk, which is the only thing that will be
                 // considered heavy-weight.
+                // 可能是一个重量级进程！PM将确保只有activity才能运行到apk的主进程
                 if (app.processName.equals(app.info.packageName)) {
                     if (mService.mHeavyWeightProcess != null
                             && mService.mHeavyWeightProcess != app) {

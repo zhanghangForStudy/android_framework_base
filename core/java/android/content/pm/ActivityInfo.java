@@ -31,6 +31,9 @@ import java.lang.annotation.RetentionPolicy;
  * activity or receiver. This corresponds to information collected
  * from the AndroidManifest.xml's &lt;activity&gt; and
  * &lt;receiver&gt; tags.
+ * 能够获取的关于一个application activity或者广播接受者的信息。
+ * 此对象映射AndroidManifest.xml文件中&lt;activity&gt;标签
+ * 和&lt;receiver&gt;标签的信息
  */
 public class ActivityInfo extends ComponentInfo
         implements Parcelable {

@@ -744,6 +744,28 @@ public final class ActivityThread {
 
         // we use token to identify this activity without having to send the
         // activity itself back to the activity manager. (matters more with ipc)
+
+        /**
+         * 我们将标识这个activity的远程引用传递回activity manager，而不是这个activity自身
+         *
+         * @param intent            启动这个activity的intent
+         * @param token             启动的这个activity在AMS中的远程引用
+         * @param ident             启动的这个activity在AMS中对应的activityrecord对象的hascode
+         * @param info              启动的activity在AndroidManifest.xml文件中的信息
+         * @param curConfig         当前配置信息
+         * @param overrideConfig    覆盖的配置信息
+         * @param compatInfo        兼容性信息
+         * @param referrer          启动此activity的包的包名
+         * @param voiceInteractor   声音接口，此处为空
+         * @param procState
+         * @param state
+         * @param persistentState
+         * @param pendingResults
+         * @param pendingNewIntents
+         * @param notResumed
+         * @param isForward
+         * @param profilerInfo
+         */
         @Override
         public final void scheduleLaunchActivity(Intent intent, IBinder token, int ident,
                                                  ActivityInfo info, Configuration curConfig, Configuration overrideConfig,

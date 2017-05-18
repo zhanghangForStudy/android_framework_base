@@ -186,7 +186,7 @@ final class ActivityRecord {
     ProcessRecord app;      // if non-null, hosting application
     ActivityState state;    // current state we are in
     Bundle icicle;         // last saved activity state
-    PersistableBundle persistentState; // last persistently saved activity state
+    PersistableBundle persistentState; // last persistently(持续的) saved activity state
     /**
      * 此activity是否是一个task的root activity
      */

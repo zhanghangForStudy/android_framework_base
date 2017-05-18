@@ -27,8 +27,8 @@ import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.Context;
 import android.content.IContentProvider;
-import android.content.Intent;
 import android.content.IIntentReceiver;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
@@ -81,6 +81,7 @@ import android.os.Trace;
 import android.os.TransactionTooLargeException;
 import android.os.UserHandle;
 import android.provider.Settings;
+import android.renderscript.RenderScriptCacheDir;
 import android.security.NetworkSecurityPolicy;
 import android.security.net.config.NetworkSecurityConfigProvider;
 import android.util.AndroidRuntimeException;
@@ -104,10 +105,6 @@ import android.view.ViewRootImpl;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowManagerGlobal;
-import android.renderscript.RenderScriptCacheDir;
-import android.system.Os;
-import android.system.OsConstants;
-import android.system.ErrnoException;
 import android.webkit.WebView;
 
 import com.android.internal.annotations.GuardedBy;
@@ -123,6 +120,8 @@ import com.android.org.conscrypt.OpenSSLSocketImpl;
 import com.android.org.conscrypt.TrustedCertificateStore;
 import com.google.android.collect.Lists;
 
+import org.apache.harmony.dalvik.ddmc.DdmVmInternal;
+
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -132,22 +131,19 @@ import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
 
+import dalvik.system.CloseGuard;
+import dalvik.system.VMDebug;
+import dalvik.system.VMRuntime;
 import libcore.io.DropBox;
 import libcore.io.EventLogger;
 import libcore.io.IoUtils;
 import libcore.net.event.NetworkEventDispatcher;
-import dalvik.system.CloseGuard;
-import dalvik.system.VMDebug;
-import dalvik.system.VMRuntime;
-
-import org.apache.harmony.dalvik.ddmc.DdmVmInternal;
 
 final class RemoteServiceException extends AndroidRuntimeException {
     public RemoteServiceException(String msg) {
@@ -261,8 +257,12 @@ public final class ActivityThread {
     // holds their own lock.  Thus you MUST NEVER call back into the activity manager
     // or window manager or anything that depends on them while holding this lock.
     // These LoadedApk are only valid for the userId that we're running as.
+    // 包含代码的包
     final ArrayMap<String, WeakReference<LoadedApk>> mPackages
             = new ArrayMap<String, WeakReference<LoadedApk>>();
+    /**
+     * 包含资源的包
+     */
     final ArrayMap<String, WeakReference<LoadedApk>> mResourcePackages
             = new ArrayMap<String, WeakReference<LoadedApk>>();
     final ArrayList<ActivityClientRecord> mRelaunchingActivities
@@ -322,12 +322,39 @@ public final class ActivityThread {
     Bundle mCoreSettings = null;
 
     static final class ActivityClientRecord {
+        /**
+         * AMS的activityrecord的远程引用
+         */
         IBinder token;
+
+        /**
+         * AMS中对应的activityrecord对象的hascode
+         */
         int ident;
+
+        /**
+         * 启动此activity的原始intent
+         */
         Intent intent;
+
+        /**
+         * 启动此activity的原始包名
+         */
         String referrer;
+
+        /**
+         * 与此activity相关的音频接口
+         */
         IVoiceInteractor voiceInteractor;
+
+        /**
+         * 此activity最新的状态
+         */
         Bundle state;
+
+        /**
+         * 此activity最新的，持续保存的状态
+         */
         PersistableBundle persistentState;
         Activity activity;
         Window window;
@@ -347,12 +374,30 @@ public final class ActivityThread {
         ProfilerInfo profilerInfo;
 
         ActivityInfo activityInfo;
+
+        /**
+         * 兼容信息
+         */
         CompatibilityInfo compatInfo;
+
+        /**
+         * 一个被加载的apk的映射
+         */
         LoadedApk packageInfo;
 
+        /**
+         * 此activity即将处理的结果
+         */
         List<ResultInfo> pendingResults;
+
+        /**
+         * 此activity即将处理的新的intent
+         */
         List<ReferrerIntent> pendingIntents;
 
+        /**
+         * 是否只创建而不启动
+         */
         boolean startsNotResumed;
         boolean isForward;
         int pendingConfigChanges;
@@ -757,12 +802,12 @@ public final class ActivityThread {
          * @param compatInfo        兼容性信息
          * @param referrer          启动此activity的包的包名
          * @param voiceInteractor   声音接口，此处为空
-         * @param procState
-         * @param state
-         * @param persistentState
-         * @param pendingResults
-         * @param pendingNewIntents
-         * @param notResumed
+         * @param procState         最新的进程状态
+         * @param state             最新的activity状态
+         * @param persistentState   最新的，持久保存的activity状态
+         * @param pendingResults    此activity收到的结果
+         * @param pendingNewIntents 此activity即将执行的新的intent
+         * @param notResumed        是否启动
          * @param isForward
          * @param profilerInfo
          */
@@ -773,7 +818,7 @@ public final class ActivityThread {
                                                  int procState, Bundle state, PersistableBundle persistentState,
                                                  List<ResultInfo> pendingResults, List<ReferrerIntent> pendingNewIntents,
                                                  boolean notResumed, boolean isForward, ProfilerInfo profilerInfo) {
-
+            // 更新进程状态及虚拟机状态
             updateProcessState(procState, false);
 
             ActivityClientRecord r = new ActivityClientRecord();
@@ -1336,6 +1381,7 @@ public final class ActivityThread {
                 if (mLastProcessState != processState) {
                     mLastProcessState = processState;
                     // Update Dalvik state based on ActivityManager.PROCESS_STATE_* constants.
+                    // 根据AMS传递过来的进程状态，更新虚拟机的状态
                     final int DALVIK_PROCESS_STATE_JANK_PERCEPTIBLE = 0;
                     final int DALVIK_PROCESS_STATE_JANK_IMPERCEPTIBLE = 1;
                     int dalvikProcessState = DALVIK_PROCESS_STATE_JANK_IMPERCEPTIBLE;
@@ -2103,6 +2149,17 @@ public final class ActivityThread {
         }
     }
 
+    /**
+     * 根据activity信息，获取对应的（已加载的）apk文件
+     *
+     * @param aInfo             activity信息
+     * @param compatInfo        此activity的兼容性信息
+     * @param baseLoader        类加载器
+     * @param securityViolation 是否安全违规
+     * @param includeCode       是否包含代码
+     * @param registerPackage   是否注册包
+     * @return
+     */
     private LoadedApk getPackageInfo(ApplicationInfo aInfo, CompatibilityInfo compatInfo,
                                      ClassLoader baseLoader, boolean securityViolation, boolean includeCode,
                                      boolean registerPackage) {
@@ -2893,6 +2950,7 @@ public final class ActivityThread {
     private void handleLaunchActivity(ActivityClientRecord r, Intent customIntent, String reason) {
         // If we are getting ready to gc after going to the background, well
         // we are back active so skip it.
+        // 如果我们在进入后台后，即将准备gc；那么由于进程即将活跃，则跳过gc
         unscheduleGcIdler();
         mSomeActivitiesChanged = true;
 
@@ -2902,12 +2960,14 @@ public final class ActivityThread {
         }
 
         // Make sure we are running with the most recent config.
+        // 确保我们将运行最新的配置
         handleConfigurationChanged(null, null);
 
         if (localLOGV) Slog.v(
                 TAG, "Handling launch of " + r);
 
         // Initialize before creating the activity
+        // 在创建activity之前，确保WMS的远程引用被初始化
         WindowManagerGlobal.initialize();
 
         Activity a = performLaunchActivity(r, customIntent);

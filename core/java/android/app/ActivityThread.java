@@ -359,7 +359,10 @@ public final class ActivityThread {
         Activity activity;
         Window window;
         Activity parent;
+        // 嵌入的ID
         String embeddedID;
+
+        // 最新的非配置的实例
         Activity.NonConfigurationInstances lastNonConfigurationInstances;
         boolean paused;
         boolean stopped;
@@ -808,7 +811,7 @@ public final class ActivityThread {
          * @param pendingResults    此activity收到的结果
          * @param pendingNewIntents 此activity即将执行的新的intent
          * @param notResumed        是否启动
-         * @param isForward
+         * @param isForward         此值根据代码来判断：int transit = mWindowManager.getPendingAppTransition();return transit == TRANSIT_ACTIVITY_OPEN|| transit == TRANSIT_TASK_OPEN|| transit == TRANSIT_TASK_TO_FRONT;
          * @param profilerInfo
          */
         @Override
@@ -2774,6 +2777,13 @@ public final class ActivityThread {
         sendMessage(H.CLEAN_UP_CONTEXT, cci);
     }
 
+    /**
+     * 创建一个activity,并调用相关的生命周期方法
+     *
+     * @param r
+     * @param customIntent
+     * @return
+     */
     private Activity performLaunchActivity(ActivityClientRecord r, Intent customIntent) {
         // System.out.println("##### [" + System.currentTimeMillis() + "] ActivityThread.performLaunchActivity(" + r + ")");
 
@@ -2783,6 +2793,7 @@ public final class ActivityThread {
                     Context.CONTEXT_INCLUDE_CODE);
         }
 
+        // 寻找组件名称，如果没有从PM中获取
         ComponentName component = r.intent.getComponent();
         if (component == null) {
             component = r.intent.resolveActivity(
@@ -2790,6 +2801,7 @@ public final class ActivityThread {
             r.intent.setComponent(component);
         }
 
+        // 如果有别名
         if (r.activityInfo.targetActivity != null) {
             component = new ComponentName(r.activityInfo.packageName,
                     r.activityInfo.targetActivity);
@@ -2798,6 +2810,7 @@ public final class ActivityThread {
         Activity activity = null;
         try {
             java.lang.ClassLoader cl = r.packageInfo.getClassLoader();
+            // 通过反射，new一个activity对象
             activity = mInstrumentation.newActivity(
                     cl, component.getClassName(), r.intent);
             StrictMode.incrementExpectedActivityCount(activity.getClass());
@@ -2815,6 +2828,7 @@ public final class ActivityThread {
         }
 
         try {
+            // 获取对应的Application对象
             Application app = r.packageInfo.makeApplication(false, mInstrumentation);
 
             if (localLOGV) Slog.v(TAG, "Performing launch of " + r);
@@ -2826,6 +2840,7 @@ public final class ActivityThread {
                             + ", dir=" + r.packageInfo.getAppDir());
 
             if (activity != null) {
+                // 创建activity对象的基础ContextImpl对象
                 Context appContext = createBaseContextForActivity(r, activity);
                 CharSequence title = r.activityInfo.loadLabel(appContext.getPackageManager());
                 Configuration config = new Configuration(mCompatConfiguration);
@@ -2840,6 +2855,7 @@ public final class ActivityThread {
                     r.mPendingRemoveWindow = null;
                     r.mPendingRemoveWindowManager = null;
                 }
+                // 在attach方法中设置activity对象的基础ContextImpl对象
                 activity.attach(appContext, this, getInstrumentation(), r.token,
                         r.ident, app, r.intent, r.activityInfo, title, r.parent,
                         r.embeddedID, r.lastNonConfigurationInstances, config,
@@ -2856,6 +2872,7 @@ public final class ActivityThread {
                 }
 
                 activity.mCalled = false;
+                // 执行onCreate方法
                 if (r.isPersistable()) {
                     mInstrumentation.callActivityOnCreate(activity, r.state, r.persistentState);
                 } else {
@@ -2868,6 +2885,7 @@ public final class ActivityThread {
                 }
                 r.activity = activity;
                 r.stopped = true;
+                // 执行onStart方法
                 if (!r.activity.mFinished) {
                     activity.performStart();
                     r.stopped = false;
@@ -2947,6 +2965,20 @@ public final class ActivityThread {
         return baseContext;
     }
 
+    /**
+     * activity运行流程：
+     * 1、通过反射生成一个activity对象；
+     * 2、调用{@link Activity#attach(Context, ActivityThread, Instrumentation, IBinder, int, Application, Intent, ActivityInfo, CharSequence, Activity, String, Activity.NonConfigurationInstances, Configuration, String, IVoiceInteractor, Window)}
+     * 方法创建一个Window对象，以及以此Window对象为父窗口的WindowManager对象；
+     * 3、调用{@link Activity#onCreate(Bundle)}方法
+     * 4、调用{@link Activity#onStart()}方法
+     * 5、调用{@link Activity#onRestoreInstanceState(Bundle)}方法
+     * 6、调用{@link Activity#onPostCreate(Bundle)}方法
+     *
+     * @param r
+     * @param customIntent
+     * @param reason
+     */
     private void handleLaunchActivity(ActivityClientRecord r, Intent customIntent, String reason) {
         // If we are getting ready to gc after going to the background, well
         // we are back active so skip it.
@@ -2969,13 +3001,14 @@ public final class ActivityThread {
         // Initialize before creating the activity
         // 在创建activity之前，确保WMS的远程引用被初始化
         WindowManagerGlobal.initialize();
-
+        // 开始创建一个activity，一般customIntent为null
         Activity a = performLaunchActivity(r, customIntent);
 
         if (a != null) {
             r.createdConfig = new Configuration(mConfiguration);
             reportSizeConfigurations(r);
             Bundle oldState = r.state;
+            // 启动上一步创建的activity
             handleResumeActivity(r.token, false, r.isForward,
                     !r.activity.mFinished && !r.startsNotResumed, r.lastProcessedSeq, reason);
 
@@ -2987,6 +3020,9 @@ public final class ActivityThread {
                 // However, in this case we do -not- need to do the full pause cycle (of freezing
                 // and such) because the activity manager assumes it can just retain the current
                 // state it has.
+                // AMS实际上是想暂停这个activity,因为这个activity需要展示出来，但是它又并非处于前台之中。
+                // 我们仍然通过普通的启动步骤来实现这个效果（因为activity是期望在第一次运行的时候，执行onResume方法），
+                // 然后暂停它。但是在这种情况下，我们不需要执行全部的暂停周期，因为AMS假定它只是为了获取当前的状态。
                 performPauseActivityIfNeeded(r, reason);
 
                 // We need to keep around the original state, in case we need to be created again.
@@ -2994,12 +3030,15 @@ public final class ActivityThread {
                 // pausing, so we can not have them save their state when restarting from a paused
                 // state. For HC and later, we want to (and can) let the state be saved as the
                 // normal part of stopping the activity.
+                // 我们需要保存原始的状态，以防我们需要再次创建。
+                // 但是我们只为pre-Honeycomb应用做这件事情，
                 if (r.isPreHoneycomb()) {
                     r.state = oldState;
                 }
             }
         } else {
             // If there was an error, for any reason, tell the activity manager to stop us.
+            // 将错误结果报告给AMS
             try {
                 ActivityManagerNative.getDefault()
                         .finishActivity(r.token, Activity.RESULT_CANCELED, null,
@@ -3701,6 +3740,16 @@ public final class ActivityThread {
         r.mPendingRemoveWindowManager = null;
     }
 
+    /**
+     * 启动指定的activity
+     *
+     * @param token        AMS的activityrecord的远程引用
+     * @param clearHide    是否清除隐藏
+     * @param isForward    是否超前
+     * @param reallyResume 是否启动
+     * @param seq          序列号
+     * @param reason       原因
+     */
     final void handleResumeActivity(IBinder token,
                                     boolean clearHide, boolean isForward, boolean reallyResume, int seq, String reason) {
         ActivityClientRecord r = mActivities.get(token);
@@ -3730,8 +3779,10 @@ public final class ActivityThread {
             // If the window hasn't yet been added to the window manager,
             // and this guy didn't finish itself or start another activity,
             // then go ahead and add the window.
+            // 如果窗口并没有被添加到windowmanager,则这个activity并不会自己结束自己或者开启另一个被添加的activity
             boolean willBeVisible = !a.mStartedActivity;
             if (!willBeVisible) {
+                // 如果activity不会被显示
                 try {
                     willBeVisible = ActivityManagerNative.getDefault().willActivityBeVisible(
                             a.getActivityToken());
@@ -3740,10 +3791,13 @@ public final class ActivityThread {
                 }
             }
             if (r.window == null && !a.mFinished && willBeVisible) {
+                // 如果ActivityClientRecord的window为空，且activity没有结束，且即将显示
                 r.window = r.activity.getWindow();
+                // 将最顶层的视图设置为可视
                 View decor = r.window.getDecorView();
                 decor.setVisibility(View.INVISIBLE);
                 ViewManager wm = a.getWindowManager();
+                // 设置一些窗口参数
                 WindowManager.LayoutParams l = r.window.getAttributes();
                 a.mDecor = decor;
                 l.type = WindowManager.LayoutParams.TYPE_BASE_APPLICATION;

@@ -306,6 +306,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         this(context);
         // Only main activity windows use decor context, all the other windows depend on whatever
         // context that was given to them.
+        // 只有主activity窗口使用decor contenxt,其他所有的窗口则依赖于传递给它们的context对象
         mUseDecorContext = true;
         if (preservedWindow != null) {
             mDecor = (DecorView) preservedWindow.getDecorView();

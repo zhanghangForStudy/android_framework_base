@@ -149,6 +149,9 @@ class ContextImpl extends Context {
     final ActivityThread mMainThread;
     final LoadedApk mPackageInfo;
 
+    /**
+     * AMS中activityrecord对象的远程引用
+     */
     private final IBinder mActivityToken;
 
     private final UserHandle mUser;
@@ -186,6 +189,7 @@ class ContextImpl extends Context {
     private File mCodeCacheDir;
 
     // The system service cache for the system services that are cached per-ContextImpl.
+    // 系统服务缓存优先于ContextImpl被初始化
     final Object[] mServiceCache = SystemServiceRegistry.createServiceCache();
 
     static ContextImpl getImpl(Context context) {

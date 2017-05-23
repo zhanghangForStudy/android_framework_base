@@ -1421,6 +1421,9 @@ public interface WindowManager extends ViewManager {
          * you by the system, though you may want to set it in certain cases
          * when you are displaying a window yourself.  This flag will always
          * be cleared automatically after the window is displayed.
+         * 当用户将此窗口向前导航时，设置此bit位。
+         * 此bit位一般由系统自动设置，尽管你也可以在展示你自己的窗口的时候，设置它。
+         * 此bit位总是在窗口被展示后自动清除
          */
         public static final int SOFT_INPUT_IS_FORWARD_NAVIGATION = 0x100;
 

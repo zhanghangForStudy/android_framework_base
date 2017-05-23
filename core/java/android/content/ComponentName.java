@@ -193,7 +193,7 @@ public final class ComponentName implements Parcelable, Cloneable, Comparable<Co
      * class names contained in the ComponentName.  You can later recover
      * the ComponentName from this string through
      * {@link #unflattenFromString(String)}.
-     * 
+     * 返回一个包含在此组件命中的，明确描述包名和类名的字符串。
      * @return Returns a new String holding the package and class names.  This
      * is represented as the package name, concatenated with a '/' and then the
      * class name.

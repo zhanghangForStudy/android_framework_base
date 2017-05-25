@@ -802,8 +802,19 @@ public class Activity extends ContextThemeWrapper
 
     private WindowManager mWindowManager;
     /*package*/ View mDecor = null;
+    /**
+     * 是否窗口被添加了（可视化）
+     */
     /*package*/ boolean mWindowAdded = false;
+
+    /**
+     * 来自服务端的可视化状态
+     */
     /*package*/ boolean mVisibleFromServer = false;
+
+    /**
+     * 来自客户端的可视化状态
+     */
     /*package*/ boolean mVisibleFromClient = true;
     /*package*/ ActionBar mActionBar = null;
     private boolean mEnableDefaultActionBarUp;

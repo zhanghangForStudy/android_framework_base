@@ -406,8 +406,15 @@ public final class ActivityThread {
         int pendingConfigChanges;
         boolean onlyLocalRequest;
 
+        /**
+         * 即将删除的窗口
+         */
         Window mPendingRemoveWindow;
         WindowManager mPendingRemoveWindowManager;
+
+        /**
+         * 是否是复用窗口
+         */
         boolean mPreserveWindow;
 
         // Set for relaunch requests, indicates the order number of the relaunch operation, so it
@@ -2974,6 +2981,12 @@ public final class ActivityThread {
      * 4、调用{@link Activity#onStart()}方法
      * 5、调用{@link Activity#onRestoreInstanceState(Bundle)}方法
      * 6、调用{@link Activity#onPostCreate(Bundle)}方法
+     * 7、如果有新的intent,调用{@link Activity#onNewIntent(Intent)}方法
+     * 8、如果有结果，调用{@link Activity#onActivityResult(int, int, Intent)}方法；
+     * 9、如果activity停止了，则调用{@link Activity#onRestart()}方法;
+     * 10、调用{@link Activity#onResume()} 方法；
+     * 11、调用{@link Activity#onPostResume()} 方法；
+     *
      *
      * @param r
      * @param customIntent
@@ -3674,6 +3687,7 @@ public final class ActivityThread {
         ActivityClientRecord r = mActivities.get(token);
         if (localLOGV) Slog.v(TAG, "Performing resume of " + r
                 + " finished=" + r.activity.mFinished);
+        // 只处理没有结束的情况
         if (r != null && !r.activity.mFinished) {
             if (clearHide) {
                 r.hideForNow = false;
@@ -3696,6 +3710,7 @@ public final class ActivityThread {
                 // paused, it will put the activity into paused state when it finally happens.
                 // Since the activity resumed before being relaunched, we don't want that to happen,
                 // so we need to clear the request to relaunch paused.
+                //
                 for (int i = mRelaunchingActivities.size() - 1; i >= 0; i--) {
                     final ActivityClientRecord relaunching = mRelaunchingActivities.get(i);
                     if (relaunching.token == r.token
@@ -3800,6 +3815,7 @@ public final class ActivityThread {
                 // 设置一些窗口参数
                 WindowManager.LayoutParams l = r.window.getAttributes();
                 a.mDecor = decor;
+                // 窗口类型
                 l.type = WindowManager.LayoutParams.TYPE_BASE_APPLICATION;
                 l.softInputMode |= forwardBit;
                 if (r.mPreserveWindow) {
@@ -3809,11 +3825,14 @@ public final class ActivityThread {
                     // in addView->ViewRootImpl#setView. If we are instead reusing
                     // the decor view we have to notify the view root that the
                     // callbacks may have changed.
+                    // 通常而言，ViewRoot在addView的时候通过activity建立会回调。
+                    // 如果我们复用decorview,则我们不得不通知view root，回调可能发生改变
                     ViewRootImpl impl = decor.getViewRootImpl();
                     if (impl != null) {
                         impl.notifyChildRebuilt();
                     }
                 }
+                // 如果activity可视，且还未添加窗口，添加之
                 if (a.mVisibleFromClient && !a.mWindowAdded) {
                     a.mWindowAdded = true;
                     wm.addView(decor, l);
@@ -3833,6 +3852,7 @@ public final class ActivityThread {
 
             // The window is now visible if it has been added, we are not
             // simply finishing, and we are not starting another activity.
+            // 窗口如果被添加了，则它现在是可视的，我们不会简单的结束，并且我们不会开始其他的activity
             if (!r.activity.mFinished && willBeVisible
                     && r.activity.mDecor != null && !r.hideForNow) {
                 if (r.newConfig != null) {
@@ -3853,6 +3873,7 @@ public final class ActivityThread {
                     if (r.activity.mVisibleFromClient) {
                         ViewManager wm = a.getWindowManager();
                         View decor = r.window.getDecorView();
+                        // 更新布局
                         wm.updateViewLayout(decor, l);
                     }
                 }

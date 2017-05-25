@@ -55,6 +55,9 @@ import static android.view.WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
  * 顶层窗口的外观与行为策略的抽象基本类。
  * 此类的一个实例应该被作为顶层视图添加到WM之中。
  * 此类提供了标准的UI策略，例如北背景，标题区域，默认的按键处理等。
+ * 支持一些回调，例如输入事件接受及分配回调；
+ * 支持窗口参数的一些调整；
+ * 支持与顶层View的一些交互；
  * <p>The only existing implementation of this abstract class is
  * android.view.PhoneWindow, which you should instantiate when needing a
  * Window.
@@ -272,7 +275,7 @@ public abstract class Window {
     private static final String PROPERTY_HARDWARE_UI = "persist.sys.ui.hw";
 
     /**
-     * Flag for letting the theme drive the color of the window caption controls. Use with
+     * Flag for letting the theme drive the color of the window caption(标题) controls. Use with
      * {@link #setDecorCaptionShade(int)}. This is the default value.
      */
     public static final int DECOR_CAPTION_SHADE_AUTO = 0;
@@ -290,6 +293,7 @@ public abstract class Window {
     private final Context mContext;
 
     private TypedArray mWindowStyle;
+    // 一般而言Activity实现了Callback接口
     private Callback mCallback;
     private OnWindowDismissedCallback mOnWindowDismissedCallback;
     private WindowControllerCallback mWindowControllerCallback;
@@ -298,7 +302,7 @@ public abstract class Window {
     private WindowManager mWindowManager;
 
     /**
-     * AMS中的ActivityRecord引用
+     * AMS中的ActivityRecord引用？
      */
     private IBinder mAppToken;
 
@@ -782,17 +786,27 @@ public abstract class Window {
         mWindowManager = ((WindowManagerImpl) wm).createLocalWindowManager(this);
     }
 
+    /**
+     * 为子窗口调整相应的参数
+     * 主要是根据不同的窗口类型，设置不同的{@link WindowManager.LayoutParams#token}值，
+     * 以及标题名
+     *
+     * @param wp 子窗口的窗口参数
+     */
     void adjustLayoutParamsForSubWindow(WindowManager.LayoutParams wp) {
         CharSequence curTitle = wp.getTitle();
         if (wp.type >= WindowManager.LayoutParams.FIRST_SUB_WINDOW &&
                 wp.type <= WindowManager.LayoutParams.LAST_SUB_WINDOW) {
+            // 如果子窗口的类型真的是子窗口
             if (wp.token == null) {
+                // 将服务窗口的android.view.ViewRootImpl.W对象赋给子窗口
                 View decor = peekDecorView();
                 if (decor != null) {
                     wp.token = decor.getWindowToken();
                 }
             }
             if (curTitle == null || curTitle.length() == 0) {
+                // 如果标题为空，则根据类型组装标题
                 final StringBuilder title = new StringBuilder(32);
                 if (wp.type == WindowManager.LayoutParams.TYPE_APPLICATION_MEDIA) {
                     title.append("Media");
@@ -816,11 +830,15 @@ public abstract class Window {
             }
         } else if (wp.type >= WindowManager.LayoutParams.FIRST_SYSTEM_WINDOW &&
                 wp.type <= WindowManager.LayoutParams.LAST_SYSTEM_WINDOW) {
+            // 如果子窗口是系统窗口
             // We don't set the app token to this system window because the life cycles should be
             // independent. If an app creates a system window and then the app goes to the stopped
             // state, the system window should not be affected (can still show and receive input
             // events).
+            // 我们不会设置app token给系统窗口，因为系统窗口的生命周期应该是独立于应用的。
+            // 如果一个应用创建了一个系统窗口，并且这个应用停止了，系统窗口不应该不会收到影响（依然可以显示以及接受输入事件）
             if (curTitle == null || curTitle.length() == 0) {
+                // 组装并设置标题
                 final StringBuilder title = new StringBuilder(32);
                 title.append("Sys").append(wp.type);
                 if (mAppName != null) {
@@ -829,6 +847,7 @@ public abstract class Window {
                 wp.setTitle(title);
             }
         } else {
+            // 如果子窗口是应用窗口
             if (wp.token == null) {
                 wp.token = mContainer == null ? mAppToken : mContainer.mAppToken;
             }
@@ -948,6 +967,9 @@ public abstract class Window {
      * will no longer draw into the surface, though it will otherwise continue
      * to operate (such as for receiving input events).  The given SurfaceHolder
      * callback will be used to tell you about state changes to the surface.
+     * 获取此窗口Surface对象的所有权。此窗口的视图树将不会在此Surface对象中绘制内容，
+     * 尽管窗口会继续其他的操作（例如接受输入事件）。
+     * 入参传入的SurfaceHolder回调对象将被用来告诉你surface对象的改变。
      */
     public abstract void takeSurface(SurfaceHolder.Callback2 callback);
 
@@ -955,6 +977,8 @@ public abstract class Window {
      * Take ownership of this window's InputQueue.  The window will no
      * longer read and dispatch input events from the queue; it is your
      * responsibility to do so.
+     * 获取窗口输入队列的所有权。
+     * 窗口将不在读取及分派输入时间；
      */
     public abstract void takeInputQueue(InputQueue.Callback callback);
 
@@ -1270,6 +1294,7 @@ public abstract class Window {
      * is before setContentView().  If not called, no extended features
      * will be available.  You can not turn off a feature once it is requested.
      * You canot use other title features with {@link #FEATURE_CUSTOM_TITLE}.
+     * 请求一些功能
      *
      * @param featureId The desired features, defined as constants by Window.
      * @return The features that are now set.
@@ -1283,6 +1308,7 @@ public abstract class Window {
 
     /**
      * @hide Used internally to help resolve conflicting features.
+     * 删除一些功能
      */
     protected void removeFeature(int featureId) {
         final int flag = 1 << featureId;
@@ -1323,6 +1349,7 @@ public abstract class Window {
      * {@link #setContentView(View, android.view.ViewGroup.LayoutParams)}
      * to set the screen content from a layout resource.  The resource will be
      * inflated, adding all top-level views to the screen.
+     * 设置内容
      *
      * @param layoutResID Resource ID to be inflated.
      * @see #setContentView(View, android.view.ViewGroup.LayoutParams)
@@ -1708,6 +1735,7 @@ public abstract class Window {
 
     /**
      * Is a keypress one of the defined shortcut keys for this window.
+     * 指定的按键是否此窗口定义的一个快捷键
      *
      * @param keyCode the key code from {@link android.view.KeyEvent} to check.
      * @param event   the {@link android.view.KeyEvent} to use to help check.
@@ -1748,7 +1776,7 @@ public abstract class Window {
     }
 
     /**
-     * Set extra options that will influence the UI for this window.
+     * Set extra options that will influence（影响） the UI for this window.
      *
      * @param uiOptions Flags specifying extra options for this window.
      */
@@ -1815,6 +1843,7 @@ public abstract class Window {
 
     /**
      * Inject an event to window locally.
+     * 本地注入一个输入事件
      *
      * @param event A key or touch event to inject to this window.
      */
@@ -1824,6 +1853,7 @@ public abstract class Window {
     /**
      * Retrieve the {@link TransitionManager} responsible for  for default transitions
      * in this window. Requires {@link #FEATURE_CONTENT_TRANSITIONS}.
+     * 如果窗口内容不为空，则返回此窗口内容对应的过度管理器
      * <p>
      * <p>This method will return non-null after content has been initialized (e.g. by using
      * {@link #setContentView}) if {@link #FEATURE_CONTENT_TRANSITIONS} has been granted.</p>

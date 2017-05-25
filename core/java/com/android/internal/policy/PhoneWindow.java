@@ -16,16 +16,41 @@
 
 package com.android.internal.policy;
 
-import static android.provider.Settings.Global.DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES;
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-import static android.view.WindowManager.LayoutParams.*;
-
+import android.app.ActivityManager;
 import android.app.ActivityManagerNative;
+import android.app.KeyguardManager;
 import android.app.SearchManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.content.res.Resources.Theme;
+import android.content.res.TypedArray;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
+import android.media.session.MediaController;
+import android.media.session.MediaSessionLegacyHelper;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.UserHandle;
-
+import android.provider.Settings;
 import android.text.TextUtils;
+import android.transition.Scene;
+import android.transition.Transition;
+import android.transition.TransitionInflater;
+import android.transition.TransitionManager;
+import android.transition.TransitionSet;
+import android.util.AndroidRuntimeException;
+import android.util.EventLog;
+import android.util.Log;
+import android.util.SparseArray;
+import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.IRotationWatcher.Stub;
@@ -49,6 +74,13 @@ import android.view.ViewParent;
 import android.view.ViewRootImpl;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
 import com.android.internal.R;
 import com.android.internal.view.menu.ContextMenuBuilder;
 import com.android.internal.view.menu.IconMenuPresenter;
@@ -61,46 +93,23 @@ import com.android.internal.view.menu.MenuView;
 import com.android.internal.widget.DecorContentParent;
 import com.android.internal.widget.SwipeDismissLayout;
 
-import android.app.ActivityManager;
-import android.app.KeyguardManager;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.res.Configuration;
-import android.content.res.Resources.Theme;
-import android.content.res.TypedArray;
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
-import android.media.AudioManager;
-import android.media.session.MediaController;
-import android.media.session.MediaSessionLegacyHelper;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.os.RemoteException;
-import android.os.ServiceManager;
-import android.provider.Settings;
-import android.transition.Scene;
-import android.transition.Transition;
-import android.transition.TransitionInflater;
-import android.transition.TransitionManager;
-import android.transition.TransitionSet;
-import android.util.AndroidRuntimeException;
-import android.util.EventLog;
-import android.util.Log;
-import android.util.SparseArray;
-import android.util.TypedValue;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+
+import static android.provider.Settings.Global.DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS;
+import static android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN;
+import static android.view.WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR;
+import static android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_OVERSCAN;
+import static android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+import static android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+import static android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER;
+import static android.view.WindowManager.LayoutParams.FLAG_SPLIT_TOUCH;
+import static android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION;
+import static android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
+import static android.view.WindowManager.LayoutParams.PRIVATE_FLAG_FORCE_DRAW_STATUS_BAR_BACKGROUND;
 
 /**
  * Android-specific Window.
@@ -129,6 +138,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     /**
      * Simple callback used by the context menu and its submenus. The options
      * menu submenus do not use this (their behavior is more complex).
+     * 被内容菜单及其子菜单使用的一个简单的回调。
      */
     final PhoneWindowMenuCallback mContextMenuCallback = new PhoneWindowMenuCallback(this);
 
@@ -140,17 +150,24 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     TypedValue mFixedHeightMinor;
 
     // This is the top-level view of the window, containing the window decor.
+    // 窗口的顶级视图，包含了窗口的修饰视图
     private DecorView mDecor;
 
     // When we reuse decor views, we need to recreate the content root. This happens when the decor
     // view is requested, so we need to force the recreating without introducing an infinite loop.
+    // 当复用装饰视图时，我们需要重新创建根内容。这个操作会在装饰视图被请求的时候发生，
+    // 所以我们需要强制的，不需要以一个无限循环的开始的重建。
     private boolean mForceDecorInstall = false;
 
     // This is the view in which the window contents are placed. It is either
     // mDecor itself, or a child of mDecor where the contents go.
+    // 如果窗口内容所在的视图被被放置了，则该视图要么是顶级视图自身，要么是顶级视图的一个子视图
+    // 内容视图
     ViewGroup mContentParent;
     // Whether the client has explicitly set the content view. If false and mContentParent is not
-    // null, then the content parent was set due to window preservation.
+    // null, then the content parent was set due to window preservation（保留）.
+    // 是否客户端明确的设置内容窗口。如果没有设置且mContentParent部位空，则说明内容父视图因为窗口的保留而已经被设置了
+    // 也就是说是否调用的setContentView方法
     private boolean mContentParentExplicitlySet = false;
 
     Callback2 mTakeSurfaceCallback;
@@ -158,6 +175,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     InputQueue.Callback mTakeInputQueueCallback;
 
     boolean mIsFloating;
+    // 是否半透明
     private boolean mIsTranslucent;
 
     private LayoutInflater mLayoutInflater;
@@ -173,14 +191,17 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     // The icon resource has been explicitly set elsewhere
     // and should not be overwritten with a default.
+    // icon资源已经在其他地方被明确的设置了，并且不应该用一个默认的icon来覆盖
     static final int FLAG_RESOURCE_SET_ICON = 1 << 0;
 
     // The logo resource has been explicitly set elsewhere
     // and should not be overwritten with a default.
+    // logo资源已经在其他地方被明确的设置了，并且不应该用一个默认的logo来覆盖
     static final int FLAG_RESOURCE_SET_LOGO = 1 << 1;
 
     // The icon resource is currently configured to use the system fallback
     // as no default was previously specified. Anything can override this.
+    // 使用系统的icon作为当前icon资源的配置，因为事先没有默认的icon被指定。可以用任何事情来覆盖icon
     static final int FLAG_RESOURCE_SET_ICON_FALLBACK = 1 << 2;
 
     int mResourcesSetFlags;
@@ -206,6 +227,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     // This stores if the system supports Picture-in-Picture
     // to see if KEYCODE_WINDOW should be handled here or not.
+    // 系统是否支持画中画
     private boolean mSupportsPictureInPicture;
 
     private ImageView mLeftIconView;
@@ -221,10 +243,15 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     private Drawable mBackgroundDrawable;
 
+    // 是否导入高度？
     private boolean mLoadElevation = true;
+    // 高度值
     private float mElevation;
 
-    /** Whether window content should be clipped to the background outline. */
+    /**
+     * Whether window content should be clipped to the background outline.
+     * 是否窗口内容应该被剪出背景轮廓
+     */
     private boolean mClipToOutline;
 
     private int mFrameResource = 0;
@@ -256,7 +283,8 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     private boolean mInvalidatePanelMenuPosted;
     private int mInvalidatePanelMenuFeatures;
     private final Runnable mInvalidatePanelMenuRunnable = new Runnable() {
-        @Override public void run() {
+        @Override
+        public void run() {
             for (int i = 0; i <= FEATURE_MAX; i++) {
                 if ((mInvalidatePanelMenuFeatures & 1 << i) != 0) {
                     doInvalidatePanelMenu(i);
@@ -301,6 +329,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     /**
      * Constructor for main window of an activity.
+     * 创建一个activity的主窗口
      */
     public PhoneWindow(Context context, Window preservedWindow) {
         this(context);
@@ -309,6 +338,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         // 只有主activity窗口使用decor contenxt,其他所有的窗口则依赖于传递给它们的context对象
         mUseDecorContext = true;
         if (preservedWindow != null) {
+            // 如果复用窗口不为空，则重复使用复用窗口肚饿顶层视图，高度，参数token
             mDecor = (DecorView) preservedWindow.getDecorView();
             mElevation = preservedWindow.getElevation();
             mLoadElevation = false;
@@ -316,10 +346,12 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
             // If we're preserving window, carry over the app token from the preserved
             // window, as we'll be skipping the addView in handleResumeActivity(), and
             // the token will not be updated as for a new window.
+            // 如果我们正在复用窗口，持续使用被复用窗口的app token
             getAttributes().token = preservedWindow.getAttributes().token;
         }
         // Even though the device doesn't support picture-in-picture mode,
         // an user can force using it through developer options.
+        // 即便设备不支持画中画，用户也可以通过开发者选项强制使用它
         boolean forceResizable = Settings.Global.getInt(context.getContentResolver(),
                 DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES, 0) != 0;
         mSupportsPictureInPicture = forceResizable || context.getPackageManager().hasSystemFeature(
@@ -399,13 +431,18 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         // Note: FEATURE_CONTENT_TRANSITIONS may be set in the process of installing the window
         // decor, when theme attributes and the like are crystalized. Do not check the feature
         // before this happens.
+        // 内容动画过渡功能可能在构造顶级视图的过程中被设置，当相关的主题属性等被明确。
+        // 在设置内容过渡功能之前，不要检测窗口是否含有此功能
         if (mContentParent == null) {
+            // 首先构建顶级视图
             installDecor();
         } else if (!hasFeature(FEATURE_CONTENT_TRANSITIONS)) {
+            // 如果内容视图不为空，且此窗口不存在内容动画过渡的功能，则立即清空内容视图的所有子视图，以便重新填充内容视图
             mContentParent.removeAllViews();
         }
 
         if (hasFeature(FEATURE_CONTENT_TRANSITIONS)) {
+            // 如果有内容过渡动画功能，执行之？
             final Scene newScene = Scene.getSceneForLayout(mContentParent, layoutResID,
                     getContext());
             transitionTo(newScene);
@@ -508,6 +545,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     }
 
     /**
+     * 是否显示墙纸
      * @return Whether the window is currently showing the wallpaper.
      */
     boolean isShowingWallpaper() {
@@ -558,11 +596,11 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     /**
      * Prepares the panel to either be opened or chorded. This creates the Menu
      * instance for the panel and populates it via the Activity callbacks.
-     *
-     * @param st The panel state to prepare.
+     * 为面板创建菜单实例，并通过activity回调定位它
+     * @param st    The panel state to prepare.
      * @param event The event that triggered the preparing of the panel.
      * @return Whether the panel was prepared. If the panel should not be shown,
-     *         returns false.
+     * returns false.
      */
     public final boolean preparePanel(PanelFeatureState st, KeyEvent event) {
         if (isDestroyed()) {
@@ -851,7 +889,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                 width, WRAP_CONTENT,
                 st.x, st.y, WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG,
                 WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
-                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
+                        | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
                 st.decorView.mDefaultOpacity);
 
         if (st.isCompact) {
@@ -884,13 +922,13 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     /**
      * Closes the given panel.
      *
-     * @param st The panel to be closed.
+     * @param st         The panel to be closed.
      * @param doCallback Whether to notify the callback that the panel was
-     *            closed. If the panel is in the process of re-opening or
-     *            opening another panel (e.g., menu opening a sub menu), the
-     *            callback should not happen and this variable should be false.
-     *            In addition, this method internally will only perform the
-     *            callback if the panel is open.
+     *                   closed. If the panel is in the process of re-opening or
+     *                   opening another panel (e.g., menu opening a sub menu), the
+     *                   callback should not happen and this variable should be false.
+     *                   In addition, this method internally will only perform the
+     *                   callback if the panel is open.
      */
     public final void closePanel(PanelFeatureState st, boolean doCallback) {
         // System.out.println("Close panel: isOpen=" + st.isOpen);
@@ -1008,8 +1046,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     /**
      * Called when the panel key is pushed down.
+     *
      * @param featureId The feature ID of the relevant panel (defaults to FEATURE_OPTIONS_PANEL}.
-     * @param event The key event.
+     * @param event     The key event.
      * @return Whether the key was handled.
      */
     public final boolean onKeyDownPanel(int featureId, KeyEvent event) {
@@ -1030,8 +1069,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     /**
      * Called when the panel key is released.
+     *
      * @param featureId The feature ID of the relevant panel (defaults to FEATURE_OPTIONS_PANEL}.
-     * @param event The key event.
+     * @param event     The key event.
      */
     public final void onKeyUpPanel(int featureId, KeyEvent event) {
         // The panel key was released, so clear the chording key
@@ -1148,7 +1188,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     }
 
     boolean performPanelShortcut(PanelFeatureState st, int keyCode, KeyEvent event,
-            int flags) {
+                                 int flags) {
         if (event.isSystem() || (st == null)) {
             return false;
         }
@@ -1532,9 +1572,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * drawable feature supported, as part of onActive(), to make sure that the
      * contents of a containing window is properly updated.
      *
-     * @see #onActive
-     * @param featureId The desired drawable feature to change.
+     * @param featureId  The desired drawable feature to change.
      * @param fromActive Always true when called from onActive().
+     * @see #onActive
      */
     protected final void updateDrawable(int featureId, boolean fromActive) {
         final DrawableFeatureState st = getDrawableState(featureId, false);
@@ -1548,8 +1588,8 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * graphics.
      *
      * @param featureId The feature being changed.
-     * @param drawable The new Drawable to show, or null if none.
-     * @param alpha The new alpha blending of the Drawable.
+     * @param drawable  The new Drawable to show, or null if none.
+     * @param alpha     The new alpha blending of the Drawable.
      */
     protected void onDrawableChanged(int featureId, Drawable drawable, int alpha) {
         ImageView view;
@@ -1575,7 +1615,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * graphics.
      *
      * @param featureId The feature being changed.
-     * @param value The new integer value.
+     * @param value     The new integer value.
      */
     protected void onIntChanged(int featureId, int value) {
         if (featureId == FEATURE_PROGRESS || featureId == FEATURE_INDETERMINATE_PROGRESS) {
@@ -1592,20 +1632,20 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * Updates the progress bars that are shown in the title bar.
      *
      * @param value Can be one of {@link Window#PROGRESS_VISIBILITY_ON},
-     *            {@link Window#PROGRESS_VISIBILITY_OFF},
-     *            {@link Window#PROGRESS_INDETERMINATE_ON},
-     *            {@link Window#PROGRESS_INDETERMINATE_OFF}, or a value
-     *            starting at {@link Window#PROGRESS_START} through
-     *            {@link Window#PROGRESS_END} for setting the default
-     *            progress (if {@link Window#PROGRESS_END} is given,
-     *            the progress bar widgets in the title will be hidden after an
-     *            animation), a value between
-     *            {@link Window#PROGRESS_SECONDARY_START} -
-     *            {@link Window#PROGRESS_SECONDARY_END} for the
-     *            secondary progress (if
-     *            {@link Window#PROGRESS_SECONDARY_END} is given, the
-     *            progress bar widgets will still be shown with the secondary
-     *            progress bar will be completely filled in.)
+     *              {@link Window#PROGRESS_VISIBILITY_OFF},
+     *              {@link Window#PROGRESS_INDETERMINATE_ON},
+     *              {@link Window#PROGRESS_INDETERMINATE_OFF}, or a value
+     *              starting at {@link Window#PROGRESS_START} through
+     *              {@link Window#PROGRESS_END} for setting the default
+     *              progress (if {@link Window#PROGRESS_END} is given,
+     *              the progress bar widgets in the title will be hidden after an
+     *              animation), a value between
+     *              {@link Window#PROGRESS_SECONDARY_START} -
+     *              {@link Window#PROGRESS_SECONDARY_END} for the
+     *              secondary progress (if
+     *              {@link Window#PROGRESS_SECONDARY_END} is given, the
+     *              progress bar widgets will still be shown with the secondary
+     *              progress bar will be completely filled in.)
      */
     private void updateProgressBars(int value) {
         ProgressBar circularProgressBar = getCircularProgressBar(true);
@@ -1925,7 +1965,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     AudioManager getAudioManager() {
         if (mAudioManager == null) {
-            mAudioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+            mAudioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
         }
         return mAudioManager;
     }
@@ -2060,7 +2100,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     static private final String PANELS_TAG = "android:Panels";
     static private final String ACTION_BAR_TAG = "android:ActionBar";
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Bundle saveHierarchyState() {
         Bundle outState = new Bundle();
@@ -2094,7 +2136,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         return outState;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void restoreHierarchyState(Bundle savedInstanceState) {
         if (mContentParent == null) {
@@ -2143,8 +2187,8 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * Invoked when the panels should freeze their state.
      *
      * @param icicles Save state into this. This is usually indexed by the
-     *            featureId. This will be given to {@link #restorePanelState} in the
-     *            future.
+     *                featureId. This will be given to {@link #restorePanelState} in the
+     *                future.
      */
     private void savePanelState(SparseArray<Parcelable> icicles) {
         PanelFeatureState[] panels = mPanels;
@@ -2298,13 +2342,13 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         }
 
         mIsFloating = a.getBoolean(R.styleable.Window_windowIsFloating, false);
-        int flagsToUpdate = (FLAG_LAYOUT_IN_SCREEN|FLAG_LAYOUT_INSET_DECOR)
+        int flagsToUpdate = (FLAG_LAYOUT_IN_SCREEN | FLAG_LAYOUT_INSET_DECOR)
                 & (~getForcedWindowFlags());
         if (mIsFloating) {
             setLayout(WRAP_CONTENT, WRAP_CONTENT);
             setFlags(0, flagsToUpdate);
         } else {
-            setFlags(FLAG_LAYOUT_IN_SCREEN|FLAG_LAYOUT_INSET_DECOR, flagsToUpdate);
+            setFlags(FLAG_LAYOUT_IN_SCREEN | FLAG_LAYOUT_INSET_DECOR, flagsToUpdate);
         }
 
         if (a.getBoolean(R.styleable.Window_windowNoTitle, false)) {
@@ -2343,17 +2387,17 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         }
 
         if (a.getBoolean(R.styleable.Window_windowOverscan, false)) {
-            setFlags(FLAG_LAYOUT_IN_OVERSCAN, FLAG_LAYOUT_IN_OVERSCAN&(~getForcedWindowFlags()));
+            setFlags(FLAG_LAYOUT_IN_OVERSCAN, FLAG_LAYOUT_IN_OVERSCAN & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowShowWallpaper, false)) {
-            setFlags(FLAG_SHOW_WALLPAPER, FLAG_SHOW_WALLPAPER&(~getForcedWindowFlags()));
+            setFlags(FLAG_SHOW_WALLPAPER, FLAG_SHOW_WALLPAPER & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowEnableSplitTouch,
                 getContext().getApplicationInfo().targetSdkVersion
                         >= android.os.Build.VERSION_CODES.HONEYCOMB)) {
-            setFlags(FLAG_SPLIT_TOUCH, FLAG_SPLIT_TOUCH&(~getForcedWindowFlags()));
+            setFlags(FLAG_SPLIT_TOUCH, FLAG_SPLIT_TOUCH & (~getForcedWindowFlags()));
         }
 
         a.getValue(R.styleable.Window_windowMinWidthMajor, mMinWidthMajor);
@@ -2449,7 +2493,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         if (a.getBoolean(R.styleable.Window_backgroundDimEnabled,
                 mIsFloating)) {
             /* All dialogs should have the window dimmed */
-            if ((getForcedWindowFlags()&WindowManager.LayoutParams.FLAG_DIM_BEHIND) == 0) {
+            if ((getForcedWindowFlags() & WindowManager.LayoutParams.FLAG_DIM_BEHIND) == 0) {
                 params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
             }
             if (!haveDimAmount()) {
@@ -2554,7 +2598,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         mDecor.startChanging();
         mDecor.onResourcesLoaded(mLayoutInflater, layoutResource);
 
-        ViewGroup contentParent = (ViewGroup)findViewById(ID_ANDROID_CONTENT);
+        ViewGroup contentParent = (ViewGroup) findViewById(ID_ANDROID_CONTENT);
         if (contentParent == null) {
             throw new RuntimeException("Window couldn't find content container view");
         }
@@ -2607,7 +2651,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         return contentParent;
     }
 
-    /** @hide */
+    /**
+     * @hide
+     */
     public void alwaysReadCloseOnTouchAttr() {
         mAlwaysReadCloseOnTouchAttr = true;
     }
@@ -2758,7 +2804,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
             TransitionInflater inflater = TransitionInflater.from(getContext());
             transition = inflater.inflateTransition(transitionId);
             if (transition instanceof TransitionSet &&
-                    ((TransitionSet)transition).getTransitionCount() == 0) {
+                    ((TransitionSet) transition).getTransitionCount() == 0) {
                 transition = null;
             }
         }
@@ -2803,8 +2849,8 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * Gets a panel's state based on its feature ID.
      *
      * @param featureId The feature ID of the panel.
-     * @param required Whether the panel is required (if it is required and it
-     *            isn't in our features, this throws an exception).
+     * @param required  Whether the panel is required (if it is required and it
+     *                  isn't in our features, this throws an exception).
      * @return The panel state.
      */
     PanelFeatureState getPanelState(int featureId, boolean required) {
@@ -2814,15 +2860,15 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     /**
      * Gets a panel's state based on its feature ID.
      *
-     * @param featureId The feature ID of the panel.
-     * @param required Whether the panel is required (if it is required and it
-     *            isn't in our features, this throws an exception).
+     * @param featureId         The feature ID of the panel.
+     * @param required          Whether the panel is required (if it is required and it
+     *                          isn't in our features, this throws an exception).
      * @param convertPanelState Optional: If the panel state does not exist, use
-     *            this as the panel state.
+     *                          this as the panel state.
      * @return The panel state.
      */
     private PanelFeatureState getPanelState(int featureId, boolean required,
-            PanelFeatureState convertPanelState) {
+                                            PanelFeatureState convertPanelState) {
         if ((getFeatures() & (1 << featureId)) == 0) {
             if (!required) {
                 return null;
@@ -2932,7 +2978,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         if (mContentParent == null) {
             installDecor();
         }
-        return (mLeftIconView = (ImageView)findViewById(R.id.left_icon));
+        return (mLeftIconView = (ImageView) findViewById(R.id.left_icon));
     }
 
     @Override
@@ -2978,7 +3024,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         if (mContentParent == null) {
             installDecor();
         }
-        return (mRightIconView = (ImageView)findViewById(R.id.right_icon));
+        return (mRightIconView = (ImageView) findViewById(R.id.right_icon));
     }
 
     private void registerSwipeCallbacks() {
@@ -2994,6 +3040,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                 new SwipeDismissLayout.OnSwipeProgressChangedListener() {
                     private static final float ALPHA_DECREASE = 0.5f;
                     private boolean mIsTranslucent = false;
+
                     @Override
                     public void onSwipeProgressChanged(
                             SwipeDismissLayout layout, float progress, float translate) {
@@ -3029,9 +3076,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * this will not perform the callback.
      *
      * @param featureId Feature ID of the panel that was closed. Must be given.
-     * @param panel Panel that was closed. Optional but useful if there is no
-     *            menu given.
-     * @param menu The menu that was closed. Optional, but give if you have.
+     * @param panel     Panel that was closed. Optional but useful if there is no
+     *                  menu given.
+     * @param menu      The menu that was closed. Optional, but give if you have.
      */
     private void callOnPanelClosed(int featureId, PanelFeatureState panel, Menu menu) {
         final Callback cb = getCallback();
@@ -3093,7 +3140,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
             // On TVs, if the app doesn't implement search, we want to launch assist.
             Bundle args = new Bundle();
             args.putInt(Intent.EXTRA_ASSIST_INPUT_DEVICE_ID, event.getDeviceId());
-            return ((SearchManager)getContext().getSystemService(Context.SEARCH_SERVICE))
+            return ((SearchManager) getContext().getSystemService(Context.SEARCH_SERVICE))
                     .launchLegacyAssist(null, UserHandle.myUserId(), args);
         }
         return result;
@@ -3273,14 +3320,18 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     static final class PanelFeatureState {
 
-        /** Feature ID for this panel. */
+        /**
+         * Feature ID for this panel.
+         */
         int featureId;
 
         // Information pulled from the style for this panel.
 
         int background;
 
-        /** The background when the panel spans the entire available width. */
+        /**
+         * The background when the panel spans the entire available width.
+         */
         int fullBackground;
 
         int gravity;
@@ -3291,25 +3342,37 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
         int windowAnimations;
 
-        /** Dynamic state of the panel. */
+        /**
+         * Dynamic state of the panel.
+         */
         DecorView decorView;
 
-        /** The panel that was returned by onCreatePanelView(). */
+        /**
+         * The panel that was returned by onCreatePanelView().
+         */
         View createdPanelView;
 
-        /** The panel that we are actually showing. */
+        /**
+         * The panel that we are actually showing.
+         */
         View shownPanelView;
 
-        /** Use {@link #setMenu} to set this. */
+        /**
+         * Use {@link #setMenu} to set this.
+         */
         MenuBuilder menu;
 
         IconMenuPresenter iconMenuPresenter;
         ListMenuPresenter listMenuPresenter;
 
-        /** true if this menu will show in single-list compact mode */
+        /**
+         * true if this menu will show in single-list compact mode
+         */
         boolean isCompact;
 
-        /** Theme resource ID for list elements of the panel menu */
+        /**
+         * Theme resource ID for list elements of the panel menu
+         */
         int listPresenterTheme;
 
         /**

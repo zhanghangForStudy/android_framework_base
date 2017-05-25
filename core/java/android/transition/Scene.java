@@ -28,13 +28,17 @@ import android.view.ViewGroup;
  * configured to automatically run a Transition when it is applied, which will
  * animate the various property changes that take place during the
  * scene change.
+ * 当scen被应用时，一个scene对象表示一系列视图树中多个属性的值。
+ * 一个Scence能够被自动配置，用来运行一个动画，这个动画会在scene变化期间自动改变其对应的各种属性。
  */
 public final class Scene {
 
     private Context mContext;
+    //布局ID
     private int mLayoutId = -1;
+    // 此现场保存的（位于视图树）最顶级的视图
     private ViewGroup mSceneRoot;
-    private View mLayout; // alternative to layoutId
+    private View mLayout; // alternative（替代） to layoutId
     Runnable mEnterAction, mExitAction;
 
     /**
@@ -46,10 +50,10 @@ public final class Scene {
      * XML resource files.
      *
      * @param sceneRoot The root of the hierarchy in which scene changes
-     * and transitions will take place.
-     * @param layoutId The id of a standard layout resource file.
-     * @param context The context used in the process of inflating
-     * the layout resource.
+     *                  and transitions will take place.
+     * @param layoutId  The id of a standard layout resource file.
+     * @param context   The context used in the process of inflating
+     *                  the layout resource.
      * @return The scene for the given root and layout id
      */
     public static Scene getSceneForLayout(ViewGroup sceneRoot, int layoutId, Context context) {
@@ -77,7 +81,7 @@ public final class Scene {
      * {@link #setExitAction(Runnable)}.
      *
      * @param sceneRoot The root of the hierarchy in which scene changes
-     * and transitions will take place.
+     *                  and transitions will take place.
      */
     public Scene(ViewGroup sceneRoot) {
         mSceneRoot = sceneRoot;
@@ -87,16 +91,16 @@ public final class Scene {
      * Constructs a Scene which, when entered, will remove any
      * children from the sceneRoot container and will inflate and add
      * the hierarchy specified by the layoutId resource file.
-     *
+     * <p>
      * <p>This method is hidden because layoutId-based scenes should be
      * created by the caching factory method {@link Scene#getCurrentScene(View)}.</p>
      *
      * @param sceneRoot The root of the hierarchy in which scene changes
-     * and transitions will take place.
-     * @param layoutId The id of a resource file that defines the view
-     * hierarchy of this scene.
-     * @param context The context used in the process of inflating
-     * the layout resource.
+     *                  and transitions will take place.
+     * @param layoutId  The id of a resource file that defines the view
+     *                  hierarchy of this scene.
+     * @param context   The context used in the process of inflating
+     *                  the layout resource.
      */
     private Scene(ViewGroup sceneRoot, int layoutId, Context context) {
         mContext = context;
@@ -110,9 +114,9 @@ public final class Scene {
      * object as a new child of that container.
      *
      * @param sceneRoot The root of the hierarchy in which scene changes
-     * and transitions will take place.
-     * @param layout The view hierarchy of this scene, added as a child
-     * of sceneRoot when this scene is entered.
+     *                  and transitions will take place.
+     * @param layout    The view hierarchy of this scene, added as a child
+     *                  of sceneRoot when this scene is entered.
      */
     public Scene(ViewGroup sceneRoot, View layout) {
         mSceneRoot = sceneRoot;
@@ -222,7 +226,7 @@ public final class Scene {
      * be played.
      *
      * @param action The runnable whose {@link Runnable#run() run()} method will
-     * be called when this scene is entered
+     *               be called when this scene is entered
      * @see #setExitAction(Runnable)
      * @see Scene#Scene(ViewGroup, int, Context)
      * @see Scene#Scene(ViewGroup, ViewGroup)

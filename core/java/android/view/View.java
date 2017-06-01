@@ -2869,8 +2869,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * Flag for {@link #setSystemUiVisibility(int)}: View has requested to go
      * into the normal fullscreen mode so that its content can take over the screen
      * while still allowing the user to interact with the application.
-     * <p>
-     * <p>This has the same visual effect as
+     * <p>视图请求进入普通的全屏模式，以便它的内容能够在屏幕之上，当运行用户与应用交互的时候
+     * <p>This has the same visual（视觉上的） effect as
      * {@link android.view.WindowManager.LayoutParams#FLAG_FULLSCREEN
      * WindowManager.LayoutParams.FLAG_FULLSCREEN},
      * meaning that non-critical screen decorations (such as the status bar) will be
@@ -2879,6 +2879,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * overlay mode with {@link Window#FEATURE_ACTION_BAR_OVERLAY
      * Window.FEATURE_ACTION_BAR_OVERLAY}, then enabling this flag will also
      * hide the action bar.
+     * <p>此标识与{@link android.view.WindowManager.LayoutParams#FLAG_FULLSCREEN}是一样的，
+     * 即意味着，当用户处于此视图的窗口中时，非关键性的屏幕装饰（例如状态栏）将被隐藏，从而强化内容的体验。
+     * 但是此标识仍然与窗口标识有点区别，如果你正在使用处于{@link Window#FEATURE_ACTION_BAR_OVERLAY}模式
+     * 中的操作栏，启用此标识将依旧会隐藏操作栏
      * <p>
      * <p>This approach to going fullscreen is best used over the window flag when
      * it is a transient state -- that is, the application does this at certain
@@ -2890,12 +2894,17 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * is usually a better approach.  The state set here will be removed by the system
      * in various situations (such as the user moving to another application) like
      * the other system UI states.
-     * <p>
+     * <p>这个进入全屏的方法最好用来覆盖对应的窗口标识，当窗口是一个临时状态。
+     * 也就是说，在一个想要用户临时重点关注屏幕内容的确切点上，执行这个标识。
+     * 而对于应用只是想简单的在整个时间内待在全屏之中，则用窗口对应的标识。
+     * 在此处设置的状态将被系统在多个地方异常（例如用户移动到了其他应用）
      * <p>When using this flag, the application should provide some easy facility
      * for the user to go out of it.  A common example would be in an e-book
      * reader, where tapping on the screen brings back whatever screen and UI
      * decorations that had been hidden while the user was immersed in reading
      * the book.
+     * 当使用此flag，应用应该为用户提供一些简单的能力来退出此模式。
+     * 一个通用的例子是在一个电子书阅读器中，当轻触屏幕时，退出全屏。
      *
      * @see #setSystemUiVisibility(int)
      */
@@ -8384,6 +8393,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /**
      * Returns true if this view has been through at least one layout since it
      * was last attached to or detached from a window.
+     * 自从上一次被粘贴到窗口或者从一个窗口上脱离起，此视图已经至少进行过一次布局了
      */
     public boolean isLaidOut() {
         return (mPrivateFlags3 & PFLAG3_IS_LAID_OUT) == PFLAG3_IS_LAID_OUT;
@@ -12952,12 +12962,15 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
     /**
      * Sets whether the View's Outline should be used to clip the contents of the View.
+     * 设置是否视图的轮廓线是否应该被用来裁剪视图的内容
      * <p>
      * Only a single non-rectangular clip can be applied on a View at any time.
      * Circular clips from a {@link ViewAnimationUtils#createCircularReveal(View, int, int, float, float)
      * circular reveal} animation take priority over Outline clipping, and
      * child Outline clipping takes priority over Outline clipping done by a
      * parent.
+     * 在任何时刻，只有一个单一的非矩形的裁剪才能被应用在一个视图之上。
+     * <p>
      * <p>
      * Note that this flag will only be respected if the View's Outline returns true from
      * {@link Outline#canClip()}.
@@ -13143,11 +13156,17 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * coordinates (without taking possible View rotations into account), offset
      * it by -globalOffset (e.g. r.offset(-globalOffset.x, -globalOffset.y)).
      * If the view is completely clipped or translated out, return false.
+     * 如果此视图的一些部分没有被它的任何一个父视图剪切，则返回没有被父视图剪切的那部分区域。
+     * 其中区域的坐标是位于root坐标系之中。
+     * 为了将此区域的坐标转换为本地坐标系，需要减去第二个入参相应的宽高。
+     * 如果视图完全被掩盖，返回false
      *
      * @param r            If true is returned, r holds the global coordinates of the
      *                     visible portion of this view.
+     *                     如果该方法返回true,则该参数持有该视图可见区域的坐标
      * @param globalOffset If true is returned, globalOffset holds the dx,dy
      *                     between this view and its root. globalOffet may be null.
+     *                     如果该方法返回true,则该参数持有该视图可见区域在全局坐标系与本地坐标系之间的差值
      * @return true if r is non-empty (i.e. part of the view is visible at the
      * root level.
      */
@@ -15584,6 +15603,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
     /**
      * Store this view hierarchy's frozen state into the given container.
+     * 将视图树冻结的状态存储至给定的容器之中
      *
      * @param container The SparseArray in which to save the view's state.
      * @see #restoreHierarchyState(android.util.SparseArray)

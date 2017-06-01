@@ -78,7 +78,8 @@ import java.lang.ref.WeakReference;
  * do this by setting the {@link WindowManager.LayoutParams#FLAG_ALT_FOCUSABLE_IM
  * WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM} window flag (assuming
  * your Dialog takes input focus, as it the default) with the following code:
- * 
+ * 你将经常期望有一个对话框显示在当前输入法的上方，因为对于此对话框而言，没有接受文字的理由。
+ * 可以通过设置WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM标识（假设你的对话框获取了输入焦点）来实现。
  * <pre>
  * getWindow().setFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
  *         WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);</pre>

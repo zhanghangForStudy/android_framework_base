@@ -116,6 +116,8 @@ import static android.view.WindowManager.LayoutParams.PRIVATE_FLAG_FORCE_DRAW_ST
  * <p>
  * todo: need to pull the generic functionality out into a base class
  * in android.widget.
+ * 有一个控制面板；
+ * 一些按键事件的默认处理
  *
  * @hide
  */
@@ -221,7 +223,8 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     /**
      * The keycode that is currently held down (as a modifier) for chording. If
-     * this is 0, there is no key held down.
+     * this is 0, there is no key held down
+     * 当前正在被按下的物理键，如果没有，则为0.
      */
     int mPanelChordingKey;
 
@@ -546,6 +549,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     /**
      * 是否显示墙纸
+     *
      * @return Whether the window is currently showing the wallpaper.
      */
     boolean isShowingWallpaper() {
@@ -597,10 +601,11 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      * Prepares the panel to either be opened or chorded. This creates the Menu
      * instance for the panel and populates it via the Activity callbacks.
      * 为面板创建菜单实例，并通过activity回调定位它
-     * @param st    The panel state to prepare.
-     * @param event The event that triggered the preparing of the panel.
+     *
+     * @param st    The panel state to prepare.用来准备的面板的状态
+     * @param event The event that triggered the preparing of the panel.触发面板准备的事件
      * @return Whether the panel was prepared. If the panel should not be shown,
-     * returns false.
+     * returns false.是否控制面板被准备好了，如果返回false则表示此控制面板不应该被显示
      */
     public final boolean preparePanel(PanelFeatureState st, KeyEvent event) {
         if (isDestroyed()) {
@@ -1861,7 +1866,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     /**
      * A key was pressed down and not handled by anything else in the window.
-     *
+     * 一个按键被按下，且没有被窗口中的其他任何对象所处理
      * @see #onKeyUp
      * @see android.view.KeyEvent
      */
@@ -2309,12 +2314,16 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         // System process doesn't have application context and in that case we need to directly use
         // the context we have. Otherwise we want the application context, so we don't cling to the
         // activity.
+
+        // 系统进程并没有Application context,在这种情况下我们需要直接使用此窗口持有的context。
+        // 否者我们仍然使用application context,所以我们不应该依附activity
         Context context;
         if (mUseDecorContext) {
             Context applicationContext = getContext().getApplicationContext();
             if (applicationContext == null) {
                 context = getContext();
             } else {
+                // application context存在的情况
                 context = new DecorContext(applicationContext, getContext().getResources());
                 if (mTheme != -1) {
                     context.setTheme(mTheme);
@@ -2326,6 +2335,11 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         return new DecorView(context, featureId, this, getAttributes());
     }
 
+    /**
+     * 根据用户请求的功能，来调整窗口相应的属性以及以此来构建布局参数，以及构造DecorView
+     * @param decor
+     * @return
+     */
     protected ViewGroup generateLayout(DecorView decor) {
         // Apply data from current theme.
 
@@ -2352,51 +2366,63 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         }
 
         if (a.getBoolean(R.styleable.Window_windowNoTitle, false)) {
+            // 请求没标题
             requestFeature(FEATURE_NO_TITLE);
         } else if (a.getBoolean(R.styleable.Window_windowActionBar, false)) {
             // Don't allow an action bar if there is no title.
+            // 如果没有标题，则不会允许一个操作栏
+            // 请求操作栏
             requestFeature(FEATURE_ACTION_BAR);
         }
 
         if (a.getBoolean(R.styleable.Window_windowActionBarOverlay, false)) {
+            // 请求将操作栏覆盖于窗口内容之上
             requestFeature(FEATURE_ACTION_BAR_OVERLAY);
         }
 
         if (a.getBoolean(R.styleable.Window_windowActionModeOverlay, false)) {
+            // 请求操作模式的视图覆盖与沧口内容之上
             requestFeature(FEATURE_ACTION_MODE_OVERLAY);
         }
 
         if (a.getBoolean(R.styleable.Window_windowSwipeToDismiss, false)) {
+            // 当手指在非装饰物上，从左往右划动时，可将窗口关闭的功能
             requestFeature(FEATURE_SWIPE_TO_DISMISS);
         }
 
         if (a.getBoolean(R.styleable.Window_windowFullscreen, false)) {
+            // 全屏
             setFlags(FLAG_FULLSCREEN, FLAG_FULLSCREEN & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowTranslucentStatus,
                 false)) {
+            // 半透明的状态栏
             setFlags(FLAG_TRANSLUCENT_STATUS, FLAG_TRANSLUCENT_STATUS
                     & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowTranslucentNavigation,
                 false)) {
+            // 半透明的导航栏
             setFlags(FLAG_TRANSLUCENT_NAVIGATION, FLAG_TRANSLUCENT_NAVIGATION
                     & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowOverscan, false)) {
+            // 运行窗口内容扩展至屏幕的overscan区域
             setFlags(FLAG_LAYOUT_IN_OVERSCAN, FLAG_LAYOUT_IN_OVERSCAN & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowShowWallpaper, false)) {
+            // 显示墙纸
             setFlags(FLAG_SHOW_WALLPAPER, FLAG_SHOW_WALLPAPER & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowEnableSplitTouch,
                 getContext().getApplicationInfo().targetSdkVersion
                         >= android.os.Build.VERSION_CODES.HONEYCOMB)) {
+            // 是否可将多个触摸点生成的触摸事件传递给多个窗口
             setFlags(FLAG_SPLIT_TOUCH, FLAG_SPLIT_TOUCH & (~getForcedWindowFlags()));
         }
 
@@ -2425,12 +2451,15 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                     mFixedHeightMinor);
         }
         if (a.getBoolean(R.styleable.Window_windowContentTransitions, false)) {
+            // 请求窗口内容变化动画化
             requestFeature(FEATURE_CONTENT_TRANSITIONS);
         }
         if (a.getBoolean(R.styleable.Window_windowActivityTransitions, false)) {
+            // 请求activity变化动画化
             requestFeature(FEATURE_ACTIVITY_TRANSITIONS);
         }
 
+        // 是否半透明
         mIsTranslucent = a.getBoolean(R.styleable.Window_windowIsTranslucent, false);
 
         final Context context = getContext();
@@ -2459,6 +2488,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
         // Non-floating windows on high end devices must put up decor beneath the system bars and
         // therefore must know about visibility changes of those.
+        // 对于高端设备，非浮动窗口必须将装饰视图放在系统栏的下方，因此必须知道相应的系统栏的可视状态变化
         if (!mIsFloating && ActivityManager.isHighEndGfx()) {
             if (!targetPreL && a.getBoolean(
                     R.styleable.Window_windowDrawsSystemBarBackgrounds,
@@ -2492,7 +2522,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
         if (a.getBoolean(R.styleable.Window_backgroundDimEnabled,
                 mIsFloating)) {
-            /* All dialogs should have the window dimmed */
+            /* All dialogs should have the window dimmed,所有的对话框都应该使窗口暗淡 */
             if ((getForcedWindowFlags() & WindowManager.LayoutParams.FLAG_DIM_BEHIND) == 0) {
                 params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
             }
@@ -2507,8 +2537,10 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                     R.styleable.Window_windowAnimationStyle, 0);
         }
 
-        // The rest are only done if this window is not embedded; otherwise,
+        // The rest（余下的） are only done if this window is not embedded（嵌入的）; otherwise,
         // the values are inherited from our container.
+        // 余下的值将依据此窗口是否是嵌入的窗口，来进行设定；
+        // 如果此窗口是嵌入的窗口，则这些值将从它们的包含者之中继承过来
         if (getContainer() == null) {
             if (mBackgroundDrawable == null) {
                 if (mBackgroundResource == 0) {
@@ -2538,6 +2570,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         int layoutResource;
         int features = getLocalFeatures();
         // System.out.println("Features: 0x" + Integer.toHexString(features));
+        // 根据窗口不同的功能，选取不同的布局文件
         if ((features & (1 << FEATURE_SWIPE_TO_DISMISS)) != 0) {
             layoutResource = R.layout.screen_swipe_dismiss;
         } else if ((features & ((1 << FEATURE_LEFT_ICON) | (1 << FEATURE_RIGHT_ICON))) != 0) {
@@ -2596,6 +2629,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         }
 
         mDecor.startChanging();
+        // 加载布局文件
         mDecor.onResourcesLoaded(mLayoutInflater, layoutResource);
 
         ViewGroup contentParent = (ViewGroup) findViewById(ID_ANDROID_CONTENT);
@@ -2616,6 +2650,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
         // Remaining setup -- of background and title -- that only applies
         // to top-level windows.
+        // 余下的步骤：背景和标题，只支持顶层的窗口
         if (getContainer() == null) {
             final Drawable background;
             if (mBackgroundResource != 0) {
@@ -2652,6 +2687,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     }
 
     /**
+     * 1、构造DecorView对象；
+     * 2、构造ContentParent对象；
+     * 3、为视图树设置一些属性和回调；
      * @hide
      */
     public void alwaysReadCloseOnTouchAttr() {
@@ -2713,7 +2751,10 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                 // Panel menu invalidation is deferred avoiding application onCreateOptionsMenu
                 // being called in the middle of onCreate or similar.
                 // A pending invalidation will typically be resolved before the posted message
-                // would run normally in order to satisfy instance state restoration.
+                // would run normally in order to satisfy（满足） instance state restoration（恢复）.
+                // 如果在此步骤之前，面板菜单还没有被创建，则使得面板菜单无效。
+                // 面板菜单的无效化被推迟，以此避免android.app.Activity.onCreateOptionsMenu()方法的执行。
+                // 一个将要执行的无效化在被专递的，其运行目的是为了满足对象状态的恢复的消息之前被解决
                 PanelFeatureState st = getPanelState(FEATURE_OPTIONS_PANEL, false);
                 if (!isDestroyed() && (st == null || st.menu == null) && !mIsStartingWindow) {
                     invalidatePanelMenu(FEATURE_ACTION_BAR);

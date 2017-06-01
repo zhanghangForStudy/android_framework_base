@@ -118,13 +118,17 @@ public abstract class Window {
      * Normally an Action Bar will sit in the space above window content, but if this
      * feature is requested along with {@link #FEATURE_ACTION_BAR} it will be layered over
      * the window content itself. This is useful if you would like your app to have more control
-     * over how the Action Bar is displayed, such as letting application content scroll beneath
+     * over how the Action Bar is displayed, such as letting application content scroll beneath（在...的下方）
      * an Action Bar with a transparent background or otherwise displaying a transparent/translucent
      * Action Bar over application content.
-     * <p>
+     * <p>此标志请求一个覆盖在窗口内容上的操作栏。
+     * 一般而言一个操作栏被定位在窗口内容上方的空间，但是如果这个功能联合{@link #FEATURE_ACTION_BAR}被请求了，
+     * 则它会将自己定位到窗口内容的上面。如果你期望你的应用在操作栏怎样展示上面有更多的控制，这是有用的；例如，
+     * 让应用内容在具有一个透明背景的操作栏的下方滚动，或者在应用内容上面显示一个透明或者半透明的操作栏
      * <p>This mode is especially useful with {@link View#SYSTEM_UI_FLAG_FULLSCREEN
-     * View.SYSTEM_UI_FLAG_FULLSCREEN}, which allows you to seamlessly hide the
-     * action bar in conjunction with other screen decorations.
+     * View.SYSTEM_UI_FLAG_FULLSCREEN}, which allows you to seamlessly（无缝隙的） hide the
+     * action bar in conjunction with（in conjunction with:与...协力） other screen decorations.
+     * <p> 此模式在与{@link View#SYSTEM_UI_FLAG_FULLSCREEN View.SYSTEM_UI_FLAG_FULLSCREEN}配合下尤其有用
      * <p>
      * <p>As of {@link android.os.Build.VERSION_CODES#JELLY_BEAN}, when an
      * ActionBar is in this mode it will adjust the insets provided to
@@ -136,10 +140,13 @@ public abstract class Window {
     /**
      * Flag for specifying the behavior of action modes when an Action Bar is not present.
      * If overlay is enabled, the action mode UI will be allowed to cover existing window content.
+     * 此标识指定了当一个操作栏没有出现的时候，操作模式的行为。
+     * 如果覆盖被启用了，这操作模式的UI将被允许覆盖到当前的窗口内容之上
      */
     public static final int FEATURE_ACTION_MODE_OVERLAY = 10;
     /**
      * Flag for requesting a decoration-free window that is dismissed by swiping from the left.
+     * 此标识用来请求，当手指从左刷除时，可隐藏窗口的功能
      */
     public static final int FEATURE_SWIPE_TO_DISMISS = 11;
     /**
@@ -293,7 +300,9 @@ public abstract class Window {
     private final Context mContext;
 
     private TypedArray mWindowStyle;
-    // 一般而言Activity实现了Callback接口
+    /**
+     * 一般而言Activity实现了Callback接口
+     */
     private Callback mCallback;
     private OnWindowDismissedCallback mOnWindowDismissedCallback;
     private WindowControllerCallback mWindowControllerCallback;
@@ -1213,6 +1222,7 @@ public abstract class Window {
     /**
      * Return the window flags that have been explicitly set by the client,
      * so will not be modified by {@link #getDecorView}.
+     * 有客户明确设置的窗口标识
      */
     protected final int getForcedWindowFlags() {
         return mForcedWindowFlags;

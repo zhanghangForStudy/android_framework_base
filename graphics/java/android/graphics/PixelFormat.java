@@ -23,16 +23,21 @@ import java.lang.annotation.RetentionPolicy;
 
 public class PixelFormat {
 
-    /** @hide */
+    /**
+     * @hide
+     */
     @IntDef({UNKNOWN, TRANSLUCENT, TRANSPARENT, OPAQUE})
     @Retention(RetentionPolicy.SOURCE)
-    public @interface Opacity {}
+    public @interface Opacity {
+    }
 
     /* these constants need to match those in hardware/hardware.h */
 
-    public static final int UNKNOWN     = 0;
+    public static final int UNKNOWN = 0;
 
-    /** System chooses a format that supports translucency (many alpha bits) */
+    /**
+     * System chooses a format that supports translucency (many alpha bits)
+     */
     public static final int TRANSLUCENT = -3;
 
     /**
@@ -41,26 +46,28 @@ public class PixelFormat {
      */
     public static final int TRANSPARENT = -2;
 
-    /** System chooses an opaque format (no alpha bits required) */
-    public static final int OPAQUE      = -1;
+    /**
+     * System chooses an opaque format (no alpha bits required) 系统选择的一个不透明格式
+     */
+    public static final int OPAQUE = -1;
 
-    public static final int RGBA_8888   = 1;
-    public static final int RGBX_8888   = 2;
-    public static final int RGB_888     = 3;
-    public static final int RGB_565     = 4;
+    public static final int RGBA_8888 = 1;
+    public static final int RGBX_8888 = 2;
+    public static final int RGB_888 = 3;
+    public static final int RGB_565 = 4;
 
     @Deprecated
-    public static final int RGBA_5551   = 6;
+    public static final int RGBA_5551 = 6;
     @Deprecated
-    public static final int RGBA_4444   = 7;
+    public static final int RGBA_4444 = 7;
     @Deprecated
-    public static final int A_8         = 8;
+    public static final int A_8 = 8;
     @Deprecated
-    public static final int L_8         = 9;
+    public static final int L_8 = 9;
     @Deprecated
-    public static final int LA_88       = 0xA;
+    public static final int LA_88 = 0xA;
     @Deprecated
-    public static final int RGB_332     = 0xB;
+    public static final int RGB_332 = 0xB;
 
 
     /**
@@ -68,14 +75,14 @@ public class PixelFormat {
      * ImageFormat.NV16} instead.
      */
     @Deprecated
-    public static final int YCbCr_422_SP= 0x10;
+    public static final int YCbCr_422_SP = 0x10;
 
     /**
      * @deprecated use {@link android.graphics.ImageFormat#NV21
      * ImageFormat.NV21} instead.
      */
     @Deprecated
-    public static final int YCbCr_420_SP= 0x11;
+    public static final int YCbCr_420_SP = 0x11;
 
     /**
      * @deprecated use {@link android.graphics.ImageFormat#YUY2
@@ -89,7 +96,7 @@ public class PixelFormat {
      * ImageFormat.JPEG} instead.
      */
     @Deprecated
-    public static final int JPEG        = 0x100;
+    public static final int JPEG = 0x100;
 
     public static void getPixelFormatInfo(int format, PixelFormat info) {
         switch (format) {
@@ -143,20 +150,19 @@ public class PixelFormat {
         return false;
     }
 
-    public int  bytesPerPixel;
-    public int  bitsPerPixel;
+    public int bytesPerPixel;
+    public int bitsPerPixel;
 
     /**
      * Determine whether or not this is a public-visible and non-deprecated {@code format}.
-     *
+     * <p>
      * <p>In particular, {@code @hide} formats will return {@code false}.</p>
-     *
+     * <p>
      * <p>Any other indirect formats (such as {@code TRANSPARENT} or {@code TRANSLUCENT})
      * will return {@code false}.</p>
      *
      * @param format an integer format
      * @return a boolean
-     *
      * @hide
      */
     public static boolean isPublicFormat(int format) {

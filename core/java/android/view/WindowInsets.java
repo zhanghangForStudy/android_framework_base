@@ -21,18 +21,23 @@ import android.graphics.Rect;
 
 /**
  * Describes a set of insets for window content.
- *
- * <p>WindowInsets are immutable and may be expanded to include more inset types in the future.
+ * 描述窗口内容相关的一系列可嵌入矩形
+ * <p>WindowInsets are immutable(不可改变的) and may be expanded to include more inset types in the future.
  * To adjust insets, use one of the supplied clone methods to obtain a new WindowInsets instance
- * with the adjusted properties.</p>
+ * with the adjusted properties.
+ * 这些可嵌入矩形是不可改变的，但是可以被扩展用以包含更多的可嵌入矩形的类型。
+ * 为了调整这些可嵌入矩形，使用下列的方法中的一种方法来包含一系列新的可嵌入矩形
+ * </p>
  *
  * @see View.OnApplyWindowInsetsListener
  * @see View#onApplyWindowInsets(WindowInsets)
  */
 public final class WindowInsets {
-
+    // 系统窗口的可嵌入范围
     private Rect mSystemWindowInsets;
+    // 窗口修饰物可嵌入范围
     private Rect mWindowDecorInsets;
+    // 稳定的可嵌入范围
     private Rect mStableInsets;
     private Rect mTempRect;
     private boolean mIsRound;
@@ -41,6 +46,8 @@ public final class WindowInsets {
      * In multi-window we force show the navigation bar. Because we don't want that the surface size
      * changes in this mode, we instead have a flag whether the navigation bar size should always
      * be consumed, so the app is treated like there is no virtual navigation bar at all.
+     * 在多窗口之中，我们强制显示导航栏，因为我们不期望surface尺寸在此模式中改变，我们有一个标识来表示导航栏的大小
+     * 是否应该总是被消耗，所以应用被视为永不有一个虚拟的导航栏
      */
     private boolean mAlwaysConsumeNavBar;
 

@@ -2697,7 +2697,8 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
      * Returns true if this ViewGroup should be considered as a single entity for removal
      * when executing an Activity transition. If this is false, child elements will move
      * individually during the transition.
-     *
+     * 如果在执行一个activity动画的时候，ViewGroup应该被作为整体，被移除，则返回true。
+     * 如果返回false，子视图元素将会在动画期间被各自的移动。
      * @return True if the ViewGroup should be acted on together during an Activity transition.
      * The default value is true when there is a non-null background or if
      * {@link #getTransitionName()} is not null or if a

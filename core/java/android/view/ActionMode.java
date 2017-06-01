@@ -24,6 +24,10 @@ import android.graphics.Rect;
  * Represents a contextual mode of the user interface. Action modes can be used to provide
  * alternative interaction modes and replace parts of the normal UI until finished.
  * Examples of good action modes include text selection and contextual actions.
+ * <p>表示了一个用户交互的上下午模式。
+ * 动作模式可以被用来提供一种可选的交互模式，以及替换已不复普通的用户交互模式，直到结束。
+ * 一些好的交互模式例子包含了文本选择以及上下文操作
+ * </p>
  * <div class="special reference">
  * <h3>Developer Guides</h3>
  * <p>For information about how to provide contextual actions with {@code ActionMode},

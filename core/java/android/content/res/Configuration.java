@@ -597,6 +597,7 @@ public final class Configuration implements Parcelable, Comparable<Configuration
      * <a href="{@docRoot}guide/topics/resources/providing-resources.html#ScreenWidthQualifier">screen
      * width</a> resource qualifier.  Set to
      * {@link #SCREEN_WIDTH_DP_UNDEFINED} if no width is specified.
+     * 当前屏幕范围内的可用宽度
      */
     public int screenWidthDp;
 

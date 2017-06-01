@@ -792,6 +792,8 @@ public interface WindowManager extends ViewManager {
          * window must correctly position its contents to take the screen
          * decoration into account.  This flag is normally set for you
          * by Window as described in {@link Window#setFlags}.
+         * 将窗口定位在整个屏幕之中，忽略周围的修饰物（例如状态栏）。
+         * 窗口必须在考虑屏幕装饰物的前提下，正确的定位它的内容
          */
         public static final int FLAG_LAYOUT_IN_SCREEN = 0x00000100;
 
@@ -873,6 +875,9 @@ public interface WindowManager extends ViewManager {
          * manager will report the inset rectangle needed to ensure your
          * content is not covered by screen decorations.  This flag is normally
          * set for you by Window as described in {@link Window#setFlags}.
+         * 一个特殊的选项，只在和{@link #FLAG_LAYOUT_IN_SCREEN}标识的兼容中使用。
+         * 当请求屏幕中的布局是，你的窗口可能出现在屏幕装饰物的顶部或者后面。
+         * 同时，如果包含了此标识，wm将报告需要确保你内容的矩形区域不会被屏幕装饰物所覆盖
          */
         public static final int FLAG_LAYOUT_INSET_DECOR = 0x00010000;
 
@@ -885,6 +890,10 @@ public interface WindowManager extends ViewManager {
          * not set and this flag is set, then the window will behave as if it
          * doesn't need to interact with the input method and can be placed
          * to use more space and cover the input method.
+         * {@link #FLAG_NOT_FOCUSABLE}标识的反转状态，用来关注窗口与当前方法的交互是怎样的。
+         * 如果FLAG_NOT_FOCUSABLE和此标识都被设置了，则此窗口的行为是，它需要和输入法窗口交互
+         * 因此应该被放到输入法窗口的后面；如果FLAG_NOT_FOCUSABLE没有被设置，且
+         * 此标识被设置了，则此窗口的行为是它不需要和输入法交互，并且能够被放置到更多的空间以及覆盖输入法窗口
          */
         public static final int FLAG_ALT_FOCUSABLE_IM = 0x00020000;
 
@@ -962,8 +971,12 @@ public interface WindowManager extends ViewManager {
          * go until all pointers go up.  When this flag is set, each pointer
          * (not necessarily the first) that goes down determines the window
          * to which all subsequent touches of that pointer will go until that
-         * pointer goes up thereby enabling touches with multiple pointers
+         * pointer goes up thereby（由此） enabling touches with multiple pointers
          * to be split across multiple windows.
+         * 当此标识设置了，窗口将接收来自于它范围之外的触摸事件，以便将触摸事件发送给其他的支持分离触摸的窗口。
+         * 如果此标识没有被设置，则第一个落下的触摸点将决定所有后续触摸点前往的窗口。
+         * 如果此标识已经被设置，则每个落下的触摸点（不需要第一个）决定每个后续触摸事件前往的窗口。‘
+         * 从而多触摸点启动的触摸事件将被分别传递给多窗口。
          */
         public static final int FLAG_SPLIT_TOUCH = 0x00800000;
 
@@ -1002,7 +1015,7 @@ public interface WindowManager extends ViewManager {
          * Window flag: allow window contents to extend in to the screen's
          * overscan area, if there is one.  The window should still correctly
          * position its contents to take the overscan area into account.
-         * <p>
+         * <p>允许窗口的内容扩展至overscan区域。在考虑overscan区域的情况下，窗口内容应该依旧正确的被定位
          * <p>This flag can be controlled in your theme through the
          * {@link android.R.attr#windowOverscan} attribute; this attribute
          * is automatically set for you in the standard overscan themes
@@ -1012,7 +1025,7 @@ public interface WindowManager extends ViewManager {
          * {@link android.R.style#Theme_DeviceDefault_NoActionBar_Overscan}, and
          * {@link android.R.style#Theme_DeviceDefault_Light_NoActionBar_Overscan}.</p>
          * <p>
-         * <p>When this flag is enabled for a window, its normal content may be obscured
+         * <p>When this flag is enabled for a window, its normal content may be obscured（掩盖）
          * to some degree by the overscan region of the display.  To ensure key parts of
          * that content are visible to the user, you can use
          * {@link View#setFitsSystemWindows(boolean) View.setFitsSystemWindows(boolean)}
@@ -1021,8 +1034,10 @@ public interface WindowManager extends ViewManager {
          * the {@link android.R.attr#fitsSystemWindows} attribute in your view hierarchy,
          * or implementing you own {@link View#fitSystemWindows(android.graphics.Rect)
          * View.fitSystemWindows(Rect)} method).</p>
-         * <p>
-         * <p>This mechanism for positioning content elements is identical to its equivalent
+         * <p>当此标识被作用于窗口时，此窗口的一般内容在某种程度上可能被显示器的overscan区域所掩盖。
+         * 为了确保内容的关键部分对用户是可视的，应该使用{@link View#setFitsSystemWindows(boolean)}方法
+         * 来设置视图树中的一些支持适当偏移的点。
+         * <p>This mechanism（机制） for positioning content elements is identical（完全相同的） to its equivalent
          * use with layout and {@link View#setSystemUiVisibility(int)
          * View.setSystemUiVisibility(int)}; here is an example layout that will correctly
          * position its UI elements with this overscan flag is set:</p>
@@ -1032,8 +1047,9 @@ public interface WindowManager extends ViewManager {
         public static final int FLAG_LAYOUT_IN_OVERSCAN = 0x02000000;
 
         /**
-         * Window flag: request a translucent status bar with minimal system-provided
+         * Window flag: request a translucent status bar with minimal(最小的) system-provided
          * background protection.
+         * 请求一个使用最小系统提供的背景保护，来实现一个半透明的状态蓝
          * <p>
          * <p>This flag can be controlled in your theme through the
          * {@link android.R.attr#windowTranslucentStatus} attribute; this attribute
@@ -1043,7 +1059,7 @@ public interface WindowManager extends ViewManager {
          * {@link android.R.style#Theme_Holo_Light_NoActionBar_TranslucentDecor},
          * {@link android.R.style#Theme_DeviceDefault_NoActionBar_TranslucentDecor}, and
          * {@link android.R.style#Theme_DeviceDefault_Light_NoActionBar_TranslucentDecor}.</p>
-         * <p>
+         * <p> 此标识能够在你的主题中被控制
          * <p>When this flag is enabled for a window, it automatically sets
          * the system UI visibility flags {@link View#SYSTEM_UI_FLAG_LAYOUT_STABLE} and
          * {@link View#SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN}.</p>
@@ -1104,6 +1120,9 @@ public interface WindowManager extends ViewManager {
          * system bars. If set, the system bars are drawn with a transparent background and the
          * corresponding areas in this window are filled with the colors specified in
          * {@link Window#getStatusBarColor()} and {@link Window#getNavigationBarColor()}.
+         * 标识此窗口将为系统栏绘制北京。
+         * 如果此标识被设置了，系统栏将被用一个透明的背景绘制，并且在此窗口内对应的区域将被{@link Window#getStatusBarColor()}
+         * 和{@link Window#getNavigationBarColor()}指定的颜色填充
          */
         public static final int FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS = 0x80000000;
 

@@ -27,7 +27,8 @@ import android.view.WindowManagerImpl;
  * Context for decor views which can be seeded with pure application context and not depend on the
  * activity, but still provide some of the facilities that Activity has,
  * e.g. themes, activity-based resources, etc.
- *
+ * 为decor服务的context对象，此对象以纯正的application context为基础，而无须依赖activity,
+ * 但是此context依旧提供一些只有activity才有的功能，例如主题，基于activity的资源对象等。
  * @hide
  */
 class DecorContext extends ContextThemeWrapper {

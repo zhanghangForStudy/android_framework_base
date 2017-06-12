@@ -101,6 +101,7 @@ public class Gravity
      *  vertical dimension.  This is not applied by default by
      *  {@link #apply(int, int, int, Rect, int, int, Rect)}; you must do so
      *  yourself by calling {@link #applyDisplay}.
+     *  特殊的常量，用来沿着垂直的方向剪切一个全部的显示
      */
     public static final int DISPLAY_CLIP_VERTICAL = 0x10000000;
     

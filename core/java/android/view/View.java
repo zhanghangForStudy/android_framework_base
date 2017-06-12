@@ -10447,9 +10447,13 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * then and covered insets are used for the window to position its content
      * inside.  In effect, this tells you the available area where content can
      * be placed and remain visible to users.
+     * 获取此视图被粘贴的窗口，所在的屏幕中，整个可视屏幕的尺寸。
+     * 该方法考虑窗口上方的屏幕装饰物，对于窗口被定位在屏幕修饰物之中，和窗口被定位在它们的下方
+     * 两种情况都被用来定位它内嵌的内容。？
+     * 实际上，此方法告诉你内容能够被定位且对用户保持可见的可用区域
      * <p>
      * <p>This function requires an IPC back to the window manager to retrieve
-     * the requested information, so should not be used in performance critical
+     * the requested information, so should not be used in performance critical（关键的）
      * code like drawing.
      *
      * @param outRect Filled in with the visible display frame.  If the view

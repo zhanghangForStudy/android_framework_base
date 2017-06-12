@@ -176,6 +176,9 @@ public interface WindowManager extends ViewManager {
          * X position for this window.  With the default gravity it is ignored.
          * When using {@link Gravity#LEFT} or {@link Gravity#START} or {@link Gravity#RIGHT} or
          * {@link Gravity#END} it provides an offset from the given edge.
+         * 此窗口的x坐标，对于默认的布局，它将被忽略。
+         * 当使用横向的布局方式时，此值提供了一个从给定边的偏移；
+         * 相对于父窗口的x坐标？
          */
         @ViewDebug.ExportedProperty
         public int x;
@@ -184,6 +187,9 @@ public interface WindowManager extends ViewManager {
          * Y position for this window.  With the default gravity it is ignored.
          * When using {@link Gravity#TOP} or {@link Gravity#BOTTOM} it provides
          * an offset from the given edge.
+         * 此窗口的Y坐标，当使用默认的布局方式时，它将被忽略
+         * 当使用竖直方向的布局方式时，此值提供了一个从给定边界的偏移
+         * 相对于父窗口的y坐标？
          */
         @ViewDebug.ExportedProperty
         public int y;
@@ -766,6 +772,9 @@ public interface WindowManager extends ViewManager {
          * outside of the window to be sent to the windows behind it.  Otherwise
          * it will consume all pointer events itself, regardless of whether they
          * are inside of the window.
+         * 当设置了这个标识，则即便这个窗口是可聚焦的，系统也会允许所有的窗口外的触摸事件
+         * 被发送值此窗口后面的窗口。
+         * 否者他将会消耗所有的触摸事件，无论这些触摸事件是否位于窗口的内部。
          */
         public static final int FLAG_NOT_TOUCH_MODAL = 0x00000020;
 
@@ -799,6 +808,7 @@ public interface WindowManager extends ViewManager {
 
         /**
          * Window flag: allow window to extend outside of the screen.
+         * 允许窗口扩展至屏幕的外面
          */
         public static final int FLAG_LAYOUT_NO_LIMITS = 0x00000200;
 
@@ -858,12 +868,15 @@ public interface WindowManager extends ViewManager {
 
         /**
          * Window flag: intended for windows that will often be used when the user is
-         * holding the screen against their face, it will aggressively filter the event
-         * stream to prevent unintended presses in this situation that may not be
-         * desired for a particular window, when such an event stream is detected, the
+         * holding the screen against(紧靠) their face, it will aggressively（激烈的，攻击的） filter the event
+         * stream to prevent unintended（无意的） presses in this situation that may not be
+         * desired（要求，渴望） for a particular（特别的） window, when such an event stream is detected（发现）, the
          * application will receive a CANCEL motion event to indicate this so applications
-         * can handle this accordingly by taking no action on the event
+         * can handle this accordingly（根据，依照） by taking no action on the event
          * until the finger is released.
+         * 此标识被用来处理，当用户持有屏幕，紧贴脸部时，被使用的窗口，
+         * 此标识将快速的过滤事件流，以此阻止对屏幕无意识的按压，因为这些按压对于一个特别的窗口而言，是不被渴望的。
+         * 当这样的一个事件流被发现，则应用将会收到一个取消监听事件，用来标识它。
          */
         public static final int FLAG_IGNORE_CHEEK_PRESSES = 0x00008000;
 
@@ -875,9 +888,9 @@ public interface WindowManager extends ViewManager {
          * manager will report the inset rectangle needed to ensure your
          * content is not covered by screen decorations.  This flag is normally
          * set for you by Window as described in {@link Window#setFlags}.
-         * 一个特殊的选项，只在和{@link #FLAG_LAYOUT_IN_SCREEN}标识的兼容中使用。
-         * 当请求屏幕中的布局是，你的窗口可能出现在屏幕装饰物的顶部或者后面。
-         * 同时，如果包含了此标识，wm将报告需要确保你内容的矩形区域不会被屏幕装饰物所覆盖
+         * 一个特殊的选项，只在和{@link #FLAG_LAYOUT_IN_SCREEN}标识兼容使用。
+         * 当请求屏幕中的布局时，你的窗口可能出现在屏幕装饰物的顶部或者后面。
+         * 同时，如果包含了此标识，wm将报告需要确保窗口内容的矩形区域不会被屏幕装饰物所覆盖
          */
         public static final int FLAG_LAYOUT_INSET_DECOR = 0x00010000;
 
@@ -905,6 +918,11 @@ public interface WindowManager extends ViewManager {
          * touches that occur outside of your window.  Note that you will not
          * receive the full down/move/up gesture, only the location of the
          * first down as an ACTION_OUTSIDE.
+         * 如果设置了{@link #FLAG_NOT_TOUCH_MODAL}标识，则你可以设置此标识
+         * 用以接受一个单独的、特殊的、包含了一个ACTION_OUTSIDE动作的触摸事件，
+         * 此触摸事件用以标识一个发生在窗口之外的触摸。
+         * 这种情况下，你将不会接收到一个完整的触摸事件（down/move/up），
+         * 只有第一次的down的位置作为一个ACTION_OUTSIDE触摸事件
          */
         public static final int FLAG_WATCH_OUTSIDE_TOUCH = 0x00040000;
 
@@ -1109,9 +1127,11 @@ public interface WindowManager extends ViewManager {
 
         /**
          * Window flag: When requesting layout with an attached window, the attached window may
-         * overlap with the screen decorations of the parent window such as the navigation bar. By
+         * overlap（覆盖） with the screen decorations（装饰物） of the parent window such as the navigation bar. By
          * including this flag, the window manager will layout the attached window within the decor
          * frame of the parent window such that it doesn't overlap with screen decorations.
+         * 当一个被粘贴的窗口请求布局时，则此被粘贴的窗口将可能遮挡其父窗口的屏幕装饰物（例如导航栏）。
+         * 而通过包含此标识，窗口管理器将布局此窗口在其父窗口的修饰框架之中，以便此被粘贴的窗口不会遮挡其父窗口的屏幕修饰物。
          */
         public static final int FLAG_LAYOUT_ATTACHED_IN_DECOR = 0x40000000;
 
@@ -1460,6 +1480,7 @@ public interface WindowManager extends ViewManager {
         /**
          * Visibility state for {@link #softInputMode}: please don't change the state of
          * the soft input area.
+         * 不改变输入法窗口的状态
          */
         public static final int SOFT_INPUT_STATE_UNCHANGED = 1;
 
@@ -1467,12 +1488,14 @@ public interface WindowManager extends ViewManager {
          * Visibility state for {@link #softInputMode}: please hide any soft input
          * area when normally appropriate (when the user is navigating
          * forward to your window).
+         * 当普通应用窗口出现时，隐藏任何输入法窗口
          */
         public static final int SOFT_INPUT_STATE_HIDDEN = 2;
 
         /**
          * Visibility state for {@link #softInputMode}: please always hide any
          * soft input area when this window receives focus.
+         * 当当前窗口接受到焦点，总是隐藏任何区域的输入法窗口
          */
         public static final int SOFT_INPUT_STATE_ALWAYS_HIDDEN = 3;
 
@@ -1480,12 +1503,14 @@ public interface WindowManager extends ViewManager {
          * Visibility state for {@link #softInputMode}: please show the soft
          * input area when normally appropriate (when the user is navigating
          * forward to your window).
+         * 当普通应用出现时，显示输入法窗口区域
          */
         public static final int SOFT_INPUT_STATE_VISIBLE = 4;
 
         /**
          * Visibility state for {@link #softInputMode}: please always make the
          * soft input area visible when this window receives input focus.
+         * 当当前窗口接受到焦点，总是显示任何区域的输入法窗口
          */
         public static final int SOFT_INPUT_STATE_ALWAYS_VISIBLE = 5;
 
@@ -1500,6 +1525,7 @@ public interface WindowManager extends ViewManager {
          * Adjustment option for {@link #softInputMode}: nothing specified.
          * The system will try to pick one or
          * the other depending on the contents of the window.
+         *
          */
         public static final int SOFT_INPUT_ADJUST_UNSPECIFIED = 0x00;
 
@@ -1514,6 +1540,10 @@ public interface WindowManager extends ViewManager {
          * layout parameter flags include {@link #FLAG_FULLSCREEN}, this
          * value for {@link #softInputMode} will be ignored; the window will
          * not resize, but will stay fullscreen.
+         * 当输入法窗口出现时，允许当前窗口重新调整自己的大小，以便它的内容不会被输入法窗口遮挡。
+         * 此标识不能和{@link #SOFT_INPUT_ADJUST_PAN}联合使用；如果此标识和{@link #SOFT_INPUT_ADJUST_PAN}
+         * 都没有被设置，则系统将根据窗口内容，会尝试挑选此标识或者另一个标识。
+         * 如果窗口被设置为全屏，则此值将被忽略，从而窗口不会调整大小，但是依然保持全屏。
          */
         public static final int SOFT_INPUT_ADJUST_RESIZE = 0x10;
 
@@ -1525,6 +1555,7 @@ public interface WindowManager extends ViewManager {
          * can <em>not</em> be combined with {@link #SOFT_INPUT_ADJUST_RESIZE}; if
          * neither of these are set, then the system will try to pick one or
          * the other depending on the contents of the window.
+         * 当输入法窗口显示的时候，系统不需要调整窗口的大小，而是通过滑动来确保当前的输入焦点是可见的
          */
         public static final int SOFT_INPUT_ADJUST_PAN = 0x20;
 
@@ -1532,6 +1563,7 @@ public interface WindowManager extends ViewManager {
          * Adjustment option for {@link #softInputMode}: set to have a window
          * not adjust for a shown input method.  The window will not be resized,
          * and it will not be panned to make its focus visible.
+         * 当输入法窗口显示时，不会调整窗口。既不会调整大小，也不会强制让其焦点可见
          */
         public static final int SOFT_INPUT_ADJUST_NOTHING = 0x30;
 

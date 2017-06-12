@@ -16,10 +16,6 @@
 
 package android.app;
 
-import com.android.internal.R;
-import com.android.internal.app.WindowDecorActionBar;
-import com.android.internal.policy.PhoneWindow;
-
 import android.annotation.CallSuper;
 import android.annotation.DrawableRes;
 import android.annotation.IdRes;
@@ -32,8 +28,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
-import android.content.res.Configuration;
 import android.content.pm.ApplicationInfo;
+import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -61,18 +57,22 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 
+import com.android.internal.R;
+import com.android.internal.app.WindowDecorActionBar;
+import com.android.internal.policy.PhoneWindow;
+
 import java.lang.ref.WeakReference;
 
 /**
  * Base class for Dialogs.
- * 
+ * <p>
  * <p>Note: Activities provide a facility to manage the creation, saving and
  * restoring of dialogs. See {@link Activity#onCreateDialog(int)},
  * {@link Activity#onPrepareDialog(int, Dialog)},
  * {@link Activity#showDialog(int)}, and {@link Activity#dismissDialog(int)}. If
  * these methods are used, {@link #getOwnerActivity()} will return the Activity
  * that managed this dialog.
- * 
+ * <p>
  * <p>Often you will want to have a Dialog display on top of the current
  * input method, because there is no reason for it to accept text.  You can
  * do this by setting the {@link WindowManager.LayoutParams#FLAG_ALT_FOCUSABLE_IM
@@ -83,37 +83,77 @@ import java.lang.ref.WeakReference;
  * <pre>
  * getWindow().setFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
  *         WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);</pre>
- *
+ * <p>
  * <div class="special reference">
  * <h3>Developer Guides</h3>
  * <p>For more information about creating dialogs, read the
  * <a href="{@docRoot}guide/topics/ui/dialogs.html">Dialogs</a> developer guide.</p>
  * </div>
+ * <p>Dialog与PopupWindow的异同：
+ * 相同点：
+ * 1、两者都会建立一个窗口，且都需要父窗口；
+ * 不同点：
+ * 1、两者的窗口类型不同，Dialog对应一个应用窗口，PopupWindow对应一个应用子窗口；
+ * 2、PopupWindow的起始坐标由其对应的锚点视图决定，而Dialog的起始坐标则有其自身决定。
+ * </p>
+ *
  */
 public class Dialog implements DialogInterface, Window.Callback,
         KeyEvent.Callback, OnCreateContextMenuListener, Window.OnWindowDismissedCallback {
     private static final String TAG = "Dialog";
+    /**
+     * 隶属的activity
+     */
     private Activity mOwnerActivity;
 
+    /**
+     * 窗口管理器
+     */
     private final WindowManager mWindowManager;
 
+
     final Context mContext;
+    /**
+     * 对应的窗口
+     */
     final Window mWindow;
 
+    /**
+     * 顶级的内容视图
+     */
     View mDecor;
 
+    /**
+     * 操作栏
+     */
     private ActionBar mActionBar;
     /**
      * This field should be made private, so it is hidden from the SDK.
+     * 是否可取消
      * {@hide}
      */
     protected boolean mCancelable = true;
 
     private String mCancelAndDismissTaken;
+
+    /**
+     * 取消消息
+     */
     private Message mCancelMessage;
+
+    /**
+     * 消失消息
+     */
     private Message mDismissMessage;
+
+    /**
+     * 显示消息
+     */
     private Message mShowMessage;
 
+    /**
+     * 按键监听器
+     */
     private OnKeyListener mOnKeyListener;
 
     private boolean mCreated = false;
@@ -130,6 +170,9 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     private SearchEvent mSearchEvent;
 
+    /**
+     * 特殊的交互模式
+     */
     private ActionMode mActionMode;
 
     private int mActionModeTypeStarting = ActionMode.TYPE_PRIMARY;
@@ -138,6 +181,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Creates a dialog window that uses the default dialog theme.
+     * 使用默认的对话框主题创建一个对话框窗口
      * <p>
      * The supplied {@code context} is used to obtain the window manager and
      * base theme used to present the dialog.
@@ -151,6 +195,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Creates a dialog window that uses a custom dialog style.
+     * 使用一个自定义的对话框主题来创建一个对话框窗口
      * <p>
      * The supplied {@code context} is used to obtain the window manager and
      * base theme used to present the dialog.
@@ -160,9 +205,9 @@ public class Dialog implements DialogInterface, Window.Callback,
      * Style and Theme Resources</a> for more information about defining and
      * using styles.
      *
-     * @param context the context in which the dialog should run
+     * @param context    the context in which the dialog should run
      * @param themeResId a style resource describing the theme to use for the
-     *              window, or {@code 0} to use the default dialog theme
+     *                   window, or {@code 0} to use the default dialog theme
      */
     public Dialog(@NonNull Context context, @StyleRes int themeResId) {
         this(context, themeResId, true);
@@ -180,12 +225,14 @@ public class Dialog implements DialogInterface, Window.Callback,
             mContext = context;
         }
 
+        // 如果context是activity,则此mWindowManager与此activity的mWindowManager一致
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
 
         final Window w = new PhoneWindow(mContext);
         mWindow = w;
         w.setCallback(this);
         w.setOnWindowDismissedCallback(this);
+        // 如果context是activity会将activity对应的窗口设置为此对话框窗口的父窗口
         w.setWindowManager(mWindowManager, null, null);
         w.setGravity(Gravity.CENTER);
 
@@ -193,19 +240,19 @@ public class Dialog implements DialogInterface, Window.Callback,
     }
 
     /**
-     * @deprecated
      * @hide
+     * @deprecated
      */
     @Deprecated
     protected Dialog(@NonNull Context context, boolean cancelable,
-            @Nullable Message cancelCallback) {
+                     @Nullable Message cancelCallback) {
         this(context);
         mCancelable = cancelable;
         mCancelMessage = cancelCallback;
     }
 
     protected Dialog(@NonNull Context context, boolean cancelable,
-            @Nullable OnCancelListener cancelListener) {
+                     @Nullable OnCancelListener cancelListener) {
         this(context);
         mCancelable = cancelable;
         setOnCancelListener(cancelListener);
@@ -213,10 +260,12 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Retrieve the Context this Dialog is running in.
-     * 
+     *
      * @return Context The Context used by the Dialog.
      */
-    public final @NonNull Context getContext() {
+    public final
+    @NonNull
+    Context getContext() {
         return mContext;
     }
 
@@ -225,19 +274,21 @@ public class Dialog implements DialogInterface, Window.Callback,
      *
      * @return The ActionBar attached to the dialog or null if no ActionBar is present.
      */
-    public @Nullable ActionBar getActionBar() {
+    public
+    @Nullable
+    ActionBar getActionBar() {
         return mActionBar;
     }
 
     /**
      * Sets the Activity that owns this dialog. An example use: This Dialog will
      * use the suggested volume control stream of the Activity.
-     * 
+     * 设置此对话框隶属的activity实例
      * @param activity The Activity that owns this dialog.
      */
     public final void setOwnerActivity(@NonNull Activity activity) {
         mOwnerActivity = activity;
-        
+
         getWindow().setVolumeControlStream(mOwnerActivity.getVolumeControlStream());
     }
 
@@ -246,13 +297,15 @@ public class Dialog implements DialogInterface, Window.Callback,
      * {@link Activity#showDialog(int)} is used to show this Dialog, that
      * Activity will be the owner (by default). Depending on how this dialog was
      * created, this may return null.
-     * 
+     *
      * @return The Activity that owns this Dialog.
      */
-    public final @Nullable Activity getOwnerActivity() {
+    public final
+    @Nullable
+    Activity getOwnerActivity() {
         return mOwnerActivity;
     }
-    
+
     /**
      * @return Whether the dialog is currently showing.
      */
@@ -277,6 +330,8 @@ public class Dialog implements DialogInterface, Window.Callback,
      * application layer and opaque.  Note that you should not override this
      * method to do initialization when the dialog is shown, instead implement
      * that in {@link #onStart}.
+     * 开始此对话框，并将其显示在屏幕之上。
+     * 窗口被定位到应用层且不透明。
      */
     public void show() {
         if (mShowing) {
@@ -310,6 +365,7 @@ public class Dialog implements DialogInterface, Window.Callback,
             mActionBar = new WindowDecorActionBar(this);
         }
 
+        // 使用默认的窗口布局参数，其类型与activity窗口的类型一致
         WindowManager.LayoutParams l = mWindow.getAttributes();
         if ((l.softInputMode
                 & WindowManager.LayoutParams.SOFT_INPUT_IS_FORWARD_NAVIGATION) == 0) {
@@ -325,7 +381,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
         sendShowMessage();
     }
-    
+
     /**
      * Hide the dialog, but do not dismiss it.
      */
@@ -401,10 +457,11 @@ public class Dialog implements DialogInterface, Window.Callback,
     /**
      * Similar to {@link Activity#onCreate}, you should initialize your dialog
      * in this method, including calling {@link #setContentView}.
+     *
      * @param savedInstanceState If this dialog is being reinitialized after a
-     *     the hosting activity was previously shut down, holds the result from
-     *     the most recent call to {@link #onSaveInstanceState}, or null if this
-     *     is the first time.
+     *                           the hosting activity was previously shut down, holds the result from
+     *                           the most recent call to {@link #onSaveInstanceState}, or null if this
+     *                           is the first time.
      */
     protected void onCreate(Bundle savedInstanceState) {
     }
@@ -428,13 +485,16 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Saves the state of the dialog into a bundle.
-     *
+     * <p>
      * The default implementation saves the state of its view hierarchy, so you'll
      * likely want to call through to super if you override this to save additional
      * state.
+     *
      * @return A bundle with the state of the dialog.
      */
-    public @NonNull Bundle onSaveInstanceState() {
+    public
+    @NonNull
+    Bundle onSaveInstanceState() {
         Bundle bundle = new Bundle();
         bundle.putBoolean(DIALOG_SHOWING_TAG, mShowing);
         if (mCreated) {
@@ -445,13 +505,14 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Restore the state of the dialog from a previously saved bundle.
-     *
+     * <p>
      * The default implementation restores the state of the dialog's view
      * hierarchy that was saved in the default implementation of {@link #onSaveInstanceState()},
      * so be sure to call through to super when overriding unless you want to
      * do all restoring of state yourself.
+     *
      * @param savedInstanceState The state of the dialog previously saved by
-     *     {@link #onSaveInstanceState()}.
+     *                           {@link #onSaveInstanceState()}.
      */
     public void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         final Bundle dialogHierarchyState = savedInstanceState.getBundle(DIALOG_HIERARCHY_TAG);
@@ -470,24 +531,27 @@ public class Dialog implements DialogInterface, Window.Callback,
      * Retrieve the current Window for the activity.  This can be used to
      * directly access parts of the Window API that are not available
      * through Activity/Screen.
-     * 
+     *
      * @return Window The current window, or null if the activity is not
-     *         visual.
+     * visual.
      */
-    public @Nullable Window getWindow() {
+    public
+    @Nullable
+    Window getWindow() {
         return mWindow;
     }
 
     /**
      * Call {@link android.view.Window#getCurrentFocus} on the
      * Window if this Activity to return the currently focused view.
-     * 
+     *
      * @return View The current View with focus or null.
-     * 
      * @see #getWindow
      * @see android.view.Window#getCurrentFocus
      */
-    public @Nullable View getCurrentFocus() {
+    public
+    @Nullable
+    View getCurrentFocus() {
         return mWindow != null ? mWindow.getCurrentFocus() : null;
     }
 
@@ -499,14 +563,16 @@ public class Dialog implements DialogInterface, Window.Callback,
      * @param id the identifier of the view to find
      * @return The view with the given id or null.
      */
-    public @Nullable View findViewById(@IdRes int id) {
+    public
+    @Nullable
+    View findViewById(@IdRes int id) {
         return mWindow.findViewById(id);
     }
 
     /**
      * Set the screen content from a layout resource.  The resource will be
      * inflated, adding all top-level views to the screen.
-     * 
+     *
      * @param layoutResID Resource ID to be inflated.
      */
     public void setContentView(@LayoutRes int layoutResID) {
@@ -517,7 +583,7 @@ public class Dialog implements DialogInterface, Window.Callback,
      * Set the screen content to an explicit view.  This view is placed
      * directly into the screen's view hierarchy.  It can itself be a complex
      * view hierarchy.
-     * 
+     *
      * @param view The desired content to display.
      */
     public void setContentView(@NonNull View view) {
@@ -528,8 +594,8 @@ public class Dialog implements DialogInterface, Window.Callback,
      * Set the screen content to an explicit view.  This view is placed
      * directly into the screen's view hierarchy.  It can itself be a complex
      * view hierarchy.
-     * 
-     * @param view The desired content to display.
+     *
+     * @param view   The desired content to display.
      * @param params Layout parameters for the view.
      */
     public void setContentView(@NonNull View view, @Nullable ViewGroup.LayoutParams params) {
@@ -539,8 +605,8 @@ public class Dialog implements DialogInterface, Window.Callback,
     /**
      * Add an additional content view to the screen.  Added after any existing
      * ones in the screen -- existing views are NOT removed.
-     * 
-     * @param view The desired content to display.
+     *
+     * @param view   The desired content to display.
      * @param params Layout parameters for the view.
      */
     public void addContentView(@NonNull View view, @Nullable ViewGroup.LayoutParams params) {
@@ -549,7 +615,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Set the title text for this dialog's window.
-     * 
+     *
      * @param title The new text to display in the title.
      */
     public void setTitle(@Nullable CharSequence title) {
@@ -569,9 +635,9 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * A key was pressed down.
-     * 
+     * <p>
      * <p>If the focused view didn't want this event, this method is called.
-     *
+     * <p>
      * <p>The default implementation consumed the KEYCODE_BACK to later
      * handle it in {@link #onKeyUp}.
      *
@@ -600,7 +666,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * A key was released.
-     * 
+     * <p>
      * <p>The default implementation handles KEYCODE_BACK to close the
      * dialog.
      *
@@ -626,7 +692,7 @@ public class Dialog implements DialogInterface, Window.Callback,
     public boolean onKeyMultiple(int keyCode, int repeatCount, @NonNull KeyEvent event) {
         return false;
     }
-    
+
     /**
      * Called when the dialog has detected the user's press of the back
      * key.  The default implementation simply cancels the dialog (only if
@@ -645,7 +711,7 @@ public class Dialog implements DialogInterface, Window.Callback,
      * {@link MenuItem#setShortcut(char, char) shortcut} property of menu items.
      *
      * @param keyCode The value in event.getKeyCode().
-     * @param event Description of the key event.
+     * @param event   Description of the key event.
      * @return True if the key shortcut was handled.
      */
     public boolean onKeyShortcut(int keyCode, @NonNull KeyEvent event) {
@@ -656,18 +722,18 @@ public class Dialog implements DialogInterface, Window.Callback,
      * Called when a touch screen event was not handled by any of the views
      * under it. This is most useful to process touch events that happen outside
      * of your window bounds, where there is no view to receive it.
-     * 
+     *
      * @param event The touch screen event being processed.
      * @return Return true if you have consumed the event, false if you haven't.
-     *         The default implementation will cancel the dialog when a touch
-     *         happens outside of the window bounds.
+     * The default implementation will cancel the dialog when a touch
+     * happens outside of the window bounds.
      */
     public boolean onTouchEvent(@NonNull MotionEvent event) {
         if (mCancelable && mShowing && mWindow.shouldCloseOnTouch(mContext, event)) {
             cancel();
             return true;
         }
-        
+
         return false;
     }
 
@@ -679,9 +745,8 @@ public class Dialog implements DialogInterface, Window.Callback,
      * here happens <em>before</em> trackball movements are converted to
      * DPAD key events, which then get sent back to the view hierarchy, and
      * will be processed at the point for things like focus navigation.
-     * 
+     *
      * @param event The trackball event being processed.
-     * 
      * @return Return true if you have consumed the event, false if you haven't.
      * The default implementation always returns false.
      */
@@ -710,7 +775,6 @@ public class Dialog implements DialogInterface, Window.Callback,
      * </p>
      *
      * @param event The generic motion event being processed.
-     *
      * @return Return true if you have consumed the event, false if you haven't.
      * The default implementation always returns false.
      */
@@ -741,7 +805,9 @@ public class Dialog implements DialogInterface, Window.Callback,
     public void onDetachedFromWindow() {
     }
 
-    /** @hide */
+    /**
+     * @hide
+     */
     @Override
     public void onWindowDismissed(boolean finishTask) {
         dismiss();
@@ -753,7 +819,6 @@ public class Dialog implements DialogInterface, Window.Callback,
      * this implementation for key events that should be handled normally.
      *
      * @param event The key event.
-     *
      * @return boolean Return true if this event was consumed.
      */
     @Override
@@ -790,9 +855,8 @@ public class Dialog implements DialogInterface, Window.Callback,
      * intercept all touch screen events before they are dispatched to the
      * window.  Be sure to call this implementation for touch screen events
      * that should be handled normally.
-     * 
+     *
      * @param ev The touch screen event.
-     * 
      * @return boolean Return true if this event was consumed.
      */
     @Override
@@ -802,15 +866,14 @@ public class Dialog implements DialogInterface, Window.Callback,
         }
         return onTouchEvent(ev);
     }
-    
+
     /**
      * Called to process trackball events.  You can override this to
      * intercept all trackball events before they are dispatched to the
      * window.  Be sure to call this implementation for trackball events
      * that should be handled normally.
-     * 
+     *
      * @param ev The trackball event.
-     * 
      * @return boolean Return true if this event was consumed.
      */
     @Override
@@ -828,7 +891,6 @@ public class Dialog implements DialogInterface, Window.Callback,
      * that should be handled normally.
      *
      * @param ev The generic motion event.
-     *
      * @return boolean Return true if this event was consumed.
      */
     @Override
@@ -846,7 +908,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
         LayoutParams params = getWindow().getAttributes();
         boolean isFullScreen = (params.width == LayoutParams.MATCH_PARENT) &&
-            (params.height == LayoutParams.MATCH_PARENT);
+                (params.height == LayoutParams.MATCH_PARENT);
         event.setFullScreen(isFullScreen);
 
         return false;
@@ -868,7 +930,7 @@ public class Dialog implements DialogInterface, Window.Callback,
         if (featureId == Window.FEATURE_OPTIONS_PANEL) {
             return onCreateOptionsMenu(menu);
         }
-        
+
         return false;
     }
 
@@ -916,7 +978,7 @@ public class Dialog implements DialogInterface, Window.Callback,
      * It is usually safe to proxy this call to the owner activity's
      * {@link Activity#onCreateOptionsMenu(Menu)} if the client desires the same
      * menu for this Dialog.
-     * 
+     *
      * @see Activity#onCreateOptionsMenu(Menu)
      * @see #getOwnerActivity()
      */
@@ -928,7 +990,7 @@ public class Dialog implements DialogInterface, Window.Callback,
      * It is usually safe to proxy this call to the owner activity's
      * {@link Activity#onPrepareOptionsMenu(Menu)} if the client desires the
      * same menu for this Dialog.
-     * 
+     *
      * @see Activity#onPrepareOptionsMenu(Menu)
      * @see #getOwnerActivity()
      */
@@ -989,14 +1051,14 @@ public class Dialog implements DialogInterface, Window.Callback,
     public void registerForContextMenu(@NonNull View view) {
         view.setOnCreateContextMenuListener(this);
     }
-    
+
     /**
      * @see Activity#unregisterForContextMenu(View)
      */
     public void unregisterForContextMenu(@NonNull View view) {
         view.setOnCreateContextMenuListener(null);
     }
-    
+
     /**
      * @see Activity#openContextMenu(View)
      */
@@ -1050,9 +1112,11 @@ public class Dialog implements DialogInterface, Window.Callback,
      * {@link SearchEvent} that triggered the callback, if it exists.
      *
      * @return SearchEvent The SearchEvent that triggered the {@link
-     *                    #onSearchRequested} callback.
+     * #onSearchRequested} callback.
      */
-    public final @Nullable SearchEvent getSearchEvent() {
+    public final
+    @Nullable
+    SearchEvent getSearchEvent() {
         return mSearchEvent;
     }
 
@@ -1076,7 +1140,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * {@inheritDoc}
-     *
+     * <p>
      * Note that if you override this method you should always call through
      * to the superclass implementation by calling super.onActionModeStarted(mode).
      */
@@ -1088,7 +1152,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * {@inheritDoc}
-     *
+     * <p>
      * Note that if you override this method you should always call through
      * to the superclass implementation by calling super.onActionModeFinished(mode).
      */
@@ -1123,7 +1187,7 @@ public class Dialog implements DialogInterface, Window.Callback,
      * Request that key events come to this dialog. Use this if your
      * dialog has no views with focus, but the dialog still wants
      * a chance to process key events.
-     * 
+     *
      * @param get true if the dialog should receive key events, false otherwise
      * @see android.view.Window#takeKeyEvents
      */
@@ -1134,12 +1198,11 @@ public class Dialog implements DialogInterface, Window.Callback,
     /**
      * Enable extended window features.  This is a convenience for calling
      * {@link android.view.Window#requestFeature getWindow().requestFeature()}.
-     * 
+     *
      * @param featureId The desired feature as defined in
      *                  {@link android.view.Window}.
      * @return Returns true if the requested feature is supported and now
-     *         enabled.
-     * 
+     * enabled.
      * @see android.view.Window#requestFeature
      */
     public final boolean requestWindowFeature(int featureId) {
@@ -1178,7 +1241,9 @@ public class Dialog implements DialogInterface, Window.Callback,
         getWindow().setFeatureDrawableAlpha(featureId, alpha);
     }
 
-    public @NonNull LayoutInflater getLayoutInflater() {
+    public
+    @NonNull
+    LayoutInflater getLayoutInflater() {
         return getWindow().getLayoutInflater();
     }
 
@@ -1194,18 +1259,18 @@ public class Dialog implements DialogInterface, Window.Callback,
      * Sets whether this dialog is canceled when touched outside the window's
      * bounds. If setting to true, the dialog is set to be cancelable if not
      * already set.
-     * 
+     *
      * @param cancel Whether the dialog should be canceled when touched outside
-     *            the window.
+     *               the window.
      */
     public void setCanceledOnTouchOutside(boolean cancel) {
         if (cancel && !mCancelable) {
             mCancelable = true;
         }
-        
+
         mWindow.setCloseOnTouchOutside(cancel);
     }
-    
+
     /**
      * Cancel the dialog.  This is essentially the same as calling {@link #dismiss()}, but it will
      * also call your {@link DialogInterface.OnCancelListener} (if registered).
@@ -1222,20 +1287,20 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Set a listener to be invoked when the dialog is canceled.
-     *
+     * <p>
      * <p>This will only be invoked when the dialog is canceled.
      * Cancel events alone will not capture all ways that
      * the dialog might be dismissed. If the creator needs
      * to know when a dialog is dismissed in general, use
      * {@link #setOnDismissListener}.</p>
-     * 
+     *
      * @param listener The {@link DialogInterface.OnCancelListener} to use.
      */
     public void setOnCancelListener(@Nullable OnCancelListener listener) {
         if (mCancelAndDismissTaken != null) {
             throw new IllegalStateException(
                     "OnCancelListener is already taken by "
-                    + mCancelAndDismissTaken + " and can not be replaced.");
+                            + mCancelAndDismissTaken + " and can not be replaced.");
         }
         if (listener != null) {
             mCancelMessage = mListenersHandler.obtainMessage(CANCEL, listener);
@@ -1246,6 +1311,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Set a message to be sent when the dialog is canceled.
+     *
      * @param msg The msg to send when the dialog is canceled.
      * @see #setOnCancelListener(android.content.DialogInterface.OnCancelListener)
      */
@@ -1255,13 +1321,14 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Set a listener to be invoked when the dialog is dismissed.
+     *
      * @param listener The {@link DialogInterface.OnDismissListener} to use.
      */
     public void setOnDismissListener(@Nullable OnDismissListener listener) {
         if (mCancelAndDismissTaken != null) {
             throw new IllegalStateException(
                     "OnDismissListener is already taken by "
-                    + mCancelAndDismissTaken + " and can not be replaced.");
+                            + mCancelAndDismissTaken + " and can not be replaced.");
         }
         if (listener != null) {
             mDismissMessage = mListenersHandler.obtainMessage(DISMISS, listener);
@@ -1272,6 +1339,7 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Sets a listener to be invoked when the dialog is shown.
+     *
      * @param listener The {@link DialogInterface.OnShowListener} to use.
      */
     public void setOnShowListener(@Nullable OnShowListener listener) {
@@ -1284,31 +1352,34 @@ public class Dialog implements DialogInterface, Window.Callback,
 
     /**
      * Set a message to be sent when the dialog is dismissed.
+     *
      * @param msg The msg to send when the dialog is dismissed.
      */
     public void setDismissMessage(@Nullable Message msg) {
         mDismissMessage = msg;
     }
 
-    /** @hide */
+    /**
+     * @hide
+     */
     public boolean takeCancelAndDismissListeners(@Nullable String msg,
-            @Nullable OnCancelListener cancel, @Nullable OnDismissListener dismiss) {
+                                                 @Nullable OnCancelListener cancel, @Nullable OnDismissListener dismiss) {
         if (mCancelAndDismissTaken != null) {
             mCancelAndDismissTaken = null;
         } else if (mCancelMessage != null || mDismissMessage != null) {
             return false;
         }
-        
+
         setOnCancelListener(cancel);
         setOnDismissListener(dismiss);
         mCancelAndDismissTaken = msg;
-        
+
         return true;
     }
-    
+
     /**
      * By default, this will use the owner Activity's suggested stream type.
-     * 
+     *
      * @see Activity#setVolumeControlStream(int)
      * @see #setOwnerActivity(Activity)
      */
@@ -1322,7 +1393,7 @@ public class Dialog implements DialogInterface, Window.Callback,
     public final int getVolumeControlStream() {
         return getWindow().getVolumeControlStream();
     }
-    
+
     /**
      * Sets the callback that will be called if a key is dispatched to the dialog.
      */

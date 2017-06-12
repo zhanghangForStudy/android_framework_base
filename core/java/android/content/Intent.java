@@ -4383,6 +4383,7 @@ public class Intent implements Parcelable, Cloneable {
     /**
      * If set, the activity will not be launched if it is already running
      * at the top of the history stack.
+     * 如果被设置，如果被运行的activity位于task的顶部，则它不会被再次启动
      */
     public static final int FLAG_ACTIVITY_SINGLE_TOP = 0x20000000;
     /**
@@ -4462,12 +4463,15 @@ public class Intent implements Parcelable, Cloneable {
      * current task, then instead of launching a new instance of that activity,
      * all of the other activities on top of it will be closed and this Intent
      * will be delivered to the (now on top) old activity as a new Intent.
-     * <p>
+     * <p>如果设置，且即将被运行的activity已经运行在当前的task之中，这种情况下，不会运行此activity
+     * 的一个新实例，相反所有在此activity实例之上的其他activity实例将被关闭，并且这个intent对象将
+     * 被传递给即将运行的这个activity
      * <p>For example, consider a task consisting of the activities: A, B, C, D.
      * If D calls startActivity() with an Intent that resolves to the component
      * of activity B, then C and D will be finished and B receive the given
      * Intent, resulting in the stack now being: A, B.
-     * <p>
+     * <p>例如，假设一个任务包含了A,B,C,D四个activity对象；如果D以一个包含了组件B的intent调用了startActivity方法
+     * ,则C、D将被结束，并且B会接受到这个intent，作为结果，此task此刻只有A B两个activity。
      * <p>The currently running instance of activity B in the above example will
      * either receive the new intent you are starting here in its
      * onNewIntent() method, or be itself finished and restarted with the
@@ -4476,14 +4480,20 @@ public class Intent implements Parcelable, Cloneable {
      * the same intent, then it will be finished and re-created; for all other
      * launch modes or if {@link #FLAG_ACTIVITY_SINGLE_TOP} is set then this
      * Intent will be delivered to the current instance's onNewIntent().
-     * <p>
+     * <p>对于上面这个例子，B这个activity的实例要么通过onNewIntent()方法接受这个新的intent对象；
+     * 要么,T它自己结束自己，然后以这个新的intent对象重新启动自己。如果此activity申明自己的启动模式
+     * 为“multiple"（默认都会申明），则你不必在新的intent对象中设置{@link #FLAG_ACTIVITY_SINGLE_TOP}标识,
+     * 这种情况下，activity B将自己杀死自己并重新启动自己；而对于所有其他的模式，或者{@link #FLAG_ACTIVITY_SINGLE_TOP}标识
+     * 被设置了，则这个新的intent将直接传递给activity B，且自己由它的onNewIntent方法接收。
      * <p>This launch mode can also be used to good effect in conjunction with
      * {@link #FLAG_ACTIVITY_NEW_TASK}: if used to start the root activity
      * of a task, it will bring any currently running instance of that task
      * to the foreground, and then clear it to its root state.  This is
      * especially useful, for example, when launching an activity from the
      * notification manager.
-     * <p>
+     * <p>此标识与{@link #FLAG_ACTIVITY_NEW_TASK}合用会产生一个很好的效果：
+     * 如果被用来启动一个task的根activity，它将把此task所有当前正在运行的实例带到前台，
+     * 然后将此task回退到它的根状态（只包含根activity）.
      * <p>See
      * <a href="{@docRoot}guide/topics/fundamentals/tasks-and-back-stack.html">Tasks and Back
      * Stack</a> for more information about tasks.
@@ -4587,6 +4597,7 @@ public class Intent implements Parcelable, Cloneable {
      * FLAG_ACTIVITY_NEW_DOCUMENT可以和FLAG_ACTIVITY_MULTIPLE_TASK一起使用。
      * 此标志独立使用，等价与documentLaunchMode="intoExisting".
      * 此标志联合FLAG_ACTIVITY_MULTIPLE_TASK使用，则等价于documentLaunchMode="always"
+     *
      * @see android.R.attr#documentLaunchMode
      * @see #FLAG_ACTIVITY_MULTIPLE_TASK
      */

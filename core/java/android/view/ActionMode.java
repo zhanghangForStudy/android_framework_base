@@ -24,9 +24,10 @@ import android.graphics.Rect;
  * Represents a contextual mode of the user interface. Action modes can be used to provide
  * alternative interaction modes and replace parts of the normal UI until finished.
  * Examples of good action modes include text selection and contextual actions.
- * <p>表示了一个用户交互的上下午模式。
+ * <p>表示了一个用户交互的上下文模式。
  * 动作模式可以被用来提供一种可选的交互模式，以及替换已不复普通的用户交互模式，直到结束。
- * 一些好的交互模式例子包含了文本选择以及上下文操作
+ * 一些好的交互模式例子包含了文本选择以及上下文操作；
+ * 菜单栏选项？
  * </p>
  * <div class="special reference">
  * <h3>Developer Guides</h3>
@@ -133,12 +134,16 @@ public abstract class ActionMode {
     /**
      * Set whether or not the title/subtitle display for this action mode
      * is optional.
-     *
+     * 设置显示标题和子标题是否是可选的
      * <p>In many cases the supplied title for an action mode is merely
      * meant to add context and is not strictly required for the action
      * mode to be useful. If the title is optional, the system may choose
      * to hide the title entirely rather than truncate it due to a lack
-     * of available space.</p>
+     * of available space.
+     * 在多数情况下，为一个交互模式提供的标题仅仅以为着添加上下文，对于交互模式而言，
+     * 此标题并不是严格需求的。
+     * 如果标题是可选的，则系统可能会选择隐藏整个标题，而不是空间的不足而缩短它。
+     * </p>
      *
      * <p>Note that this is merely a hint; the underlying implementation
      * may choose to ignore this setting under some circumstances.</p>
@@ -171,8 +176,9 @@ public abstract class ActionMode {
     /**
      * Set a custom view for this action mode. The custom view will take the place of
      * the title and subtitle. Useful for things like search boxes.
-     *
+     * 客户端视图将会替换标题和子标题
      * @param view Custom view to use in place of the title/subtitle.
+     *             用来替换标题和子标题的视图
      *
      * @see #setTitle(CharSequence)
      * @see #setSubtitle(CharSequence)

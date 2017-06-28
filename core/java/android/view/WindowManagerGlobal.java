@@ -41,14 +41,16 @@ import java.util.ArrayList;
 /**
  * Provides low-level communication with the system window manager for
  * operations that are not associated with any particular context.
- *
+ * <p>
  * This class is only used internally to implement global functions where
  * the caller already knows the display and relevant compatibility information
  * for the operation.  For most purposes, you should use {@link WindowManager} instead
  * since it is bound to a context.
+ * 此类只会被内部使用，用来实现全局的功能，这些全局功能确保调用者已经知道了显示器及相关的兼容信息。
+ * 对于大部分目的，应该使用{@link WindowManager}来代替。
  *
- * @see WindowManagerImpl
  * @hide
+ * @see WindowManagerImpl
  */
 public final class WindowManagerGlobal {
     private static final String TAG = "WindowManager";
@@ -56,12 +58,14 @@ public final class WindowManagerGlobal {
     /**
      * The user is navigating with keys (not the touch screen), so
      * navigational focus should be shown.
+     * 用户正在通过按键导航（而非通过触摸屏幕），所以导航性的焦点应该被显示？
      */
     public static final int RELAYOUT_RES_IN_TOUCH_MODE = 0x1;
 
     /**
      * This is the first time the window is being drawn,
      * so the client must call drawingFinished() when done
+     * 第一次窗口被绘制，所以客户端必须在完成绘制之后调用 drawingFinished()方法
      */
     public static final int RELAYOUT_RES_FIRST_TIME = 0x2;
 
@@ -139,8 +143,7 @@ public final class WindowManagerGlobal {
 
     private final ArrayList<View> mViews = new ArrayList<View>();
     private final ArrayList<ViewRootImpl> mRoots = new ArrayList<ViewRootImpl>();
-    private final ArrayList<WindowManager.LayoutParams> mParams =
-            new ArrayList<WindowManager.LayoutParams>();
+    private final ArrayList<WindowManager.LayoutParams> mParams = new ArrayList<WindowManager.LayoutParams>();
     private final ArraySet<View> mDyingViews = new ArraySet<View>();
 
     private Runnable mSystemPropertyUpdater;
@@ -229,7 +232,7 @@ public final class WindowManagerGlobal {
                     boolean isChild = false;
                     if (params.type >= WindowManager.LayoutParams.FIRST_SUB_WINDOW
                             && params.type <= WindowManager.LayoutParams.LAST_SUB_WINDOW) {
-                        for (int j = 0 ; j < numRoots; ++j) {
+                        for (int j = 0; j < numRoots; ++j) {
                             View viewj = mViews.get(j);
                             WindowManager.LayoutParams paramsj = mParams.get(j);
                             if (params.token == viewj.getWindowToken()
@@ -261,7 +264,7 @@ public final class WindowManagerGlobal {
     }
 
     public void addView(View view, ViewGroup.LayoutParams params,
-            Display display, Window parentWindow) {
+                        Display display, Window parentWindow) {
         if (view == null) {
             throw new IllegalArgumentException("view must not be null");
         }
@@ -274,14 +277,16 @@ public final class WindowManagerGlobal {
 
         final WindowManager.LayoutParams wparams = (WindowManager.LayoutParams) params;
         if (parentWindow != null) {
+            // 调整子窗口，主要调整标题和token
             parentWindow.adjustLayoutParamsForSubWindow(wparams);
         } else {
             // If there's no parent, then hardware acceleration for this view is
             // set from the application's hardware acceleration setting.
+            // 如果没有父窗口，则此视图的硬件加速，将有应用自己来设定
             final Context context = view.getContext();
             if (context != null
                     && (context.getApplicationInfo().flags
-                            & ApplicationInfo.FLAG_HARDWARE_ACCELERATED) != 0) {
+                    & ApplicationInfo.FLAG_HARDWARE_ACCELERATED) != 0) {
                 wparams.flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
             }
         }
@@ -293,7 +298,8 @@ public final class WindowManagerGlobal {
             // Start watching for system property changes.
             if (mSystemPropertyUpdater == null) {
                 mSystemPropertyUpdater = new Runnable() {
-                    @Override public void run() {
+                    @Override
+                    public void run() {
                         synchronized (mLock) {
                             for (int i = mRoots.size() - 1; i >= 0; --i) {
                                 mRoots.get(i).loadSystemProperties();
@@ -308,6 +314,7 @@ public final class WindowManagerGlobal {
             if (index >= 0) {
                 if (mDyingViews.contains(view)) {
                     // Don't wait for MSG_DIE to make it's way through root's queue.
+                    // 直接杀死
                     mRoots.get(index).doDie();
                 } else {
                     throw new IllegalStateException("View " + view
@@ -318,16 +325,21 @@ public final class WindowManagerGlobal {
 
             // If this is a panel window, then find the window it is being
             // attached to for future reference.
+            // 如果需要添加的窗口是一个子窗口，
+            // 则找到此子窗口粘贴的窗口
             if (wparams.type >= WindowManager.LayoutParams.FIRST_SUB_WINDOW &&
                     wparams.type <= WindowManager.LayoutParams.LAST_SUB_WINDOW) {
                 final int count = mViews.size();
                 for (int i = 0; i < count; i++) {
+                    // 此处似乎也证明了子窗口的的android.view.WindowManager.LayoutParams.token
+                    // 就是其父窗口的W对象
                     if (mRoots.get(i).mWindow.asBinder() == wparams.token) {
                         panelParentView = mViews.get(i);
                     }
                 }
             }
 
+            // 创建视图树根对象
             root = new ViewRootImpl(view.getContext(), display);
 
             view.setLayoutParams(wparams);
@@ -360,7 +372,7 @@ public final class WindowManagerGlobal {
             throw new IllegalArgumentException("Params must be WindowManager.LayoutParams");
         }
 
-        final WindowManager.LayoutParams wparams = (WindowManager.LayoutParams)params;
+        final WindowManager.LayoutParams wparams = (WindowManager.LayoutParams) params;
 
         view.setLayoutParams(wparams);
 
@@ -395,8 +407,8 @@ public final class WindowManagerGlobal {
      * Remove all roots with specified token.
      *
      * @param token app or window token.
-     * @param who name of caller, used in logs.
-     * @param what type of caller, used in logs.
+     * @param who   name of caller, used in logs.
+     * @param what  type of caller, used in logs.
      */
     public void closeAll(IBinder token, String who, String what) {
         closeAllExceptView(token, null /* view */, who, what);
@@ -406,10 +418,10 @@ public final class WindowManagerGlobal {
      * Remove all roots with specified token, except maybe one view.
      *
      * @param token app or window token.
-     * @param view view that should be should be preserved along with it's root.
-     *             Pass null if everything should be removed.
-     * @param who name of caller, used in logs.
-     * @param what type of caller, used in logs.
+     * @param view  view that should be should be preserved along with it's root.
+     *              Pass null if everything should be removed.
+     * @param who   name of caller, used in logs.
+     * @param what  type of caller, used in logs.
      */
     public void closeAllExceptView(IBinder token, View view, String who, String what) {
         synchronized (mLock) {
@@ -422,7 +434,7 @@ public final class WindowManagerGlobal {
                     if (who != null) {
                         WindowLeaked leak = new WindowLeaked(
                                 what + " " + who + " has leaked window "
-                                + root.getView() + " that was originally added here");
+                                        + root.getView() + " that was originally added here");
                         leak.setStackTrace(root.getLocation().getStackTrace());
                         Log.e(TAG, "", leak);
                     }
@@ -606,14 +618,16 @@ public final class WindowManagerGlobal {
         synchronized (mLock) {
             int count = mViews.size();
             config = new Configuration(config);
-            for (int i=0; i < count; i++) {
+            for (int i = 0; i < count; i++) {
                 ViewRootImpl root = mRoots.get(i);
                 root.requestUpdateConfiguration(config);
             }
         }
     }
 
-    /** @hide */
+    /**
+     * @hide
+     */
     public void changeCanvasOpacity(IBinder token, boolean opaque) {
         if (token == null) {
             return;

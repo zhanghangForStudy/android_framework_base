@@ -514,6 +514,7 @@ public interface WindowManager extends ViewManager {
         /**
          * Window type: panel that slides out from over the status bar
          * In multiuser systems shows on all users' windows.
+         * 从状态栏滑动下来的面板窗口
          */
         public static final int TYPE_STATUS_BAR_PANEL = FIRST_SYSTEM_WINDOW + 14;
 
@@ -1109,6 +1110,10 @@ public interface WindowManager extends ViewManager {
          * {@link Window#setLocalFocus(boolean, boolean)}.
          * Usually window in this mode will not get touch/key events from window manager, but will
          * get events only via local injection using {@link Window#injectInputEvent(InputEvent)}.
+         * 标识一个窗口在本地焦点模式之中。
+         * 处于本地焦点模式之中的窗口能够控制WM的焦点独立，通过使用{@link Window#setLocalFocus(boolean, boolean)}
+         * 方法。通常而言，在此模式之中的窗口将不会获取来自于WMS的触摸、按键事件，它只能通过本地注入的方式
+         * （ {@link Window#injectInputEvent(InputEvent)}）来获取事件
          */
         public static final int FLAG_LOCAL_FOCUS_MODE = 0x10000000;
 
@@ -1148,6 +1153,7 @@ public interface WindowManager extends ViewManager {
 
         /**
          * Various behavioral options/flags.  Default is none.
+         * 各种行为性的选项与标志，默认为空
          *
          * @see #FLAG_ALLOW_LOCK_WHILE_SCREEN_ON
          * @see #FLAG_DIM_BEHIND
@@ -1252,6 +1258,12 @@ public interface WindowManager extends ViewManager {
          * is generally disabled. This flag must be specified in addition to
          * {@link #FLAG_HARDWARE_ACCELERATED} to enable hardware acceleration for system
          * windows.
+         * 如果窗口请求硬件加速，但是此窗口所在的进程不允许硬件加速，
+         * 这种情况下，系统将依旧假定以硬件加速的方式来渲染它。。
+         * 这被系统进程用来开始预览窗口（系统进程不需要硬件加速的开销，它们只使用静态的渲染，但是，为了
+         * 匹配应用实际需要硬件加速的窗口，所以需要此标识）。
+         * 就像FLAG_HARDWARE_ACCELERATED标识信任需要硬件加速的，但一般硬件加速被禁止的系统窗口（例如锁屏）一样。
+         * 为了让系统窗口启用硬件加速，此标识和FLAG_HARDWARE_ACCELERATED标识都必须被指定
          *
          * @hide
          */
@@ -1300,7 +1312,8 @@ public interface WindowManager extends ViewManager {
          * Window flag: special flag to limit the size of the window to be
          * original size ([320x480] x density). Used to create window for applications
          * running under compatibility mode.
-         * <p>
+         * <p>用来限制窗口尺寸为原始尺寸（原始尺寸=[320*480]*density）的指定标识.
+         * 用来为运行在兼容模式下的应用创建窗口
          * {@hide}
          */
         public static final int PRIVATE_FLAG_COMPATIBLE_WINDOW = 0x00000080;
@@ -1354,9 +1367,10 @@ public interface WindowManager extends ViewManager {
         public static final int PRIVATE_FLAG_PRESERVE_GEOMETRY = 0x00002000;
 
         /**
-         * Flag that will make window ignore app visibility and instead depend purely on the decor
+         * Flag that will make window ignore app visibility and instead depend purely（完全的、纯粹的） on the decor
          * view visibility for determining window visibility. This is used by recents to keep
          * drawing after it launches an app.
+         * 此标识将使得窗口忽略应用的可视状态，相反窗口的可视状态将纯粹的依赖视图的可视状态。
          *
          * @hide
          */
@@ -1452,7 +1466,11 @@ public interface WindowManager extends ViewManager {
          * flags and returns true if the combination of the two corresponds
          * to a window that needs to be behind the input method so that the
          * user can type into it.
-         *
+         * 根据入参传递进来的一个特殊的序列，决定当前窗口在成为窗口焦点之后，
+         * 是否是一个输入法窗口的目标。
+         * 进一步而言，将会检测FLAG_NOT_FOCUSABLE与FLAG_ALT_FOCUSABLE_IM两个标识
+         * 如果此两个标识的联合体与一种窗口（此种窗口需要在输入法窗口的后面，以便用户能
+         * 够键入它）一致则返回true
          * @param flags The current window manager flags.
          * @return Returns true if such a window should be behind/interact
          * with an input method, false if not.
@@ -1525,7 +1543,6 @@ public interface WindowManager extends ViewManager {
          * Adjustment option for {@link #softInputMode}: nothing specified.
          * The system will try to pick one or
          * the other depending on the contents of the window.
-         *
          */
         public static final int SOFT_INPUT_ADJUST_UNSPECIFIED = 0x00;
 
@@ -1637,6 +1654,7 @@ public interface WindowManager extends ViewManager {
 
         /**
          * Positive insets between the drawing surface and window content.
+         * 在绘制surface与窗口内容之间的确切边衬大小
          *
          * @hide
          */
@@ -1646,6 +1664,8 @@ public interface WindowManager extends ViewManager {
          * Whether the surface insets have been manually set. When set to
          * {@code false}, the view root will automatically determine the
          * appropriate surface insets.
+         * 是否surface的边衬大小被人为的设置。
+         * 当设置为false的时候，根视图将自动决定合适的surface边衬大小
          *
          * @hide
          * @see #surfaceInsets
@@ -1770,7 +1790,7 @@ public interface WindowManager extends ViewManager {
          * Identifier for this window.  This will usually be filled in for
          * you.
          * 如果窗口的类型是应用窗口，则此值是AMS中ActivityRecord对象的远程引用，
-         * 否则,如果类型为子窗口，则使用android.view.ViewRootImpl.W对象的引用？
+         * 否则,如果类型为子窗口，则使用父窗口对应的android.view.ViewRootImpl.W对象的引用？
          * 否则，为null
          */
         public IBinder token = null;
@@ -1850,6 +1870,7 @@ public interface WindowManager extends ViewManager {
         /**
          * Does not construct an input channel for this window.  The channel will therefore
          * be incapable of receiving input.
+         * 不为此窗口构建一个输入通道。因此此窗口将无法接受输入事件
          *
          * @hide
          */
@@ -1978,10 +1999,12 @@ public interface WindowManager extends ViewManager {
 
         /**
          * Sets the surface insets based on the elevation (visual z position) of the input view.
+         * 根据入参View对象的海拔（视觉上的z位置）来设置surface边衬大小
          *
          * @hide
          */
         public final void setSurfaceInsets(View view, boolean manual, boolean preservePrevious) {
+            // ceil返回最小（最接近负无穷大）大于或相等于参数的浮点值，此浮点值的小数部分全部为0
             final int surfaceInset = (int) Math.ceil(view.getZ() * 2);
             // Partial workaround for b/28318973. Every inset change causes a freeform window
             // to jump a little for a few frames. If we never allow surface insets to decrease,

@@ -74,6 +74,7 @@ public class CompatibilityInfo implements Parcelable {
 
     /**
      * Set if the application needs to run in screen size compatibility mode.
+     * 如果应用需要运行在屏幕尺寸兼容模式之中，则设置此值
      */
     private static final int NEEDS_SCREEN_COMPAT = 8;
 

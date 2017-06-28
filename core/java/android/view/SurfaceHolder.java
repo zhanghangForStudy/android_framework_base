@@ -115,6 +115,10 @@ public interface SurfaceHolder {
          * the user will not see your surface in a bad state (at its new
          * size before it has been correctly drawn that way).  This will
          * typically be preceeded by a call to {@link #surfaceChanged}.
+         * 当应用因为调整大小或者一些其他的原因，需要重绘它的surface对象的内容时，
+         * 回调此方法。
+         * 但是不要在此处返回，知道重绘完成，
+         * 你可以确保用户将不会在一个不好的状态下，看见你的surface对象。
          *
          * @param holder The SurfaceHolder whose surface has changed.
          */

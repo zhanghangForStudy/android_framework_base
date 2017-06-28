@@ -216,7 +216,7 @@ public class PopupWindow {
      */
     private boolean mLayoutInScreen;
     /**
-     * 是否剪切到屏幕上？
+     * 在将弹出窗口适配在屏幕上时，是否允许裁剪弹出窗口的宽高
      */
     private boolean mClipToScreen;
     /**
@@ -312,6 +312,7 @@ public class PopupWindow {
 
     /**
      * 锚点视图对应的根视图
+     * 一般而言为activity的{@link com.android.internal.policy.DecorView}D视图
      */
     private WeakReference<View> mAnchorRoot;
 
@@ -1746,18 +1747,22 @@ public class PopupWindow {
                 displayFrame.bottom, false);
 
         // Next, attempt to fit the popup horizontally without resizing.
+        // 第二步，在不调整弹出窗口大小的情况下，视图水平的调整弹出窗口
         final boolean fitsHorizontal = tryFitHorizontal(outParams, xOffset, width,
                 anchorWidth, drawingLocation[0], screenLocation[0], displayFrame.left,
                 displayFrame.right, false);
 
         // If the popup still doesn't fit, attempt to scroll the parent.
+        // 如果弹出窗口依然无法很好的嵌在锚点视图对应的窗口之中时，试图滚动锚点视图对应的父视图
         if (!fitsVertical || !fitsHorizontal) {
             final int scrollX = anchor.getScrollX();
             final int scrollY = anchor.getScrollY();
+            //Rect r表示弹出窗口的范围
             final Rect r = new Rect(scrollX, scrollY, scrollX + width + xOffset,
                     scrollY + height + anchorHeight + yOffset);
             if (mAllowScrollingAnchorParent && anchor.requestRectangleOnScreen(r, true)) {
                 // Reset for the new anchor position.
+                // 重设锚点视图的位置
                 anchor.getLocationInWindow(drawingLocation);
                 outParams.x = drawingLocation[0] + xOffset;
                 outParams.y = drawingLocation[1] + anchorHeight + yOffset;
@@ -1776,6 +1781,7 @@ public class PopupWindow {
         }
 
         // Return whether the popup's top edge is above the anchor's top edge.
+        // 返回是否弹出窗口的顶边是否在锚点视图顶边之上
         return outParams.y < drawingLocation[1];
     }
 
@@ -1834,24 +1840,40 @@ public class PopupWindow {
         return false;
     }
 
+    /**
+     * @param outParams          用来显示下拉弹出框的窗口布局参数
+     * @param height             下拉弹出窗口的高度
+     * @param drawingLocationY   锚点视图起始位置在窗口中的Y值
+     * @param screenLocationY    锚点视图起始位置在屏幕中的Y值
+     * @param displayFrameTop    锚点视图对应的窗口可视范围的顶点
+     * @param displayFrameBottom 锚点视图对应的窗口可视范围的底点
+     * @param canResize          是否允许重调大小
+     * @return 是否调整的展示
+     */
     private boolean positionInDisplayVertical(@NonNull LayoutParams outParams, int height,
                                               int drawingLocationY, int screenLocationY, int displayFrameTop, int displayFrameBottom,
                                               boolean canResize) {
         boolean fitsInDisplay = true;
-
+        // 锚点视图对应的窗口相对于整个屏幕的高度偏移量
         final int winOffsetY = screenLocationY - drawingLocationY;
+        // 弹出窗口相对于整个屏幕的高度偏移，即顶部Y值
         outParams.y += winOffsetY;
         outParams.height = height;
 
+        // 弹出窗口相对于整个屏幕的底部Y值
         final int bottom = outParams.y + height;
         if (bottom > displayFrameBottom) {
+            // 如果超过了锚点视图对应的窗口的底部可视范围
             // The popup is too far down, move it back in.
+            // 将弹出窗口向上移动
             outParams.y -= bottom - displayFrameBottom;
         }
 
         if (outParams.y < displayFrameTop) {
+            // 如果弹出窗口的顶部位置，溢出了锚点视图对应窗口的顶部可视范围
             // The popup is too far up, move it back in and clip if
             // it's still too large.
+            // 将弹出窗口向下移动，如果它依然太大了，则裁剪它
             outParams.y = displayFrameTop;
 
             final int displayFrameHeight = displayFrameBottom - displayFrameTop;
@@ -1862,6 +1884,7 @@ public class PopupWindow {
             }
         }
 
+        // 恢复成窗口坐标系之中的起始y值
         outParams.y -= winOffsetY;
 
         return fitsInDisplay;
@@ -1923,6 +1946,8 @@ public class PopupWindow {
      * completely shown. It is recommended that this height be the maximum for
      * the popup's height, otherwise it is possible that the popup will be
      * clipped.
+     * 返回弹出窗口可用的最大显示高度。
+     * 建议此高度就是弹出框高度的最大值，否者弹出框窗口被裁剪是可能的
      *
      * @param anchor The view on which the popup window must be anchored.
      * @return The maximum available height for the popup to be completely
@@ -1953,12 +1978,18 @@ public class PopupWindow {
      * the input method. It is recommended that this height be the maximum for
      * the popup's height, otherwise it is possible that the popup will be
      * clipped.
+     * <p>
+     * 大体而言，是取锚点视图起始坐标的y值到其对应窗口顶部的距离，与
+     * 锚点视图起始坐标的y值到其对应窗口底部的距离，的最大值
      *
      * @param anchor                  The view on which the popup window must be anchored.
+     *                                锚点视图
      * @param yOffset                 y offset from the view's bottom edge
+     *                                从锚点视图底边界开始的竖直偏移量
      * @param ignoreBottomDecorations if true, the height returned will be
      *                                all the way to the bottom of the display, ignoring any
      *                                bottom decorations
+     *                                如果为true，则返回的高度将一直到显示器的底部，忽略任何底部装饰视图
      * @return The maximum available height for the popup to be completely
      * shown.
      */
@@ -1973,6 +2004,8 @@ public class PopupWindow {
             // still respect all other decorations so we use the inset visible
             // frame on the top right and left and take the bottom
             // value from the full frame.
+            // 在忽视底部装饰物的情况下，我们依然想尊重所有其他的装饰视图，所以我们使用
+            // 嵌入物可视区域的上界、左界和右界，并从窗口的全部范围之中取得下界
             displayFrame = new Rect();
             anchor.getWindowDisplayFrame(displayFrame);
             displayFrame.top = visibleDisplayFrame.top;
@@ -1982,6 +2015,7 @@ public class PopupWindow {
             displayFrame = visibleDisplayFrame;
         }
 
+        // anchorPos表示锚点视图在屏幕上的起始坐标
         final int[] anchorPos = mTmpDrawingLocation;
         anchor.getLocationOnScreen(anchorPos);
 
@@ -2009,6 +2043,7 @@ public class PopupWindow {
      * Disposes of the popup window. This method can be invoked only after
      * {@link #showAsDropDown(android.view.View)} has been executed. Failing
      * that, calling this method will have no effect.
+     * 只有当showAsDropDown方法被执行之后，此方法才有效果
      *
      * @see #showAsDropDown(android.view.View)
      */
@@ -2029,6 +2064,7 @@ public class PopupWindow {
         }
 
         // Ensure any ongoing or pending transitions are canceled.
+        // 确保任何正在进行或者即将进行的动画被取消了
         decorView.cancelTransitions();
 
         mIsShowing = false;
@@ -2037,10 +2073,16 @@ public class PopupWindow {
         // This method may be called as part of window detachment, in which
         // case the anchor view (and its root) will still return true from
         // isAttachedToWindow() during execution of this method; however, we
-        // can expect the OnAttachStateChangeListener to have been called prior
+        // can expect the OnAttachStateChangeListener to have been called prior（在...之前）
         // to executing this method, so we can rely on that instead.
+        // 这个方法作为窗口分离调用的一部分，在窗口分离的情况下，锚点视图以及它的root的
+        // isAttachedToWindow方法依旧返回true，在这个方法执行期间；
+        // 然而，我们能够预料OnAttachStateChangeListener在执行此方法之前，被调用了，
+        // 所以我们可以依赖这一点。
         final Transition exitTransition = mExitTransition;
         if (mIsAnchorRootAttached && exitTransition != null && decorView.isLaidOut()) {
+            // 如果弹出窗口被粘贴到了锚点视图之上，且存在退出动画，且弹出窗口至少布局过一次
+            // decor视图在退出动画期间，是非交互且非输入法聚焦的
             // The decor view is non-interactive and non-IME-focusable during exit transitions.
             final LayoutParams p = (LayoutParams) decorView.getLayoutParams();
             p.flags |= LayoutParams.FLAG_NOT_TOUCHABLE;
@@ -2051,6 +2093,8 @@ public class PopupWindow {
             // Once we start dismissing the decor view, all state (including
             // the anchor root) needs to be moved to the decor view since we
             // may open another popup while it's busy exiting.
+            // 一旦我们开始消失decor视图，所有的状态（包括锚点根视图）都需要被移动到decor视图
+            // 因为我们可能打开另一个弹出窗口，在当前弹出窗口忙于退出的时候。
             final View anchorRoot = mAnchorRoot != null ? mAnchorRoot.get() : null;
             final Rect epicenter = getTransitionEpicenter();
             exitTransition.setEpicenterCallback(new EpicenterCallback() {
@@ -2063,10 +2107,12 @@ public class PopupWindow {
                     new TransitionListenerAdapter() {
                         @Override
                         public void onTransitionEnd(Transition transition) {
+                            // 立即小时
                             dismissImmediate(decorView, contentHolder, contentView);
                         }
                     });
         } else {
+            // 立即消失
             dismissImmediate(decorView, contentHolder, contentView);
         }
 
@@ -2081,8 +2127,9 @@ public class PopupWindow {
     /**
      * Returns the window-relative epicenter bounds to be used by enter and
      * exit transitions.
+     * 返回窗口相关的中心范围，此中心范围被用来进入或者退出动画
      * <p>
-     * <strong>Note:</strong> This is distinct from the rect passed to
+     * <strong>Note:</strong> This is distinct（明显的、清楚的） from the rect passed to
      * {@link #setEpicenterBounds(Rect)}, which is anchor-relative.
      *
      * @return the window-relative epicenter bounds to be used by enter and
@@ -2095,10 +2142,13 @@ public class PopupWindow {
             return null;
         }
 
+        // 锚点视图在屏幕中的起始位置
         final int[] anchorLocation = anchor.getLocationOnScreen();
+        // 弹出窗口在屏幕中的起始位置
         final int[] popupLocation = mDecorView.getLocationOnScreen();
 
         // Compute the position of the anchor relative to the popup.
+        // 计算出相对于弹出窗口的锚点视图的位置
         final Rect bounds = new Rect(0, 0, anchor.getWidth(), anchor.getHeight());
         bounds.offset(anchorLocation[0] - popupLocation[0], anchorLocation[1] - popupLocation[1]);
 
@@ -2114,13 +2164,17 @@ public class PopupWindow {
     }
 
     /**
-     * Removes the popup from the window manager and tears down the supporting
+     * Removes the popup from the window manager and tears down（tears down：撕裂） the supporting
      * view hierarchy, if necessary.
+     * 从WM之中删除弹出窗口，并且，如果需要撕裂支持的视图树
      */
     private void dismissImmediate(View decorView, ViewGroup contentHolder, View contentView) {
         // If this method gets called and the decor view doesn't have a parent,
         // then it was either never added or was already removed. That should
         // never happen, but it's worth checking to avoid potential crashes.
+        // 如果此方法调用，并且decor视图并没有父视图，
+        // 则表示decor视图要么从来没有被添加，要么已经被溢出了。
+        // 虽然这种情况应该永不发生，但是也是值得检测，以避免潜在的crash
         if (decorView.getParent() != null) {
             mWindowManager.removeViewImmediate(decorView);
         }
@@ -2148,6 +2202,8 @@ public class PopupWindow {
     /**
      * Updates the state of the popup window, if it is currently being displayed,
      * from the currently set state.
+     * 如果当前弹出窗口即将被显示，则从当前被设置的状态开始更新弹出窗口的状态;
+     * 主要是更新一些布局参数，并同步给WM
      * <p>
      * This includes:
      * <ul>
@@ -2403,7 +2459,12 @@ public class PopupWindow {
         public void onDismiss();
     }
 
-    // 如果已经有锚点视图了，则将当前弹出窗口从中分离出来
+    /**
+     * 如果已经有锚点视图了，则将当前弹出窗口从中分离出来
+     * 1、删除滚动监听器；
+     * 2、删除粘贴状态监听器
+     * 3、无效化一些属性
+     */
     private void detachFromAnchor() {
         final View anchor = mAnchor != null ? mAnchor.get() : null;
         if (anchor != null) {
@@ -2509,6 +2570,7 @@ public class PopupWindow {
 
         /**
          * Requests that an enter transition run after the next layout pass.
+         * 在下一个布局布局后，请求运行一个进入动画
          */
         public void requestEnterTransition(Transition transition) {
             final ViewTreeObserver observer = getViewTreeObserver();
@@ -2558,10 +2620,13 @@ public class PopupWindow {
 
         /**
          * Starts an exit transition immediately.
+         * 马上开始一个退出动画
          * <p>
          * <strong>Note:</strong> The transition listener is guaranteed to have
          * its {@code onTransitionEnd} method called even if the transition
          * never starts; however, it may be called with a {@code null} argument.
+         * 动画监听器确保动画结束方法被调用，即使动画从来没有开始；但是此方法可能以一个空参数
+         * 调用
          */
         public void startExitTransition(Transition transition, final View anchorRoot,
                                         final TransitionListener listener) {
@@ -2572,10 +2637,13 @@ public class PopupWindow {
             // The anchor view's window may go away while we're executing our
             // transition, in which case we need to end the transition
             // immediately and execute the listener to remove the popup.
+            // 锚点视图的窗口可能消失，当我们正在执行退出动画的时候，
+            // 在这种情况下我们需要立即结束本次执行的动画
             anchorRoot.addOnAttachStateChangeListener(mOnAnchorRootDetachedListener);
 
             // The exit listener MUST be called for cleanup, even if the
             // transition never starts or ends. Stash it for later.
+            // 退出监听器必须被调用，即使动画从来没有开始或者结束
             mPendingExitListener = new TransitionListenerAdapter() {
                 @Override
                 public void onTransitionEnd(Transition transition) {

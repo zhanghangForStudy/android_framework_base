@@ -50,7 +50,7 @@ public final class Rect implements Parcelable {
      */
     private static final class UnflattenHelper {
         private static final Pattern FLATTENED_PATTERN = Pattern.compile(
-            "(-?\\d+) (-?\\d+) (-?\\d+) (-?\\d+)");
+                "(-?\\d+) (-?\\d+) (-?\\d+) (-?\\d+)");
 
         static Matcher getMatcher(String str) {
             return FLATTENED_PATTERN.matcher(str);
@@ -60,7 +60,8 @@ public final class Rect implements Parcelable {
     /**
      * Create a new empty Rect. All coordinates are initialized to 0.
      */
-    public Rect() {}
+    public Rect() {
+    }
 
     /**
      * Create a new rectangle with the specified coordinates. Note: no range
@@ -118,9 +119,15 @@ public final class Rect implements Parcelable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(32);
-        sb.append("Rect("); sb.append(left); sb.append(", ");
-        sb.append(top); sb.append(" - "); sb.append(right);
-        sb.append(", "); sb.append(bottom); sb.append(")");
+        sb.append("Rect(");
+        sb.append(left);
+        sb.append(", ");
+        sb.append(top);
+        sb.append(" - ");
+        sb.append(right);
+        sb.append(", ");
+        sb.append(bottom);
+        sb.append(")");
         return sb.toString();
     }
 
@@ -130,25 +137,32 @@ public final class Rect implements Parcelable {
     public String toShortString() {
         return toShortString(new StringBuilder(32));
     }
-    
+
     /**
      * Return a string representation of the rectangle in a compact form.
+     *
      * @hide
      */
     public String toShortString(StringBuilder sb) {
         sb.setLength(0);
-        sb.append('['); sb.append(left); sb.append(',');
-        sb.append(top); sb.append("]["); sb.append(right);
-        sb.append(','); sb.append(bottom); sb.append(']');
+        sb.append('[');
+        sb.append(left);
+        sb.append(',');
+        sb.append(top);
+        sb.append("][");
+        sb.append(right);
+        sb.append(',');
+        sb.append(bottom);
+        sb.append(']');
         return sb.toString();
     }
 
     /**
      * Return a string representation of the rectangle in a well-defined format.
-     *
+     * <p>
      * <p>You can later recover the Rect from this string through
      * {@link #unflattenFromString(String)}.
-     * 
+     *
      * @return Returns a new String of the form "left top right bottom"
      */
     public String flattenToString() {
@@ -179,17 +193,24 @@ public final class Rect implements Parcelable {
                 Integer.parseInt(matcher.group(3)),
                 Integer.parseInt(matcher.group(4)));
     }
-    
+
     /**
      * Print short representation to given writer.
+     *
      * @hide
      */
     public void printShortString(PrintWriter pw) {
-        pw.print('['); pw.print(left); pw.print(',');
-        pw.print(top); pw.print("]["); pw.print(right);
-        pw.print(','); pw.print(bottom); pw.print(']');
+        pw.print('[');
+        pw.print(left);
+        pw.print(',');
+        pw.print(top);
+        pw.print("][");
+        pw.print(right);
+        pw.print(',');
+        pw.print(bottom);
+        pw.print(']');
     }
-    
+
     /**
      * Returns true if the rectangle is empty (left >= right or top >= bottom)
      */
@@ -212,32 +233,32 @@ public final class Rect implements Parcelable {
     public final int height() {
         return bottom - top;
     }
-    
+
     /**
      * @return the horizontal center of the rectangle. If the computed value
-     *         is fractional, this method returns the largest integer that is
-     *         less than the computed value.
+     * is fractional, this method returns the largest integer that is
+     * less than the computed value.
      */
     public final int centerX() {
         return (left + right) >> 1;
     }
-    
+
     /**
      * @return the vertical center of the rectangle. If the computed value
-     *         is fractional, this method returns the largest integer that is
-     *         less than the computed value.
+     * is fractional, this method returns the largest integer that is
+     * less than the computed value.
      */
     public final int centerY() {
         return (top + bottom) >> 1;
     }
-    
+
     /**
      * @return the exact horizontal center of the rectangle as a float.
      */
     public final float exactCenterX() {
         return (left + right) * 0.5f;
     }
-    
+
     /**
      * @return the exact vertical center of the rectangle as a float.
      */
@@ -271,9 +292,10 @@ public final class Rect implements Parcelable {
 
     /**
      * Copy the coordinates from src into this rectangle.
+     * 复制rect
      *
      * @param src The rectangle whose coordinates are copied into this
-     *           rectangle.
+     *            rectangle.
      */
     public void set(Rect src) {
         this.left = src.left;
@@ -300,8 +322,8 @@ public final class Rect implements Parcelable {
      * Offset the rectangle to a specific (left, top) position,
      * keeping its width and height the same.
      *
-     * @param newLeft   The new "left" coordinate for the rectangle
-     * @param newTop    The new "top" coordinate for the rectangle
+     * @param newLeft The new "left" coordinate for the rectangle
+     * @param newTop  The new "top" coordinate for the rectangle
      */
     public void offsetTo(int newLeft, int newTop) {
         right += newLeft - left;
@@ -329,8 +351,9 @@ public final class Rect implements Parcelable {
     /**
      * Insets the rectangle on all sides specified by the dimensions of the {@code insets}
      * rectangle.
-     * @hide
+     *
      * @param insets The rectangle specifying the insets on all side.
+     * @hide
      */
     public void inset(Rect insets) {
         left += insets.left;
@@ -341,11 +364,12 @@ public final class Rect implements Parcelable {
 
     /**
      * Insets the rectangle on all sides specified by the insets.
-     * @hide
-     * @param left The amount to add from the rectangle's left
-     * @param top The amount to add from the rectangle's top
-     * @param right The amount to subtract from the rectangle's right
+     *
+     * @param left   The amount to add from the rectangle's left
+     * @param top    The amount to add from the rectangle's top
+     * @param right  The amount to subtract from the rectangle's right
      * @param bottom The amount to subtract from the rectangle's bottom
+     * @hide
      */
     public void inset(int left, int top, int right, int bottom) {
         this.left += left;
@@ -363,11 +387,11 @@ public final class Rect implements Parcelable {
      * @param x The X coordinate of the point being tested for containment
      * @param y The Y coordinate of the point being tested for containment
      * @return true iff (x,y) are contained by the rectangle, where containment
-     *              means left <= x < right and top <= y < bottom
+     * means left <= x < right and top <= y < bottom
      */
     public boolean contains(int x, int y) {
         return left < right && top < bottom  // check for empty first
-               && x >= left && x < right && y >= top && y < bottom;
+                && x >= left && x < right && y >= top && y < bottom;
     }
 
     /**
@@ -375,17 +399,17 @@ public final class Rect implements Parcelable {
      * to this rectangle. i.e. is this rectangle a superset of the specified
      * rectangle. An empty rectangle never contains another rectangle.
      *
-     * @param left The left side of the rectangle being tested for containment
-     * @param top The top of the rectangle being tested for containment
-     * @param right The right side of the rectangle being tested for containment
+     * @param left   The left side of the rectangle being tested for containment
+     * @param top    The top of the rectangle being tested for containment
+     * @param right  The right side of the rectangle being tested for containment
      * @param bottom The bottom of the rectangle being tested for containment
      * @return true iff the the 4 specified sides of a rectangle are inside or
-     *              equal to this rectangle
+     * equal to this rectangle
      */
     public boolean contains(int left, int top, int right, int bottom) {
-               // check for empty first
+        // check for empty first
         return this.left < this.right && this.top < this.bottom
-               // now check for containment
+                // now check for containment
                 && this.left <= left && this.top <= top
                 && this.right >= right && this.bottom >= bottom;
     }
@@ -396,13 +420,13 @@ public final class Rect implements Parcelable {
      *
      * @param r The rectangle being tested for containment.
      * @return true iff the specified rectangle r is inside or equal to this
-     *              rectangle
+     * rectangle
      */
     public boolean contains(Rect r) {
-               // check for empty first
+        // check for empty first
         return this.left < this.right && this.top < this.bottom
-               // now check for containment
-               && left <= r.left && top <= r.top && right >= r.right && bottom >= r.bottom;
+                // now check for containment
+                && left <= r.left && top <= r.top && right >= r.right && bottom >= r.bottom;
     }
 
     /**
@@ -412,16 +436,16 @@ public final class Rect implements Parcelable {
      * performed to see if either rectangle is empty. Note: To just test for
      * intersection, use {@link #intersects(Rect, Rect)}.
      *
-     * @param left The left side of the rectangle being intersected with this
-     *             rectangle
-     * @param top The top of the rectangle being intersected with this rectangle
-     * @param right The right side of the rectangle being intersected with this
-     *              rectangle.
+     * @param left   The left side of the rectangle being intersected with this
+     *               rectangle
+     * @param top    The top of the rectangle being intersected with this rectangle
+     * @param right  The right side of the rectangle being intersected with this
+     *               rectangle.
      * @param bottom The bottom of the rectangle being intersected with this
-     *             rectangle.
+     *               rectangle.
      * @return true if the specified rectangle and this rectangle intersect
-     *              (and this rectangle is then set to that intersection) else
-     *              return false and do not change this rectangle.
+     * (and this rectangle is then set to that intersection) else
+     * return false and do not change this rectangle.
      */
     @CheckResult
     public boolean intersect(int left, int top, int right, int bottom) {
@@ -434,17 +458,23 @@ public final class Rect implements Parcelable {
         }
         return false;
     }
-    
+
     /**
      * If the specified rectangle intersects this rectangle, return true and set
      * this rectangle to that intersection, otherwise return false and do not
      * change this rectangle. No check is performed to see if either rectangle
      * is empty. To just test for intersection, use intersects()
+     * 如果指定的矩形与当前矩形存在交叉，则返回true，并把当前矩形设置为相交的矩形，
+     * 否者返回false并且不会改变当前矩形。
+     * 不会有判断是否矩形为空的检查。
      *
      * @param r The rectangle being intersected with this rectangle.
+     *          与当前矩形相交的矩形
      * @return true if the specified rectangle and this rectangle intersect
-     *              (and this rectangle is then set to that intersection) else
-     *              return false and do not change this rectangle.
+     * (and this rectangle is then set to that intersection) else
+     * return false and do not change this rectangle.
+     * 如果指定的矩形与当前矩形相交则返回true(此种情况下当前矩形将被设置为相交矩形)
+     * 否者返回false
      */
     @CheckResult
     public boolean intersect(Rect r) {
@@ -460,8 +490,8 @@ public final class Rect implements Parcelable {
      * @param a The first rectangle being intersected with
      * @param b The second rectangle being intersected with
      * @return true iff the two specified rectangles intersect. If they do, set
-     *              this rectangle to that intersection. If they do not, return
-     *              false and do not change this rectangle.
+     * this rectangle to that intersection. If they do not, return
+     * false and do not change this rectangle.
      */
     @CheckResult
     public boolean setIntersect(Rect a, Rect b) {
@@ -481,13 +511,13 @@ public final class Rect implements Parcelable {
      * if either rectangle is empty. To record the intersection, use intersect()
      * or setIntersect().
      *
-     * @param left The left side of the rectangle being tested for intersection
-     * @param top The top of the rectangle being tested for intersection
-     * @param right The right side of the rectangle being tested for
-     *              intersection
+     * @param left   The left side of the rectangle being tested for intersection
+     * @param top    The top of the rectangle being tested for intersection
+     * @param right  The right side of the rectangle being tested for
+     *               intersection
      * @param bottom The bottom of the rectangle being tested for intersection
      * @return true iff the specified rectangle intersects this rectangle. In
-     *              no event is this rectangle modified.
+     * no event is this rectangle modified.
      */
     public boolean intersects(int left, int top, int right, int bottom) {
         return this.left < right && left < this.right && this.top < bottom && top < this.bottom;
@@ -501,7 +531,7 @@ public final class Rect implements Parcelable {
      * @param a The first rectangle being tested for intersection
      * @param b The second rectangle being tested for intersection
      * @return true iff the two specified rectangles intersect. In no event are
-     *              either of the rectangles modified.
+     * either of the rectangles modified.
      */
     public static boolean intersects(Rect a, Rect b) {
         return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
@@ -512,9 +542,9 @@ public final class Rect implements Parcelable {
      * specified rectangle is empty, nothing is done. If this rectangle is empty
      * it is set to the specified rectangle.
      *
-     * @param left The left edge being unioned with this rectangle
-     * @param top The top edge being unioned with this rectangle
-     * @param right The right edge being unioned with this rectangle
+     * @param left   The left edge being unioned with this rectangle
+     * @param top    The top edge being unioned with this rectangle
+     * @param right  The right edge being unioned with this rectangle
      * @param bottom The bottom edge being unioned with this rectangle
      */
     public void union(int left, int top, int right, int bottom) {
@@ -543,7 +573,7 @@ public final class Rect implements Parcelable {
     public void union(Rect r) {
         union(r.left, r.top, r.right, r.bottom);
     }
-    
+
     /**
      * Update this Rect to enclose itself and the [x,y] coordinate. There is no
      * check to see that this rectangle is non-empty.
@@ -594,6 +624,7 @@ public final class Rect implements Parcelable {
     /**
      * Write this rectangle to the specified parcel. To restore a rectangle from
      * a parcel, use readFromParcel()
+     *
      * @param out The parcel to write the rectangle's coordinates into
      */
     public void writeToParcel(Parcel out, int flags) {
@@ -636,6 +667,7 @@ public final class Rect implements Parcelable {
 
     /**
      * Scales up the rect by the given scale.
+     *
      * @hide
      */
     public void scale(float scale) {

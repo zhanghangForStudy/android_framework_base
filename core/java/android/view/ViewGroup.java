@@ -316,6 +316,8 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
     /**
      * This view will get focus only if none of its descendants want it.
+     * 如果一个viewgroup设置了此标识，则表示此viewgroup，只有当其所有的子视图都不想获取焦点的时，
+     * 此viewgroup才能获取焦点
      */
     public static final int FOCUS_AFTER_DESCENDANTS = 0x40000;
 

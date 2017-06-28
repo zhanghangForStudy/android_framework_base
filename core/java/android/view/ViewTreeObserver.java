@@ -26,7 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * A view tree observer is used to register listeners that can be notified of global
  * changes in the view tree. Such global events include, but are not limited to,
  * layout of the whole tree, beginning of the drawing pass, touch mode change....
- *
+ * <p>
  * A ViewTreeObserver should never be instantiated by applications as it is provided
  * by the views hierarchy. Refer to {@link android.view.View#getViewTreeObserver()}
  * for more information.
@@ -51,8 +51,10 @@ public final class ViewTreeObserver {
     // These listeners cannot be mutated during dispatch
     private ArrayList<OnDrawListener> mOnDrawListeners;
 
-    /** Remains false until #dispatchOnWindowShown() is called. If a listener registers after
-     * that the listener will be immediately called. */
+    /**
+     * Remains false until #dispatchOnWindowShown() is called. If a listener registers after
+     * that the listener will be immediately called.
+     */
     private boolean mWindowShown;
 
     private boolean mAlive = true;
@@ -82,7 +84,7 @@ public final class ViewTreeObserver {
          * Callback method to be invoked when the window focus changes in the view tree.
          *
          * @param hasFocus Set to true if the window is gaining focus, false if it is
-         * losing focus.
+         *                 losing focus.
          */
         public void onWindowFocusChanged(boolean hasFocus);
     }
@@ -127,7 +129,6 @@ public final class ViewTreeObserver {
          * their scroll bounds or even to request a new layout before drawing occurs.
          *
          * @return Return true to proceed with the current drawing pass, or false to cancel.
-         *
          * @see android.view.View#onMeasure
          * @see android.view.View#onLayout
          * @see android.view.View#onDraw
@@ -142,10 +143,10 @@ public final class ViewTreeObserver {
         /**
          * <p>Callback method to be invoked when the view tree is about to be drawn. At this point,
          * views cannot be modified in any way.</p>
-         * 
+         * <p>
          * <p>Unlike with {@link OnPreDrawListener}, this method cannot be used to cancel the
          * current drawing pass.</p>
-         * 
+         * <p>
          * <p>An {@link OnDrawListener} listener <strong>cannot be added or removed</strong>
          * from this method.</p>
          *
@@ -184,6 +185,7 @@ public final class ViewTreeObserver {
      * Interface definition for a callback noting when a system window has been displayed.
      * This is only used for non-Activity windows. Activity windows can use
      * Activity.onEnterAnimationComplete() to get the same signal.
+     *
      * @hide
      */
     public interface OnWindowShownListener {
@@ -195,8 +197,9 @@ public final class ViewTreeObserver {
 
     /**
      * Parameters used with OnComputeInternalInsetsListener.
-     * 
+     * <p>
      * We are not yet ready to commit to this API and support it, so
+     *
      * @hide
      */
     public final static class InternalInsetsInfo {
@@ -282,7 +285,7 @@ public final class ViewTreeObserver {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            InternalInsetsInfo other = (InternalInsetsInfo)o;
+            InternalInsetsInfo other = (InternalInsetsInfo) o;
             return mTouchableInsets == other.mTouchableInsets &&
                     contentInsets.equals(other.contentInsets) &&
                     visibleInsets.equals(other.visibleInsets) &&
@@ -300,8 +303,9 @@ public final class ViewTreeObserver {
     /**
      * Interface definition for a callback to be invoked when layout has
      * completed and the client can compute its interior insets.
-     * 
+     * <p>
      * We are not yet ready to commit to this API and support it, so
+     *
      * @hide
      */
     public interface OnComputeInternalInsetsListener {
@@ -310,9 +314,9 @@ public final class ViewTreeObserver {
          * client can compute its interior insets.
          *
          * @param inoutInfo Should be filled in by the implementation with
-         * the information about the insets of the window.  This is called
-         * with whatever values the previous OnComputeInternalInsetsListener
-         * returned, if there are multiple such listeners in the window.
+         *                  the information about the insets of the window.  This is called
+         *                  with whatever values the previous OnComputeInternalInsetsListener
+         *                  returned, if there are multiple such listeners in the window.
          */
         public void onComputeInternalInsets(InternalInsetsInfo inoutInfo);
     }
@@ -417,7 +421,6 @@ public final class ViewTreeObserver {
      * Register a callback to be invoked when the view hierarchy is attached to a window.
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnWindowAttachListener(OnWindowAttachListener listener) {
@@ -435,9 +438,7 @@ public final class ViewTreeObserver {
      * Remove a previously installed window attach callback.
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
      * @see #addOnWindowAttachListener(android.view.ViewTreeObserver.OnWindowAttachListener)
      */
     public void removeOnWindowAttachListener(OnWindowAttachListener victim) {
@@ -452,7 +453,6 @@ public final class ViewTreeObserver {
      * Register a callback to be invoked when the window focus state within the view tree changes.
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnWindowFocusChangeListener(OnWindowFocusChangeListener listener) {
@@ -470,9 +470,7 @@ public final class ViewTreeObserver {
      * Remove a previously installed window focus change callback.
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
      * @see #addOnWindowFocusChangeListener(android.view.ViewTreeObserver.OnWindowFocusChangeListener)
      */
     public void removeOnWindowFocusChangeListener(OnWindowFocusChangeListener victim) {
@@ -487,7 +485,6 @@ public final class ViewTreeObserver {
      * Register a callback to be invoked when the focus state within the view tree changes.
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnGlobalFocusChangeListener(OnGlobalFocusChangeListener listener) {
@@ -504,9 +501,7 @@ public final class ViewTreeObserver {
      * Remove a previously installed focus change callback.
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
      * @see #addOnGlobalFocusChangeListener(OnGlobalFocusChangeListener)
      */
     public void removeOnGlobalFocusChangeListener(OnGlobalFocusChangeListener victim) {
@@ -522,7 +517,6 @@ public final class ViewTreeObserver {
      * within the view tree changes
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnGlobalLayoutListener(OnGlobalLayoutListener listener) {
@@ -539,12 +533,9 @@ public final class ViewTreeObserver {
      * Remove a previously installed global layout callback
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     * 
-     * @deprecated Use #removeOnGlobalLayoutListener instead
-     *
      * @see #addOnGlobalLayoutListener(OnGlobalLayoutListener)
+     * @deprecated Use #removeOnGlobalLayoutListener instead
      */
     @Deprecated
     public void removeGlobalOnLayoutListener(OnGlobalLayoutListener victim) {
@@ -555,9 +546,7 @@ public final class ViewTreeObserver {
      * Remove a previously installed global layout callback
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     * 
      * @see #addOnGlobalLayoutListener(OnGlobalLayoutListener)
      */
     public void removeOnGlobalLayoutListener(OnGlobalLayoutListener victim) {
@@ -572,7 +561,6 @@ public final class ViewTreeObserver {
      * Register a callback to be invoked when the view tree is about to be drawn
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnPreDrawListener(OnPreDrawListener listener) {
@@ -589,9 +577,7 @@ public final class ViewTreeObserver {
      * Remove a previously installed pre-draw callback
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
      * @see #addOnPreDrawListener(OnPreDrawListener)
      */
     public void removeOnPreDrawListener(OnPreDrawListener victim) {
@@ -606,7 +592,6 @@ public final class ViewTreeObserver {
      * Register a callback to be invoked when the view tree window has been shown
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      * @hide
      */
@@ -627,11 +612,9 @@ public final class ViewTreeObserver {
      * Remove a previously installed window shown callback
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
-     * @see #addOnWindowShownListener(OnWindowShownListener)
      * @hide
+     * @see #addOnWindowShownListener(OnWindowShownListener)
      */
     public void removeOnWindowShownListener(OnWindowShownListener victim) {
         checkIsAlive();
@@ -647,7 +630,6 @@ public final class ViewTreeObserver {
      * {@link android.view.ViewTreeObserver.OnDrawListener#onDraw()}.</p>
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnDrawListener(OnDrawListener listener) {
@@ -666,9 +648,7 @@ public final class ViewTreeObserver {
      * {@link android.view.ViewTreeObserver.OnDrawListener#onDraw()}.</p>
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
      * @see #addOnDrawListener(OnDrawListener)
      */
     public void removeOnDrawListener(OnDrawListener victim) {
@@ -683,7 +663,6 @@ public final class ViewTreeObserver {
      * Register a callback to be invoked when a view has been scrolled.
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnScrollChangedListener(OnScrollChangedListener listener) {
@@ -700,9 +679,7 @@ public final class ViewTreeObserver {
      * Remove a previously installed scroll-changed callback
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
      * @see #addOnScrollChangedListener(OnScrollChangedListener)
      */
     public void removeOnScrollChangedListener(OnScrollChangedListener victim) {
@@ -717,7 +694,6 @@ public final class ViewTreeObserver {
      * Register a callback to be invoked when the invoked when the touch mode changes.
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
      */
     public void addOnTouchModeChangeListener(OnTouchModeChangeListener listener) {
@@ -734,9 +710,7 @@ public final class ViewTreeObserver {
      * Remove a previously installed touch mode change callback
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
      * @see #addOnTouchModeChangeListener(OnTouchModeChangeListener)
      */
     public void removeOnTouchModeChangeListener(OnTouchModeChangeListener victim) {
@@ -752,10 +726,9 @@ public final class ViewTreeObserver {
      * compute the window's internal insets.
      *
      * @param listener The callback to add
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     * 
-     * We are not yet ready to commit to this API and support it, so
+     *                               <p>
+     *                               We are not yet ready to commit to this API and support it, so
      * @hide
      */
     public void addOnComputeInternalInsetsListener(OnComputeInternalInsetsListener listener) {
@@ -773,13 +746,11 @@ public final class ViewTreeObserver {
      * Remove a previously installed internal insets computation callback
      *
      * @param victim The callback to remove
-     *
      * @throws IllegalStateException If {@link #isAlive()} returns false
-     *
-     * @see #addOnComputeInternalInsetsListener(OnComputeInternalInsetsListener)
-     * 
-     * We are not yet ready to commit to this API and support it, so
      * @hide
+     * @see #addOnComputeInternalInsetsListener(OnComputeInternalInsetsListener)
+     * <p>
+     * We are not yet ready to commit to this API and support it, so
      */
     public void removeOnComputeInternalInsetsListener(OnComputeInternalInsetsListener victim) {
         checkIsAlive();
@@ -822,7 +793,7 @@ public final class ViewTreeObserver {
     /**
      * Indicates whether this ViewTreeObserver is alive. When an observer is not alive,
      * any call to a method (except this one) will throw an exception.
-     *
+     * <p>
      * If an application keeps a long-lived reference to this ViewTreeObserver, it should
      * always check for the result of this method before calling any other method.
      *
@@ -931,6 +902,7 @@ public final class ViewTreeObserver {
      * that are not attached to a Window or in the GONE state.
      *
      * @return True if the current draw should be canceled and resceduled, false otherwise.
+     * 如果当前绘制应该被取消且应该被重新调度，则返回true，否者返回false
      */
     @SuppressWarnings("unchecked")
     public final boolean dispatchOnPreDraw() {
@@ -952,6 +924,7 @@ public final class ViewTreeObserver {
 
     /**
      * Notifies registered listeners that the window is now shown
+     *
      * @hide
      */
     @SuppressWarnings("unchecked")
@@ -1074,16 +1047,16 @@ public final class ViewTreeObserver {
      * Copy on write array. This array is not thread safe, and only one loop can
      * iterate over this array at any given time. This class avoids allocations
      * until a concurrent modification happens.
-     * 
+     * <p>
      * Usage:
-     * 
+     * <p>
      * CopyOnWriteArray.Access<MyData> access = array.start();
      * try {
-     *     for (int i = 0; i < access.size(); i++) {
-     *         MyData d = access.get(i);
-     *     }
+     * for (int i = 0; i < access.size(); i++) {
+     * MyData d = access.get(i);
+     * }
      * } finally {
-     *     access.end();
+     * access.end();
      * }
      */
     static class CopyOnWriteArray<T> {

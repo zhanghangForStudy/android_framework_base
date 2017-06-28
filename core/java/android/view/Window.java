@@ -798,7 +798,8 @@ public abstract class Window {
     /**
      * 为子窗口调整相应的参数
      * 主要是根据不同的窗口类型，设置不同的{@link WindowManager.LayoutParams#token}值，
-     * 以及标题名
+     * 以及标题名；
+     *
      *
      * @param wp 子窗口的窗口参数
      */
@@ -808,7 +809,7 @@ public abstract class Window {
                 wp.type <= WindowManager.LayoutParams.LAST_SUB_WINDOW) {
             // 如果子窗口的类型真的是子窗口
             if (wp.token == null) {
-                // 将服务窗口的android.view.ViewRootImpl.W对象赋给子窗口
+                // 将父窗口的android.view.ViewRootImpl.W对象赋给子窗口
                 View decor = peekDecorView();
                 if (decor != null) {
                     wp.token = decor.getWindowToken();

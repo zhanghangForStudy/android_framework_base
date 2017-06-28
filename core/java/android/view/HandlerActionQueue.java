@@ -24,7 +24,8 @@ import java.util.ArrayList;
 
 /**
  * Class used to enqueue pending work from Views when no Handler is attached.
- *
+ * 被用来入队来至于视图的、即将执行的工作的类；
+ * 此类在没有handler的情况下使用
  * @hide Exposed for test framework only.
  */
 public class HandlerActionQueue {

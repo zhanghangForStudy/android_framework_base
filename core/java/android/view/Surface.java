@@ -229,7 +229,7 @@ public class Surface implements Parcelable {
 
     /**
      * Returns true if this object holds a valid surface.
-     *
+     * 返回true，如果此对象持有了一个有效的surface对象
      * @return True if it holds a physical surface, so lockCanvas() will succeed.
      * Otherwise returns false.
      */

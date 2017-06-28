@@ -21,7 +21,7 @@ import android.graphics.Rect;
 
 /**
  * Describes a set of insets for window content.
- * 描述窗口内容相关的一系列可嵌入矩形
+ * 描述窗口内容相关的一系列边衬矩形
  * <p>WindowInsets are immutable(不可改变的) and may be expanded to include more inset types in the future.
  * To adjust insets, use one of the supplied clone methods to obtain a new WindowInsets instance
  * with the adjusted properties.

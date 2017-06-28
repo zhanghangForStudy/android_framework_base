@@ -1792,6 +1792,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      */
     static final int PFLAG_SKIP_DRAW = 0x00000080;
     /**
+     * 请求透明区域
      * {@hide}
      */
     static final int PFLAG_REQUEST_TRANSPARENT_REGIONS = 0x00000200;
@@ -6116,19 +6117,23 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /**
      * Request that a rectangle of this view be visible on the screen,
      * scrolling if necessary just enough.
+     * 请求参数指定的矩形区域在屏幕上可见，如果需要，进行滚动
      * <p>
-     * <p>A View should call this if it maintains some notion of which part
+     * <p>A View should call this if it maintains some notion(观念，概念) of which part
      * of its content is interesting.  For example, a text editing view
      * should call this when its cursor moves.
+     * 如果一个视图包含了一些有趣内容的概念，则这个视图应该调用此方法。
+     * 例如一个文本编辑框在其游标移动的时候，应该调用此方法
      * <p>The Rectangle passed into this method should be in the View's content coordinate space.
      * It should not be affected by which part of the View is currently visible or its scroll
      * position.
+     * 传入此方法的矩形应该在视图对应的坐标范围之内。并且不应该被视图当前可视的部分或者它目前滚动的位置影响。
      * <p>When <code>immediate</code> is set to true, scrolling will not be
-     * animated.
+     * animated. 当第二个参数为真，这滚动不会进行一个动画
      *
      * @param rectangle The rectangle in the View's content coordinate space
      * @param immediate True to forbid animated scrolling, false otherwise
-     * @return Whether any parent scrolled.
+     * @return Whether any parent scrolled.是否有任何父视图滚动了
      */
     public boolean requestRectangleOnScreen(Rect rectangle, boolean immediate) {
         if (mParent == null) {
@@ -10485,6 +10490,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /**
      * Like {@link #getWindowVisibleDisplayFrame}, but returns the "full" display frame this window
      * is currently in without any insets.
+     * <p>
+     * 返回当前视图对应的窗口的整个矩形范围
      *
      * @hide
      */
@@ -14962,6 +14969,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /*
      * Caller is responsible for calling requestLayout if necessary.
      * (This allows addViewInLayout to not request a new layout.)
+     * 更新此视图的parent
      */
     void assignParent(ViewParent parent) {
         if (mParent == null) {
@@ -15395,6 +15403,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * {@link #getWindowToken}, except if the window this view in is a panel
      * window (attached to another containing window), then the token of
      * the containing window is returned instead.
+     * 获取此视图对应窗口的最顶级父视图的W远程引用。
+     * 此方法很像{@link #getWindowToken()}，除了此视图所在的窗口是一个面板窗口
+     * （粘贴到另一个容器窗口之中的），这种情况下容器窗口的W远程引用被返回
      *
      * @return Returns the associated window token, either
      * {@link #getWindowToken()} or the containing window's token.
@@ -19152,7 +19163,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /**
      * <p>Computes the coordinates of this view on the screen. The argument
      * must be an array of two integers. After the method returns, the array
-     * contains the x and y location in that order.</p>
+     * contains the x and y location in that order.
+     * 计算出此视图在屏幕上的坐标。
+     * 入参必须是一个包含两个整型的数组。
+     * </p>
      *
      * @param outLocation an array of two integers in which to hold the coordinates
      */
@@ -22689,6 +22703,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /**
      * A set of information given to a view when it is attached to its parent
      * window.
+     * 当此视图被粘贴到它的父窗口时，一些列需要传递给此视图的信息
      */
     final static class AttachInfo {
         interface Callbacks {
@@ -22755,6 +22770,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          */
         View mRootView;
 
+        /**
+         * 视图对应窗口的父窗口的W对象；
+         * 如果窗口没有父窗口，则为窗口本身的W对象
+         */
         IBinder mPanelParentWindowToken;
 
         boolean mHardwareAccelerated;
@@ -22768,6 +22787,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          * declared by {@link Display} do not exactly line up with the screen state
          * constants declared by {@link View} (there are more display states than
          * screen states).
+         * 窗口粘贴的显示屏幕的状态。被Display对象声明的显示屏幕状态常量
+         * 不会完全的与被View声明的屏幕状态常量一致
          */
         int mDisplayState = Display.STATE_UNKNOWN;
 
@@ -22807,6 +22828,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          * For windows that are full-screen but using insets to layout inside
          * of the screen decorations, these are the current insets for the
          * content of the window.
+         * 对于全屏的、但是使用了一些边衬来布局屏幕装饰物的窗口，
+         * 此属性表示窗口内容的边衬
          */
         final Rect mContentInsets = new Rect();
 
@@ -22821,12 +22844,15 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          * For windows that are full-screen but using insets to layout inside
          * of the screen decorations, these are the current insets for the
          * stable system windows.
+         * 对于全屏但是使用了一些边衬来布局屏幕修饰物的窗口，
+         * 此属性表示稳定的系统窗口的边衬
          */
         final Rect mStableInsets = new Rect();
 
         /**
          * For windows that include areas that are not covered by real surface these are the outsets
          * for real surface.
+         * 对与窗口而言，此属性包含了没有被真正的Surface对象覆盖的区域
          */
         final Rect mOutsets = new Rect();
 
@@ -22843,12 +22869,15 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          * {@link ViewTreeObserver.OnComputeInternalInsetsListener}) and will
          * be given to the window manager when changed to be used in laying
          * out windows behind it.
+         * 被窗口给予的内部边衬。
+         * 此值被客户端提供且将被传递给WMS，以用来进行窗口的布局
          */
         final ViewTreeObserver.InternalInsetsInfo mGivenInternalInsets
                 = new ViewTreeObserver.InternalInsetsInfo();
 
         /**
          * Set to true when mGivenInternalInsets is non-empty.
+         * 当给定的内部边衬存在，则将此属性设置为true
          */
         boolean mHasNonEmptyGivenInternalInsets;
 
@@ -22856,6 +22885,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          * All views in the window's hierarchy that serve as scroll containers,
          * used to determine if the window can be resized or must be panned
          * to adjust for a soft input area.
+         * 视图树之中所有被作为滚动容器提供服务的的视图，
+         * 这些视图被用来决定是否窗口应该重新调整大小或者通过滚动的方式来适应一个输入法窗口区域
          */
         final ArrayList<View> mScrollContainers = new ArrayList<View>();
 
@@ -22879,17 +22910,21 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
         /**
          * Indicates whether or not ignoring the DIRTY_MASK flags.
+         * 是否忽略{@link #PFLAG_DIRTY_MASK}标识
          */
         boolean mIgnoreDirtyState;
 
         /**
          * This flag tracks when the mIgnoreDirtyState flag is set during draw(),
          * to avoid clearing that flag prematurely.
+         * 当{@link #mIgnoreDirtyState}标识在绘制期间被设置了，则此变量用来避免
+         * {@link #mIgnoreDirtyState}被过早的清楚
          */
         boolean mSetIgnoreDirtyState = false;
 
         /**
          * Indicates whether the view's window is currently in touch mode.
+         * 标识视图的窗口是否在触摸模式之中
          */
         boolean mInTouchMode;
 
@@ -22902,6 +22937,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
         /**
          * Indicates that ViewAncestor should trigger a global layout change
          * the next time it performs a traversal
+         * 标识视图的祖先应该触发一次全量的布局改变，在它下一次执行一次遍历的时候
          */
         boolean mRecomputeGlobalAttributes;
 
@@ -22943,7 +22979,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
         /**
          * Set if the window has requested to extend into the overscan region
-         * via WindowManager.LayoutParams.FLAG_LAYOUT_IN_OVERSCAN.
+         * via {@link WindowManager.LayoutParams#FLAG_LAYOUT_IN_OVERSCAN}
+         * 窗口是否请求扩展至overscan区域
          */
         boolean mOverscanRequested;
 

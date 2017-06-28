@@ -25,13 +25,17 @@ import android.util.Slog;
  * a window in another process.  It is Parcelable so that it can be sent
  * to the process that is to receive events.  Only one thread should be reading
  * from an InputChannel at a time.
+ * 一个指定了文件描述符的输入通道，被用来发送输入事件到另一个进程中的窗口。
+ * 此类对应的对象是可打包的，以便它能够被传递给需要接受输入事件的进程。
+ * 同一时间，应该只有一个线程来读取通道
+ *
  * @hide
  */
 public final class InputChannel implements Parcelable {
     private static final String TAG = "InputChannel";
-    
+
     private static final boolean DEBUG = false;
-    
+
     public static final Parcelable.Creator<InputChannel> CREATOR
             = new Parcelable.Creator<InputChannel>() {
         public InputChannel createFromParcel(Parcel source) {
@@ -39,23 +43,27 @@ public final class InputChannel implements Parcelable {
             result.readFromParcel(source);
             return result;
         }
-        
+
         public InputChannel[] newArray(int size) {
             return new InputChannel[size];
         }
     };
-    
+
     @SuppressWarnings("unused")
     private long mPtr; // used by native code
-    
+
     private static native InputChannel[] nativeOpenInputChannelPair(String name);
-    
+
     private native void nativeDispose(boolean finalized);
+
     private native void nativeTransferTo(InputChannel other);
+
     private native void nativeReadFromParcel(Parcel parcel);
+
     private native void nativeWriteToParcel(Parcel parcel);
+
     private native void nativeDup(InputChannel target);
-    
+
     private native String nativeGetName();
 
     /**
@@ -74,10 +82,11 @@ public final class InputChannel implements Parcelable {
             super.finalize();
         }
     }
-    
+
     /**
      * Creates a new input channel pair.  One channel should be provided to the input
      * dispatcher and the other to the application's input queue.
+     *
      * @param name The descriptive (non-unique) name of the channel pair.
      * @return A pair of input channels.  The first channel is designated as the
      * server channel and should be used to publish input events.  The second channel
@@ -93,9 +102,10 @@ public final class InputChannel implements Parcelable {
         }
         return nativeOpenInputChannelPair(name);
     }
-    
+
     /**
      * Gets the name of the input channel.
+     *
      * @return The input channel name.
      */
     public String getName() {
@@ -111,18 +121,19 @@ public final class InputChannel implements Parcelable {
     public void dispose() {
         nativeDispose(false);
     }
-    
+
     /**
      * Transfers ownership of the internal state of the input channel to another
      * instance and invalidates this instance.  This is used to pass an input channel
      * as an out parameter in a binder call.
+     *
      * @param other The other input channel instance.
      */
     public void transferTo(InputChannel outParameter) {
         if (outParameter == null) {
             throw new IllegalArgumentException("outParameter must not be null");
         }
-        
+
         nativeTransferTo(outParameter);
     }
 
@@ -144,7 +155,7 @@ public final class InputChannel implements Parcelable {
         if (in == null) {
             throw new IllegalArgumentException("in must not be null");
         }
-        
+
         nativeReadFromParcel(in);
     }
 
@@ -153,14 +164,14 @@ public final class InputChannel implements Parcelable {
         if (out == null) {
             throw new IllegalArgumentException("out must not be null");
         }
-        
+
         nativeWriteToParcel(out);
-        
+
         if ((flags & PARCELABLE_WRITE_RETURN_VALUE) != 0) {
             dispose();
         }
     }
-    
+
     @Override
     public String toString() {
         return getName();

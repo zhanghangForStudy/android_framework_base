@@ -94,7 +94,9 @@ static struct {
 static jlong nativeCreate(JNIEnv* env, jclass clazz, jobject sessionObj,
         jstring nameStr, jint w, jint h, jint format, jint flags) {
     ScopedUtfChars name(env, nameStr);
+    // SurfaceComposerClient就是SurfaceFlinger中的Client对象在应用进程的代理对象
     sp<SurfaceComposerClient> client(android_view_SurfaceSession_getClient(env, sessionObj));
+    // 名字有问题（surface -> surfaceControl）
     sp<SurfaceControl> surface = client->createSurface(
             String8(name.c_str()), w, h, format, flags);
     if (surface == NULL) {

@@ -33,65 +33,89 @@ import dalvik.system.CloseGuard;
 
 /**
  * Handle onto a raw buffer that is being managed by the screen compositor.
- *
+ * <p>
  * <p>A Surface is generally created by or from a consumer of image buffers (such as a
  * {@link android.graphics.SurfaceTexture}, {@link android.media.MediaRecorder}, or
  * {@link android.renderscript.Allocation}), and is handed to some kind of producer (such as
- * {@link android.opengl.EGL14#eglCreateWindowSurface(android.opengl.EGLDisplay,android.opengl.EGLConfig,java.lang.Object,int[],int) OpenGL},
+ * {@link android.opengl.EGL14#eglCreateWindowSurface(android.opengl.EGLDisplay, android.opengl.EGLConfig, java.lang.Object, int[], int) OpenGL},
  * {@link android.media.MediaPlayer#setSurface MediaPlayer}, or
  * {@link android.hardware.camera2.CameraDevice#createCaptureSession CameraDevice}) to draw
  * into.</p>
- *
+ * <p>
  * <p><strong>Note:</strong> A Surface acts like a
  * {@link java.lang.ref.WeakReference weak reference} to the consumer it is associated with. By
  * itself it will not keep its parent consumer from being reclaimed.</p>
+ * <p>
+ * 处理由屏幕合成器管理的原始缓冲区。
+ * 一个Surface对象一般由图形缓冲区创建（
+ * 例如：
+ * {@link android.graphics.SurfaceTexture}，
+ * {@link android.media.MediaRecorder}
+ * ），然后有几种生产者处理（
+ * 例如：
+ * {@link android.opengl.EGL14#eglCreateWindowSurface(android.opengl.EGLDisplay, android.opengl.EGLConfig, java.lang.Object, int[], int) OpenGL}，
+ * {@link android.media.MediaPlayer#setSurface MediaPlayer}，
+ * {@link android.hardware.camera2.CameraDevice#createCaptureSession CameraDevice})
+ * ）
+ * <p>
+ * </p>
  */
 public class Surface implements Parcelable {
     private static final String TAG = "Surface";
 
     private static native long nativeCreateFromSurfaceTexture(SurfaceTexture surfaceTexture)
             throws OutOfResourcesException;
+
     private static native long nativeCreateFromSurfaceControl(long surfaceControlNativeObject);
 
     private static native long nativeLockCanvas(long nativeObject, Canvas canvas, Rect dirty)
             throws OutOfResourcesException;
+
     private static native void nativeUnlockCanvasAndPost(long nativeObject, Canvas canvas);
 
     private static native void nativeRelease(long nativeObject);
+
     private static native boolean nativeIsValid(long nativeObject);
+
     private static native boolean nativeIsConsumerRunningBehind(long nativeObject);
+
     private static native long nativeReadFromParcel(long nativeObject, Parcel source);
+
     private static native void nativeWriteToParcel(long nativeObject, Parcel dest);
 
     private static native void nativeAllocateBuffers(long nativeObject);
 
     private static native int nativeGetWidth(long nativeObject);
+
     private static native int nativeGetHeight(long nativeObject);
 
     private static native long nativeGetNextFrameNumber(long nativeObject);
+
     private static native int nativeSetScalingMode(long nativeObject, int scalingMode);
+
     private static native void nativeSetBuffersTransform(long nativeObject, long transform);
+
     private static native int nativeForceScopedDisconnect(long nativeObject);
 
     public static final Parcelable.Creator<Surface> CREATOR =
             new Parcelable.Creator<Surface>() {
-        @Override
-        public Surface createFromParcel(Parcel source) {
-            try {
-                Surface s = new Surface();
-                s.readFromParcel(source);
-                return s;
-            } catch (Exception e) {
-                Log.e(TAG, "Exception creating surface from parcel", e);
-                return null;
-            }
-        }
+                @Override
+                public Surface createFromParcel(Parcel source) {
+                    try {
+                        Surface s = new Surface();
+                        s.readFromParcel(source);
+                        return s;
+                    } catch (Exception e) {
+                        Log.e(TAG, "Exception creating surface from parcel", e);
+                        return null;
+                    }
+                }
 
-        @Override
-        public Surface[] newArray(int size) {
-            return new Surface[size];
-        }
-    };
+                @Override
+                public Surface[] newArray(int size) {
+                    return new Surface[size];
+                }
+            };
 
     private final CloseGuard mCloseGuard = CloseGuard.get();
 
@@ -99,6 +123,7 @@ public class Surface implements Parcelable {
     final Object mLock = new Object(); // protects the native state
     private String mName;
     long mNativeObject; // package scope only for SurfaceControl access
+    // c++层的surface对象的强指针
     private long mLockedObject;
     private int mGenerationId; // incremented each time mNativeObject changes
     private final Canvas mCanvas = new CompatibleCanvas();
@@ -111,25 +136,39 @@ public class Surface implements Parcelable {
 
     private boolean mIsSingleBuffered;
 
-    /** @hide */
+    /**
+     * @hide
+     */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({SCALING_MODE_FREEZE, SCALING_MODE_SCALE_TO_WINDOW,
-                    SCALING_MODE_SCALE_CROP, SCALING_MODE_NO_SCALE_CROP})
-    public @interface ScalingMode {}
+            SCALING_MODE_SCALE_CROP, SCALING_MODE_NO_SCALE_CROP})
+    public @interface ScalingMode {
+    }
     // From system/window.h
-    /** @hide */
+    /**
+     * @hide
+     */
     public static final int SCALING_MODE_FREEZE = 0;
-    /** @hide */
+    /**
+     * @hide
+     */
     public static final int SCALING_MODE_SCALE_TO_WINDOW = 1;
-    /** @hide */
+    /**
+     * @hide
+     */
     public static final int SCALING_MODE_SCALE_CROP = 2;
-    /** @hide */
+    /**
+     * @hide
+     */
     public static final int SCALING_MODE_NO_SCALE_CROP = 3;
 
-    /** @hide */
+    /**
+     * @hide
+     */
     @IntDef({ROTATION_0, ROTATION_90, ROTATION_180, ROTATION_270})
     @Retention(RetentionPolicy.SOURCE)
-    public @interface Rotation {}
+    public @interface Rotation {
+    }
 
     /**
      * Rotation constant: 0 degree rotation (natural orientation)
@@ -153,6 +192,7 @@ public class Surface implements Parcelable {
 
     /**
      * Create an empty surface, which will later be filled in by readFromParcel().
+     *
      * @hide
      */
     public Surface() {
@@ -160,13 +200,13 @@ public class Surface implements Parcelable {
 
     /**
      * Create Surface from a {@link SurfaceTexture}.
-     *
+     * <p>
      * Images drawn to the Surface will be made available to the {@link
      * SurfaceTexture}, which can attach them to an OpenGL ES texture via {@link
      * SurfaceTexture#updateTexImage}.
      *
      * @param surfaceTexture The {@link SurfaceTexture} that is updated by this
-     * Surface.
+     *                       Surface.
      * @throws OutOfResourcesException if the surface could not be created.
      */
     public Surface(SurfaceTexture surfaceTexture) {
@@ -221,6 +261,7 @@ public class Surface implements Parcelable {
      * Free all server-side state associated with this surface and
      * release this object's reference.  This method can only be
      * called from the process that created the service.
+     *
      * @hide
      */
     public void destroy() {
@@ -230,6 +271,7 @@ public class Surface implements Parcelable {
     /**
      * Returns true if this object holds a valid surface.
      * 返回true，如果此对象持有了一个有效的surface对象
+     *
      * @return True if it holds a physical surface, so lockCanvas() will succeed.
      * Otherwise returns false.
      */
@@ -280,21 +322,27 @@ public class Surface implements Parcelable {
 
     /**
      * Gets a {@link Canvas} for drawing into this surface.
-     *
+     * 获取一个在此surface之上绘制的Canvas对象
+     * <p>
      * After drawing into the provided {@link Canvas}, the caller must
      * invoke {@link #unlockCanvasAndPost} to post the new contents to the surface.
+     * 在完成绘制之后，必须调用{@link #unlockCanvasAndPost}方法将新的内容传递给Surface对象
      *
      * @param inOutDirty A rectangle that represents the dirty region that the caller wants
-     * to redraw.  This function may choose to expand the dirty rectangle if for example
-     * the surface has been resized or if the previous contents of the surface were
-     * not available.  The caller must redraw the entire dirty region as represented
-     * by the contents of the inOutDirty rectangle upon return from this function.
-     * The caller may also pass <code>null</code> instead, in the case where the
-     * entire surface should be redrawn.
+     *                   to redraw.  This function may choose to expand the dirty rectangle if for example
+     *                   the surface has been resized or if the previous contents of the surface were
+     *                   not available.  The caller must redraw the entire dirty region as represented
+     *                   by the contents of the inOutDirty rectangle upon return from this function.
+     *                   The caller may also pass <code>null</code> instead, in the case where the
+     *                   entire surface should be redrawn.
+     *                   一个用来表示调用者期望重绘的脏区域的矩形。此方法可能选择扩展此脏区域，例如此surface对象
+     *                   被重新分配了尺寸，或者此surface的上一个内容不可用了。
+     *                   调用者必须重绘整个被inOutDirty内容表示的脏区域。
+     *                   调用者也可能传递一个null参数代替，在这种情况下整个
+     *                   surface对象都将被重绘制
      * @return A canvas for drawing into the surface.
-     *
      * @throws IllegalArgumentException If the inOutDirty rectangle is not valid.
-     * @throws OutOfResourcesException If the canvas cannot be locked.
+     * @throws OutOfResourcesException  If the canvas cannot be locked.
      */
     public Canvas lockCanvas(Rect inOutDirty)
             throws Surface.OutOfResourcesException, IllegalArgumentException {
@@ -338,7 +386,7 @@ public class Surface implements Parcelable {
         if (mNativeObject != mLockedObject) {
             Log.w(TAG, "WARNING: Surface's mNativeObject (0x" +
                     Long.toHexString(mNativeObject) + ") != mLockedObject (0x" +
-                    Long.toHexString(mLockedObject) +")");
+                    Long.toHexString(mLockedObject) + ")");
         }
         if (mLockedObject == 0) {
             throw new IllegalStateException("Surface was not locked");
@@ -353,10 +401,10 @@ public class Surface implements Parcelable {
 
     /**
      * Gets a {@link Canvas} for drawing into this surface.
-     *
+     * <p>
      * After drawing into the provided {@link Canvas}, the caller must
      * invoke {@link #unlockCanvasAndPost} to post the new contents to the surface.
-     *
+     * <p>
      * Unlike {@link #lockCanvas(Rect)} this will return a hardware-accelerated
      * canvas. See the <a href="{@docRoot}guide/topics/graphics/hardware-accel.html#unsupported">
      * unsupported drawing operations</a> for a list of what is and isn't
@@ -366,7 +414,6 @@ public class Surface implements Parcelable {
      * are not supported.
      *
      * @return A canvas for drawing into the surface.
-     *
      * @throws IllegalStateException If the canvas cannot be locked.
      */
     public Canvas lockHardwareCanvas() {
@@ -408,6 +455,13 @@ public class Surface implements Parcelable {
      * back from a client, converting it from the representation being managed
      * by the window manager to the representation the client uses to draw
      * in to it.
+     * 将另一个Surface对象拷贝至当前对象。
+     * 此surface对象持有与原始surface对象相同的数据。
+     * 当需要返回一个窗口surface对象给客户端的时候，此方法被window manager使用
+     * SurfaceControl是在WindowManager端的名称；
+     * Surface是在客户端的名称；
+     * 两者其实表达了一个事情，也就是SurfaceFlinger端的Layer对象
+     *
      * @hide
      */
     public void copyFrom(SurfaceControl other) {
@@ -420,6 +474,9 @@ public class Surface implements Parcelable {
             throw new NullPointerException(
                     "SurfaceControl native object is null. Are you using a released SurfaceControl?");
         }
+        // 首先找到入参在ＪＮＩ环境之中的SurfaceControl对象（c++层）
+        // 然后调用SurfaceControl对象的getSurface方法
+        // 最后返回Surface对象
         long newNativeObject = nativeCreateFromSurfaceControl(surfaceControlPtr);
 
         synchronized (mLock) {
@@ -432,6 +489,7 @@ public class Surface implements Parcelable {
 
     /**
      * This is intended to be used by {@link SurfaceView#updateWindow} only.
+     *
      * @param other access is not thread safe
      * @hide
      * @deprecated
@@ -474,6 +532,10 @@ public class Surface implements Parcelable {
             // not necessary to call nativeRelease() here.
             // NOTE: This must be kept synchronized with the native parceling code
             // in frameworks/native/libs/Surface.cpp
+
+            // nativeReadFromParcel将要么返回mNativeObject,要么创建一个新的
+            // native　surface对象，并在减少mNativeObject之上的引用计数后，返回它。
+            // 不管那种方式，都不需要在此处调用nativeRelease方法
             mName = source.readString();
             mIsSingleBuffered = source.readInt() != 0;
             setNativeObjectLocked(nativeReadFromParcel(mNativeObject, source));
@@ -528,6 +590,7 @@ public class Surface implements Parcelable {
 
     /**
      * Allocate buffers ahead of time to avoid allocation delays during rendering
+     *
      * @hide
      */
     public void allocateBuffers() {
@@ -539,6 +602,7 @@ public class Surface implements Parcelable {
 
     /**
      * Set the scaling mode to be used for this surfaces buffers
+     *
      * @hide
      */
     void setScalingMode(@ScalingMode int scalingMode) {
@@ -563,6 +627,7 @@ public class Surface implements Parcelable {
 
     /**
      * Returns whether or not this Surface is backed by a single-buffered SurfaceTexture
+     *
      * @hide
      */
     public boolean isSingleBuffered() {
@@ -577,6 +642,7 @@ public class Surface implements Parcelable {
     public static class OutOfResourcesException extends RuntimeException {
         public OutOfResourcesException() {
         }
+
         public OutOfResourcesException(String name) {
             super(name);
         }
@@ -587,7 +653,6 @@ public class Surface implements Parcelable {
      *
      * @param rotation The rotation.
      * @return The rotation symbolic name.
-     *
      * @hide
      */
     public static String rotationToString(int rotation) {
@@ -695,7 +760,10 @@ public class Surface implements Parcelable {
     }
 
     private static native long nHwuiCreate(long rootNode, long surface);
+
     private static native void nHwuiSetSurface(long renderer, long surface);
+
     private static native void nHwuiDraw(long renderer);
+
     private static native void nHwuiDestroy(long renderer);
 }

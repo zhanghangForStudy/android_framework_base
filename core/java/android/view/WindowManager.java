@@ -1111,7 +1111,7 @@ public interface WindowManager extends ViewManager {
          * Usually window in this mode will not get touch/key events from window manager, but will
          * get events only via local injection using {@link Window#injectInputEvent(InputEvent)}.
          * 标识一个窗口在本地焦点模式之中。
-         * 处于本地焦点模式之中的窗口能够控制WM的焦点独立，通过使用{@link Window#setLocalFocus(boolean, boolean)}
+         * 处于本地焦点模式之中的窗口能够独立的控制WM的焦点，通过使用{@link Window#setLocalFocus(boolean, boolean)}
          * 方法。通常而言，在此模式之中的窗口将不会获取来自于WMS的触摸、按键事件，它只能通过本地注入的方式
          * （ {@link Window#injectInputEvent(InputEvent)}）来获取事件
          */
@@ -1471,6 +1471,7 @@ public interface WindowManager extends ViewManager {
          * 进一步而言，将会检测FLAG_NOT_FOCUSABLE与FLAG_ALT_FOCUSABLE_IM两个标识
          * 如果此两个标识的联合体与一种窗口（此种窗口需要在输入法窗口的后面，以便用户能
          * 够键入它）一致则返回true
+         *
          * @param flags The current window manager flags.
          * @return Returns true if such a window should be behind/interact
          * with an input method, false if not.

@@ -746,6 +746,7 @@ class WindowStateAnimator {
                 flags |= SurfaceControl.OPAQUE;
             }
 
+            // 创建Surface的入口
             mSurfaceController = new WindowSurfaceController(mSession.mSurfaceSession,
                     attrs.getTitle().toString(),
                     width, height, format, flags, this);

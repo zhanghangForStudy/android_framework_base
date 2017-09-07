@@ -25,7 +25,7 @@ import java.io.PrintWriter;
 /**
  * Defines the transformation to be applied at
  * one point in time of an Animation.
- *
+ * 定义应用到一个动画时间点上的变化
  */
 public class Transformation {
     /**

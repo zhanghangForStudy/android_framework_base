@@ -2414,7 +2414,9 @@ public final class MotionEvent extends InputEvent implements Parcelable {
      * movements that have occurred between this event and the previous event.
      * This only applies to ACTION_MOVE events -- all other actions will have
      * a size of 0.
-     *
+     * 返回此事件的历史触摸点数。
+     * 在此次事件和上一次事件之间有相关的动作发生了。
+     * 此方法只支持ACTION_MOVE事件——所有其他的动作将会为0
      * @return Returns the number of historical points in the event.
      */
     public final int getHistorySize() {

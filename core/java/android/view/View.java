@@ -10101,8 +10101,11 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * <p>
      * Generic motion events with source class {@link InputDevice#SOURCE_CLASS_POINTER}
      * are delivered to the view under the pointer.  All other generic motion events are
-     * delivered to the focused view.  Hover events are handled specially and are delivered
+     * delivered to the focused view.  Hover（鼠标移动） events are handled specially and are delivered
      * to {@link #onHoverEvent(MotionEvent)}.
+     * 分配一般的触摸事件；来自于SOURCE_CLASS_POINTER的一般触摸事件将被分配到触摸点下的视图；
+     * 而其他的一般触摸事件将被分配给焦点视图。
+     * 鼠标移动事件将被特殊处理，并转交给onHoverEvent(MotionEvent)方法
      * </p>
      *
      * @param event The motion event to be dispatched.
@@ -10251,6 +10254,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * other events to {@link #onGenericMotionEvent(MotionEvent)}.  This separation of concerns
      * reinforces the invariant that {@link #onTouchEvent(MotionEvent)} is really about touches
      * and should not be expected to handle other pointing device features.
+     * 分配一个触点相关的触摸事件到onTouchEvent方法，而其他的触摸事件则直接分配到onGenericMotionEvent之中
+     * 这种分离将加强，onTouchEvent方法真正是处理触摸事件而不应该被用来处理其他的触点设备功能，这一不变性
      * </p>
      *
      * @param event The motion event to be dispatched.
@@ -11920,6 +11925,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /**
      * Returns true if the transform matrix is the identity matrix.
      * Recomputes the matrix if necessary.
+     * 如果转换矩阵是单位矩阵，返回true
+     * 如果需要重新计算矩阵
      *
      * @return True if the transform matrix is the identity matrix, false otherwise.
      */
@@ -22821,6 +22828,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          * For windows that are full-screen but using insets to layout inside
          * of the screen areas, these are the current insets to appear inside
          * the overscan area of the display.
+         * 对于全屏但是使用了一些边衬在屏幕区域内部，来布局，则此属性则表示用来展现显示屏幕
+         * 的所有区域
          */
         final Rect mOverscanInsets = new Rect();
 
@@ -22837,6 +22846,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          * For windows that are full-screen but using insets to layout inside
          * of the screen decorations, these are the current insets for the
          * actual visible parts of the window.
+         * 对于全屏的，但是使用了一些边衬在屏幕修饰视图之中进行布局，
+         * 则此属性表示窗口当前实际可见部分的边衬
          */
         final Rect mVisibleInsets = new Rect();
 

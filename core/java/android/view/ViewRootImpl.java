@@ -108,7 +108,10 @@ import static android.view.WindowManager.LayoutParams.TYPE_VOLUME_OVERLAY;
  * and the WindowManager.  This is for the most part an internal implementation
  * detail of {@link WindowManagerGlobal}.
  * 视图树的顶部，实现了在视图与窗口管理器之间需要的约定。
- * 内部使用的类
+ * 内部使用的类；
+ * 1、与WMS通信；
+ * 2、构建遍历视图树的框架与流程；
+ * 3、构建输入事件的接受及处理框架；
  * {@hide}
  */
 @SuppressWarnings({"EmptyCatchBlock", "PointlessBooleanExpression"})
@@ -2538,7 +2541,7 @@ public final class ViewRootImpl implements ViewParent,
             // !!FIXME!! This next section handles the case where we did not get the
             // window size we asked for. We should avoid this by getting a maximum size from
             // the window session beforehand.
-            // 我们要去的窗口尺寸
+            // 我们要求的窗口尺寸
             if (mWidth != frame.width() || mHeight != frame.height()) {
                 mWidth = frame.width();
                 mHeight = frame.height();
@@ -3829,6 +3832,7 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        // 开始滚动
         if (scrollY != mScrollY) {
             if (DEBUG_INPUT_RESIZE) Log.v(mTag, "Pan scroll changed: old="
                     + mScrollY + " , new=" + scrollY);
@@ -3942,6 +3946,8 @@ public final class ViewRootImpl implements ViewParent,
                 // the one case where will transfer focus away from the current one
                 // is if the current view is a view group that prefers to give focus
                 // to its children first AND the view is a descendant of it.
+                // 对于当前焦点将发生改变的这种情况而言，如果当前焦点视图是一个viewgroup，
+                // 则最好优先将焦点转移给它的子视图
                 View focused = mView.findFocus();
                 if (focused instanceof ViewGroup) {
                     ViewGroup group = (ViewGroup) focused;
@@ -3965,6 +3971,16 @@ public final class ViewRootImpl implements ViewParent,
         }
     }
 
+    /**
+     * 从窗口上剥离视图
+     * 1、首先调用相关的监听器；
+     * 2、将decor view、attachinfo清空；
+     * 3、释放surface对象；
+     * 4、解除输入事件接受者；
+     * 5、通知WMS移除自己；
+     * 6、注销显示屏幕监听器；
+     * 7、停止遍历。
+     */
     void dispatchDetachedFromWindow() {
         if (mView != null && mView.mAttachInfo != null) {
             mAttachInfo.mTreeObserver.dispatchOnWindowAttachedChange(false);
@@ -4078,29 +4094,54 @@ public final class ViewRootImpl implements ViewParent,
         }
     }
 
+    // ViewRootImpl处理的主要消息
+    // 无效
     private final static int MSG_INVALIDATE = 1;
+    // 无效某个矩形
     private final static int MSG_INVALIDATE_RECT = 2;
+    // 视图树死亡
     private final static int MSG_DIE = 3;
+    // 重调大小
     private final static int MSG_RESIZED = 4;
+    // 报告重调大小
     private final static int MSG_RESIZED_REPORT = 5;
+    // 窗口焦点改变
     private final static int MSG_WINDOW_FOCUS_CHANGED = 6;
+    // 分配输入事件
     private final static int MSG_DISPATCH_INPUT_EVENT = 7;
+    // 分配APP可见性
     private final static int MSG_DISPATCH_APP_VISIBILITY = 8;
+    // 获取新的surface对象
     private final static int MSG_DISPATCH_GET_NEW_SURFACE = 9;
+    // 从输入法窗口分配键盘按键
     private final static int MSG_DISPATCH_KEY_FROM_IME = 11;
+    // 检测焦点
     private final static int MSG_CHECK_FOCUS = 13;
+    // 关闭系统对话框
     private final static int MSG_CLOSE_SYSTEM_DIALOGS = 14;
+    // 分配拖拽事件
     private final static int MSG_DISPATCH_DRAG_EVENT = 15;
+    // 分配拖拽位置事件
     private final static int MSG_DISPATCH_DRAG_LOCATION_EVENT = 16;
+    // 分配系统UI的可见性
     private final static int MSG_DISPATCH_SYSTEM_UI_VISIBILITY = 17;
+    // 更新配置
     private final static int MSG_UPDATE_CONFIGURATION = 18;
+    // 处理输入事件
     private final static int MSG_PROCESS_INPUT_EVENTS = 19;
+    // 清除辅助性焦点
     private final static int MSG_CLEAR_ACCESSIBILITY_FOCUS_HOST = 21;
+    // 无效整个世界
     private final static int MSG_INVALIDATE_WORLD = 22;
+    // 窗口移动
     private final static int MSG_WINDOW_MOVED = 23;
+    // 合成输入事件
     private final static int MSG_SYNTHESIZE_INPUT_EVENT = 24;
+    // 分配窗口显示
     private final static int MSG_DISPATCH_WINDOW_SHOWN = 25;
+    // 请求按键快捷键
     private final static int MSG_REQUEST_KEYBOARD_SHORTCUTS = 26;
+    // 更新指尖ICON
     private final static int MSG_UPDATE_POINTER_ICON = 27;
 
     final class ViewRootHandler extends Handler {
@@ -4569,8 +4610,12 @@ public final class ViewRootImpl implements ViewParent,
     abstract class InputStage {
         private final InputStage mNext;
 
+        // 结果处理类型
+        // 传递给下一个阶段处理
         protected static final int FORWARD = 0;
+        // 事件已经被处理了
         protected static final int FINISH_HANDLED = 1;
+        // 事件还未被处理
         protected static final int FINISH_NOT_HANDLED = 2;
 
         /**
@@ -4584,6 +4629,7 @@ public final class ViewRootImpl implements ViewParent,
 
         /**
          * Delivers an event to be processed.
+         * 传递一个需要处理的事件
          */
         public final void deliver(QueuedInputEvent q) {
             if ((q.mFlags & QueuedInputEvent.FLAG_FINISHED) != 0) {
@@ -4597,6 +4643,7 @@ public final class ViewRootImpl implements ViewParent,
 
         /**
          * Marks the the input event as finished then forwards it to the next stage.
+         * 标记此输入事件为结束，并将它传递给喜爱一个阶段
          */
         protected void finish(QueuedInputEvent q, boolean handled) {
             q.mFlags |= QueuedInputEvent.FLAG_FINISHED;
@@ -4608,6 +4655,7 @@ public final class ViewRootImpl implements ViewParent,
 
         /**
          * Forwards the event to the next stage.
+         * 将输入事件传递给下一个阶段
          */
         protected void forward(QueuedInputEvent q) {
             onDeliverToNext(q);
@@ -4615,6 +4663,7 @@ public final class ViewRootImpl implements ViewParent,
 
         /**
          * Applies a result code from {@link #onProcess} to the specified event.
+         * 提供一个来至于onPrecess方法的结果码给指定的事件
          */
         protected void apply(QueuedInputEvent q, int result) {
             if (result == FORWARD) {
@@ -4639,6 +4688,7 @@ public final class ViewRootImpl implements ViewParent,
 
         /**
          * Called when an event is being delivered to the next stage.
+         * 分配给下一个阶段
          */
         protected void onDeliverToNext(QueuedInputEvent q) {
             if (DEBUG_INPUT_STAGES) {
@@ -4651,6 +4701,17 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 是否应该丢弃输入事件
+         * 如果decor view脱离了窗口；
+         * 或者没有窗口焦点，且输入事件并非来自于一个可触摸的设备；
+         * 或者此视图树已经停止了；
+         * 或者此视图树处于不接受输入事件的模式之中，且输入事件并非来自于一个可按键的设备
+         * 或者因为动画的原因而暂停了接收输入事件，且当前出入事件并非一个返回输入事件
+         *
+         * @param q
+         * @return
+         */
         protected boolean shouldDropInputEvent(QueuedInputEvent q) {
             if (mView == null || !mAdded) {
                 Slog.w(mTag, "Dropping event due to root view being removed: " + q.mEvent);
@@ -4659,10 +4720,18 @@ public final class ViewRootImpl implements ViewParent,
                     && !q.mEvent.isFromSource(InputDevice.SOURCE_CLASS_POINTER)) || mStopped
                     || (mIsAmbientMode && !q.mEvent.isFromSource(InputDevice.SOURCE_CLASS_BUTTON))
                     || (mPausedForTransition && !isBack(q.mEvent))) {
+                // 如果没有窗口焦点，且输入事件并非来自于一个可触摸的设备；
+                // 或者此视图树已经停止了；
+                // 或者此视图树处于不接受输入事件的模式之中，且输入事件并非来自于一个可按键的设备
+                // 或者因为动画的原因而暂停了接收输入事件，且当前出入事件并非一个返回输入事件，
+                // 则走此分支
                 // This is a focus event and the window doesn't currently have input focus or
                 // has stopped. This could be an event that came back from the previous stage
                 // but the window has lost focus or stopped in the meantime.
+                // 是一个焦点事件，并且窗口当前没有输入焦点或者已经停止了
+                // 这可能是一个从上一个阶段返回而来的事件，但是在此期间窗口失去了焦点或者已经停止了
                 if (isTerminalInputEvent(q.mEvent)) {
+                    // 是否是一终点事件，例如按键事件的释放动作，触摸事件的释放动作等
                     // Don't drop terminal input events, however mark them as canceled.
                     q.mEvent.cancel();
                     Slog.w(mTag, "Cancelling event due to no window focus: " + q.mEvent);
@@ -4694,10 +4763,13 @@ public final class ViewRootImpl implements ViewParent,
     /**
      * Base class for implementing an input pipeline stage that supports
      * asynchronous and out-of-order processing of input events.
+     * 实现一个输入管道阶段的基本类，此类支持异步和无序的输入事件
      * <p>
      * In addition to what a normal input stage can do, an asynchronous
      * input stage may also defer an input event that has been delivered to it
      * and finish or forward it later.
+     * 除了普通输入事件处理阶段能够做的，此类还可以推迟一个传递给它的输入事件，
+     * 即可以稍后完成或者处理输入事件
      * </p>
      */
     abstract class AsyncInputStage extends InputStage {
@@ -4715,6 +4787,7 @@ public final class ViewRootImpl implements ViewParent,
          * @param next         The next stage to which events should be forwarded.
          * @param traceCounter The name of a counter to record the size of
          *                     the queue of pending events.
+         *                     记录即将处理输入事件队列长度的计数器的名字
          */
         public AsyncInputStage(InputStage next, String traceCounter) {
             super(next);
@@ -4725,6 +4798,8 @@ public final class ViewRootImpl implements ViewParent,
          * Marks the event as deferred, which is to say that it will be handled
          * asynchronously.  The caller is responsible for calling {@link #forward}
          * or {@link #finish} later when it is done handling the event.
+         * 标记此事件是延迟的，也就是说此事件将被异步处理。
+         * 调用者将延后得到{@link #forward}方法和 {@link #finish}方法的响应
          */
         protected void defer(QueuedInputEvent q) {
             q.mFlags |= QueuedInputEvent.FLAG_DEFERRED;
@@ -4734,9 +4809,11 @@ public final class ViewRootImpl implements ViewParent,
         @Override
         protected void forward(QueuedInputEvent q) {
             // Clear the deferred flag.
+            // 清除延迟标识
             q.mFlags &= ~QueuedInputEvent.FLAG_DEFERRED;
 
             // Fast path if the queue is empty.
+            // 如果队列是空的，则直接传递给下一阶段
             QueuedInputEvent curr = mQueueHead;
             if (curr == null) {
                 super.forward(q);
@@ -4746,8 +4823,13 @@ public final class ViewRootImpl implements ViewParent,
             // Determine whether the event must be serialized behind any others
             // before it can be delivered to the next stage.  This is done because
             // deferred events might be handled out of order by the stage.
+            // 在一个事件能够被传递给下一个阶段之前，需要决定此事件是否必须排列在其他输入事件的后面。
+            // 这是因为延迟的事件可能在此阶段被无序的处理
+            // 此输入事件的来源设备ID
             final int deviceId = q.mEvent.getDeviceId();
             QueuedInputEvent prev = null;
+            // 是否阻塞，如果延迟事件队列之中存在，
+            // 与当前事件的来源设备ID一致的输入事件，则当前事件需要阻塞
             boolean blocked = false;
             while (curr != null && curr != q) {
                 if (!blocked && deviceId == curr.mEvent.getDeviceId()) {
@@ -4760,6 +4842,9 @@ public final class ViewRootImpl implements ViewParent,
             // If the event is blocked, then leave it in the queue to be delivered later.
             // Note that the event might not yet be in the queue if it was not previously
             // deferred so we will enqueue it if needed.
+            // 如果事件在阻塞的，则将它放入延迟队列之中，以延迟传递。
+            // 注意，事件可能不在队列之中，如果它没有提前延迟，所以
+            // 我们将入队它，如果需要
             if (blocked) {
                 if (curr == null) {
                     enqueue(q);
@@ -4768,6 +4853,8 @@ public final class ViewRootImpl implements ViewParent,
             }
 
             // The event is not blocked.  Deliver it immediately.
+            // 如果事件不是阻塞的。则立即传递它
+            // 如果它在队列之中，则在传递之前，先将它从延迟队列之中清除
             if (curr != null) {
                 curr = curr.mNext;
                 dequeue(q, prev);
@@ -4775,11 +4862,16 @@ public final class ViewRootImpl implements ViewParent,
             super.forward(q);
 
             // Dequeuing this event may have unblocked successors.  Deliver them.
+            // 出队的这个事件可能有非阻塞的继承者。传递它们
             while (curr != null) {
                 if (deviceId == curr.mEvent.getDeviceId()) {
+                    // 如果延迟事件队列中还存在与当前已传递的输入事件的设备ID一致
+                    // 则走此分支
                     if ((curr.mFlags & QueuedInputEvent.FLAG_DEFERRED) != 0) {
+                        // 如果此事件需要延迟，则什么都不做
                         break;
                     }
+                    // 如果此事件不需要延迟，则跟着入参一起被传递给下一阶段
                     QueuedInputEvent next = curr.mNext;
                     dequeue(curr, prev);
                     super.forward(curr);
@@ -4842,6 +4934,8 @@ public final class ViewRootImpl implements ViewParent,
     /**
      * Delivers pre-ime input events to a native activity.
      * Does not support pointer events.
+     * 发送输入法之前的事件给一个本地的activity
+     * 不支持触摸事件
      */
     final class NativePreImeInputStage extends AsyncInputStage
             implements InputQueue.FinishedInputEventCallback {
@@ -4872,6 +4966,8 @@ public final class ViewRootImpl implements ViewParent,
     /**
      * Delivers pre-ime input events to the view hierarchy.
      * Does not support pointer events.
+     * 发送输入法之前的输入事件到视图树
+     * 不支持触摸事件
      */
     final class ViewPreImeInputStage extends InputStage {
         public ViewPreImeInputStage(InputStage next) {
@@ -4898,6 +4994,8 @@ public final class ViewRootImpl implements ViewParent,
     /**
      * Delivers input events to the ime.
      * Does not support pointer events.
+     * 发送输入事件到输入法窗口
+     * 不支持触摸事件
      */
     final class ImeInputStage extends AsyncInputStage
             implements InputMethodManager.FinishedInputEventCallback {
@@ -4908,6 +5006,7 @@ public final class ViewRootImpl implements ViewParent,
         @Override
         protected int onProcess(QueuedInputEvent q) {
             if (mLastWasImTarget && !isInLocalFocusMode()) {
+                // 是输入法窗口的目标窗口，且此窗口并非本地焦点模式
                 InputMethodManager imm = InputMethodManager.peekInstance();
                 if (imm != null) {
                     final InputEvent event = q.mEvent;
@@ -4917,6 +5016,7 @@ public final class ViewRootImpl implements ViewParent,
                         return FINISH_HANDLED;
                     } else if (result == InputMethodManager.DISPATCH_NOT_HANDLED) {
                         // The IME could not handle it, so skip along to the next InputStage
+                        // 输入法窗口不能处理此事件，则跳至下一阶段
                         return FORWARD;
                     } else {
                         return DEFER; // callback will be invoked later
@@ -4939,6 +5039,7 @@ public final class ViewRootImpl implements ViewParent,
 
     /**
      * Performs early processing of post-ime input events.
+     * 输入法后的第一个处理消息的阶段
      */
     final class EarlyPostImeInputStage extends InputStage {
         public EarlyPostImeInputStage(InputStage next) {
@@ -4963,12 +5064,14 @@ public final class ViewRootImpl implements ViewParent,
 
             // If the key's purpose is to exit touch mode then we consume it
             // and consider it handled.
+            // 如果按键的目的是退出触摸模式，我们消耗它，并将其表示为已完成处理
             if (checkForLeavingTouchModeAndConsume(event)) {
                 return FINISH_HANDLED;
             }
 
             // Make sure the fallback event policy sees all keys that will be
             // delivered to the view hierarchy.
+            // 确保撤退事件策略能够看见所有传递给视图树的按键事件
             mFallbackEventHandler.preDispatchKeyEvent(event);
             return FORWARD;
         }
@@ -4977,17 +5080,20 @@ public final class ViewRootImpl implements ViewParent,
             final MotionEvent event = (MotionEvent) q.mEvent;
 
             // Translate the pointer event for compatibility, if needed.
+            // 将触摸事件的屏幕坐标系转换为应用窗口对应的坐标系
             if (mTranslator != null) {
                 mTranslator.translateEventInScreenToAppWindow(event);
             }
 
             // Enter touch mode on down or scroll.
+            // 进入触摸模式
             final int action = event.getAction();
             if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_SCROLL) {
                 ensureTouchMode(true);
             }
 
             // Offset the scroll position.
+            // 将触摸事件的坐标纳入当前滚动的位置
             if (mCurScrollY != 0) {
                 event.offsetLocation(0, mCurScrollY);
             }
@@ -5004,6 +5110,7 @@ public final class ViewRootImpl implements ViewParent,
 
     /**
      * Delivers post-ime input events to a native activity.
+     * 输入法后的第二个处理阶段，将其传递给本地的activity处理
      */
     final class NativePostImeInputStage extends AsyncInputStage
             implements InputQueue.FinishedInputEventCallback {
@@ -5033,6 +5140,7 @@ public final class ViewRootImpl implements ViewParent,
 
     /**
      * Delivers post-ime input events to the view hierarchy.
+     * 输入法后的第三个个处理阶段，将其传递给视图树处理
      */
     final class ViewPostImeInputStage extends InputStage {
         public ViewPostImeInputStage(InputStage next) {
@@ -5042,14 +5150,18 @@ public final class ViewRootImpl implements ViewParent,
         @Override
         protected int onProcess(QueuedInputEvent q) {
             if (q.mEvent instanceof KeyEvent) {
+                // 处理按键
                 return processKeyEvent(q);
             } else {
                 final int source = q.mEvent.getSource();
                 if ((source & InputDevice.SOURCE_CLASS_POINTER) != 0) {
+                    // 处理指尖事件？
                     return processPointerEvent(q);
                 } else if ((source & InputDevice.SOURCE_CLASS_TRACKBALL) != 0) {
+                    // 处理滚动球事件
                     return processTrackballEvent(q);
                 } else {
+                    // 处理一般触摸事件
                     return processGenericMotionEvent(q);
                 }
             }
@@ -5061,7 +5173,12 @@ public final class ViewRootImpl implements ViewParent,
                     && q.mEvent instanceof MotionEvent
                     && ((MotionEvent) q.mEvent).isTouchEvent()
                     && isTerminalInputEvent(q.mEvent)) {
+                // 当前视图树进行无缓冲的输入事件分配
+                // 且输入事件是触摸事件
+                // 且是一个终点事件
+                // 开始接受缓冲的输入事件调度
                 mUnbufferedInputDispatch = false;
+                // 通过调度消耗批量的输入事件
                 scheduleConsumeBatchedInput();
             }
             super.onDeliverToNext(q);
@@ -5071,6 +5188,7 @@ public final class ViewRootImpl implements ViewParent,
             final KeyEvent event = (KeyEvent) q.mEvent;
 
             // Deliver the key to the view hierarchy.
+            // 将按键事件分配给视图树
             if (mView.dispatchKeyEvent(event)) {
                 return FINISH_HANDLED;
             }
@@ -5080,6 +5198,7 @@ public final class ViewRootImpl implements ViewParent,
             }
 
             // If the Control modifier is held, try to interpret the key as a shortcut.
+            //如果控制修饰符被持有，则尝试将此按键事件作为一个快结键来解释
             if (event.getAction() == KeyEvent.ACTION_DOWN
                     && event.isCtrlPressed()
                     && event.getRepeatCount() == 0
@@ -5101,6 +5220,7 @@ public final class ViewRootImpl implements ViewParent,
             }
 
             // Handle automatic focus changes.
+            // 处理自动焦点改变
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
                 int direction = 0;
                 switch (event.getKeyCode()) {
@@ -5170,6 +5290,7 @@ public final class ViewRootImpl implements ViewParent,
             return FORWARD;
         }
 
+        // 处理触摸事件
         private int processPointerEvent(QueuedInputEvent q) {
             final MotionEvent event = (MotionEvent) q.mEvent;
 
@@ -5179,6 +5300,7 @@ public final class ViewRootImpl implements ViewParent,
                             mCapturingView : mView;
             mAttachInfo.mHandlingPointerEvent = true;
             boolean handled = eventTarget.dispatchPointerEvent(event);
+            // 鼠标事件才会真正的执行此方法
             maybeUpdatePointerIcon(event);
             mAttachInfo.mHandlingPointerEvent = false;
             if (mAttachInfo.mUnbufferedDispatchRequested && !mUnbufferedInputDispatch) {
@@ -5269,6 +5391,7 @@ public final class ViewRootImpl implements ViewParent,
 
     /**
      * Performs synthesis of new input events from unhandled input events.
+     * 执行从未处理的输入事件中合成的新的输入事件
      */
     final class SyntheticInputStage extends InputStage {
         private final SyntheticTrackballHandler mTrackball = new SyntheticTrackballHandler();
@@ -6440,6 +6563,7 @@ public final class ViewRootImpl implements ViewParent,
         return mAccessibilityInteractionController;
     }
 
+    // 通知WMS布局窗口
     private int relayoutWindow(WindowManager.LayoutParams params, int viewVisibility,
                                boolean insetsPending) throws RemoteException {
 
@@ -6665,6 +6789,13 @@ public final class ViewRootImpl implements ViewParent,
         return true;
     }
 
+    /**
+     * 1、遍历调用窗口脱离方法；
+     * 2、销毁硬件渲染器；
+     * 3、如果窗口布局参数发生改变，或者窗口的可视性发生了改变，则需要请求WMS重新布局窗口；
+     * 4、销毁surface对象；
+     * 5、通知WMS移除此窗口
+     */
     void doDie() {
         checkThread();
         if (LOCAL_LOGV) Log.v(mTag, "DIE in " + this + " of " + mSurface);
@@ -6752,6 +6883,21 @@ public final class ViewRootImpl implements ViewParent,
         }
     }
 
+    /**
+     * 由WMS通过Binder调用,用以调整大小
+     *
+     * @param frame               窗口大小？
+     * @param overscanInsets      整个屏幕区域
+     * @param contentInsets       内容区域
+     * @param visibleInsets       可视性区域
+     * @param stableInsets
+     * @param outsets
+     * @param reportDraw          是否报告了绘制
+     * @param newConfig           新的配置对象
+     * @param backDropFrame       整个屏幕？
+     * @param forceLayout         是否强制布局
+     * @param alwaysConsumeNavBar 是否总是消耗导航栏？
+     */
     public void dispatchResized(Rect frame, Rect overscanInsets, Rect contentInsets,
                                 Rect visibleInsets, Rect stableInsets, Rect outsets, boolean reportDraw,
                                 Configuration newConfig, Rect backDropFrame, boolean forceLayout,
@@ -6764,7 +6910,10 @@ public final class ViewRootImpl implements ViewParent,
 
         // Tell all listeners that we are resizing the window so that the chrome can get
         // updated as fast as possible on a separate thread,
+        // 告诉所有的监听器，我们正在重新调整床的大小，以便chrome能够在一个独立的线程之中尽可能快的获取到
+        // 更新
         if (mDragResizing) {
+            // 是否是全屏
             boolean fullscreen = frame.equals(backDropFrame);
             synchronized (mWindowCallbacks) {
                 for (int i = mWindowCallbacks.size() - 1; i >= 0; i--) {
@@ -6811,22 +6960,32 @@ public final class ViewRootImpl implements ViewParent,
 
     /**
      * Represents a pending input event that is waiting in a queue.
+     * 代表一个即将（被处理）的，正在队列中等待的输入事件
      * <p>
      * Input events are processed in serial order by the timestamp specified by
      * {@link InputEvent#getEventTimeNano()}.  In general, the input dispatcher delivers
      * one input event to the application at a time and waits for the application
      * to finish handling it before delivering the next one.
+     * 输入事件通过各自的时间戳，按照一条连续的顺序进行处理。
+     * 一般而言，输入时间分发者每次传递一个输入事件给应用，并且在分发下一个事件之前，等待应用处理完此输入事件。
      * <p>
      * However, because the application or IME can synthesize and inject multiple
      * key events at a time without going through the input dispatcher, we end up
      * needing a queue on the application's side.
+     * 然而，因为应用或者输入法每次都可以，不通过输入事件分发者，合成并注入多个按键信息，
+     * 所以我们在应用端仍然需要一个队列
      */
     private static final class QueuedInputEvent {
         public static final int FLAG_DELIVER_POST_IME = 1 << 0;
+        // 延迟处理
         public static final int FLAG_DEFERRED = 1 << 1;
+        // 事件停止处理
         public static final int FLAG_FINISHED = 1 << 2;
+        // 完成处理
         public static final int FLAG_FINISHED_HANDLED = 1 << 3;
+        // 重新合成
         public static final int FLAG_RESYNTHESIZED = 1 << 4;
+        // 未处理
         public static final int FLAG_UNHANDLED = 1 << 5;
 
         public QueuedInputEvent mNext;
@@ -6915,9 +7074,19 @@ public final class ViewRootImpl implements ViewParent,
         enqueueInputEvent(event, null, 0, false);
     }
 
+    /**
+     * 入队输入事件
+     * WMS接受到消息会有此方法作为第一个处理入口？
+     *
+     * @param event              输入事件
+     * @param receiver           输入事件接收器
+     * @param flags              标志位
+     * @param processImmediately 是否立即处理
+     */
     void enqueueInputEvent(InputEvent event,
                            InputEventReceiver receiver, int flags, boolean processImmediately) {
         adjustInputEventForCompatibility(event);
+        // 将原始的输入事件封装为一个可队列化的输入事件
         QueuedInputEvent q = obtainQueuedInputEvent(event, receiver, flags);
 
         // Always enqueue the input event in order, regardless of its time stamp.
@@ -6925,6 +7094,10 @@ public final class ViewRootImpl implements ViewParent,
         // in response to touch events and we want to ensure that the injected keys
         // are processed in the order they were received and we cannot trust that
         // the time stamp of injected events are monotonic.
+        // 总是按顺序入队输入事件，而忽略它的时间戳。
+        // 我们这样做是因为应用或者输入法窗口可能注入按键事件，用以相应触摸事件
+        // 并且我们期望确保被注入的按键能够按照它们被接受的顺序被处理，
+        // 并且我们不信任被注入事件的时间戳是单调递增的
         QueuedInputEvent last = mPendingInputEventTail;
         if (last == null) {
             mPendingInputEventHead = q;
@@ -6955,6 +7128,7 @@ public final class ViewRootImpl implements ViewParent,
 
     void doProcessInputEvents() {
         // Deliver all pending input events in the queue.
+        // 分配队列之中所有即将处理的输入事件
         while (mPendingInputEventHead != null) {
             QueuedInputEvent q = mPendingInputEventHead;
             mPendingInputEventHead = q.mNext;
@@ -6982,12 +7156,14 @@ public final class ViewRootImpl implements ViewParent,
 
         // We are done processing all input events that we can process right now
         // so we can clear the pending flag immediately.
+        // 我们将处理所有马上能够处理的输入事件，所以我们可以立即清除即将处理的标识
         if (mProcessInputEventsScheduled) {
             mProcessInputEventsScheduled = false;
             mHandler.removeMessages(MSG_PROCESS_INPUT_EVENTS);
         }
     }
 
+    // 将输入事件交给InputStage对象处理
     private void deliverInputEvent(QueuedInputEvent q) {
         Trace.asyncTraceBegin(Trace.TRACE_TAG_VIEW, "deliverInputEvent",
                 q.mEvent.getSequenceNumber());
@@ -7009,6 +7185,13 @@ public final class ViewRootImpl implements ViewParent,
         }
     }
 
+    /**
+     * 当没有InputStage对象处理输入事件后，
+     * 还可以让InputReceiver对象进行最后的处理;
+     * 最后，如果可以，回收输入事件
+     *
+     * @param q
+     */
     private void finishInputEvent(QueuedInputEvent q) {
         Trace.asyncTraceEnd(Trace.TRACE_TAG_VIEW, "deliverInputEvent",
                 q.mEvent.getSequenceNumber());
@@ -7036,6 +7219,13 @@ public final class ViewRootImpl implements ViewParent,
         }
     }
 
+    /**
+     * 是否是结束事件:按键事件的话就是按键被释放事件；
+     * 触摸事件的话，就是ACTION_UP事件
+     *
+     * @param event
+     * @return
+     */
     static boolean isTerminalInputEvent(InputEvent event) {
         if (event instanceof KeyEvent) {
             final KeyEvent keyEvent = (KeyEvent) event;
@@ -7084,6 +7274,11 @@ public final class ViewRootImpl implements ViewParent,
                     // wait until we have more input events pending and might get starved by other
                     // things occurring in the process. If the frame time is -1, however, then
                     // we're in a non-batching mode, so there's no need to schedule this.
+                    // 如果我们在此处消耗了一批输入事件，则我们将期望回到头部
+                    // 并且分配此消耗到喜爱一个帧。否则，我们将等待，直到我们
+                    // 有更多的即将处理的输入事件，并且可能由进程中的其他正在
+                    // 发生的事件开始。
+                    // 如果帧的事件是-1，则我们将进入一个非批量模式，所以不需要进行调度
                     scheduleConsumeBatchedInput();
                 }
             }
@@ -7148,6 +7343,10 @@ public final class ViewRootImpl implements ViewParent,
 
     final ConsumeBatchedInputImmediatelyRunnable mConsumeBatchedInputImmediatelyRunnable =
             new ConsumeBatchedInputImmediatelyRunnable();
+
+    /**
+     * 是否通过立即调度的方式，消耗批量的输入事件
+     */
     boolean mConsumeBatchedInputImmediatelyScheduled;
 
     final class InvalidateOnAnimationRunnable implements Runnable {
@@ -7233,6 +7432,9 @@ public final class ViewRootImpl implements ViewParent,
         }
     }
 
+    /**
+     * 在下一帧被触发时，需要无效的视图及区域
+     */
     final InvalidateOnAnimationRunnable mInvalidateOnAnimationRunnable =
             new InvalidateOnAnimationRunnable();
 
@@ -7792,6 +7994,7 @@ public final class ViewRootImpl implements ViewParent,
         }
     }
 
+    // 由WMS主动发起的相关回调
     static class W extends IWindow.Stub {
         private final WeakReference<ViewRootImpl> mViewAncestor;
         private final IWindowSession mWindowSession;
@@ -7801,6 +8004,21 @@ public final class ViewRootImpl implements ViewParent,
             mWindowSession = viewAncestor.mWindowSession;
         }
 
+        /**
+         * 重新计算大小
+         *
+         * @param frame               窗口大小？
+         * @param overscanInsets      整个屏幕区域
+         * @param contentInsets       内容区域
+         * @param visibleInsets       可视性区域
+         * @param stableInsets
+         * @param outsets
+         * @param reportDraw          是否报告了绘制
+         * @param newConfig           新的配置对象
+         * @param backDropFrame       整个屏幕？
+         * @param forceLayout         是否强制布局
+         * @param alwaysConsumeNavBar 是否总是消耗导航栏？
+         */
         @Override
         public void resized(Rect frame, Rect overscanInsets, Rect contentInsets,
                             Rect visibleInsets, Rect stableInsets, Rect outsets, boolean reportDraw,
@@ -7814,6 +8032,12 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 移动窗口
+         *
+         * @param newX
+         * @param newY
+         */
         @Override
         public void moved(int newX, int newY) {
             final ViewRootImpl viewAncestor = mViewAncestor.get();
@@ -7822,6 +8046,11 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 分配最新的窗口可见性
+         *
+         * @param visible
+         */
         @Override
         public void dispatchAppVisibility(boolean visible) {
             final ViewRootImpl viewAncestor = mViewAncestor.get();
@@ -7830,6 +8059,9 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 有一个新的Surface对象
+         */
         @Override
         public void dispatchGetNewSurface() {
             final ViewRootImpl viewAncestor = mViewAncestor.get();
@@ -7838,6 +8070,12 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 窗口焦点改变
+         *
+         * @param hasFocus    是否拥有焦点
+         * @param inTouchMode 是否还处于触摸模式之中
+         */
         @Override
         public void windowFocusChanged(boolean hasFocus, boolean inTouchMode) {
             final ViewRootImpl viewAncestor = mViewAncestor.get();
@@ -7846,6 +8084,12 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 检测相应的权限
+         *
+         * @param permission
+         * @return
+         */
         private static int checkCallingPermission(String permission) {
             try {
                 return ActivityManagerNative.getDefault().checkPermission(
@@ -7887,6 +8131,11 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 关闭系统对话框
+         *
+         * @param reason 原因
+         */
         @Override
         public void closeSystemDialogs(String reason) {
             final ViewRootImpl viewAncestor = mViewAncestor.get();
@@ -7895,6 +8144,15 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 墙纸偏移量
+         *
+         * @param x
+         * @param y
+         * @param xStep
+         * @param yStep
+         * @param sync
+         */
         @Override
         public void dispatchWallpaperOffsets(float x, float y, float xStep, float yStep,
                                              boolean sync) {
@@ -7918,6 +8176,12 @@ public final class ViewRootImpl implements ViewParent,
         }
 
         /* Drag/drop */
+
+        /**
+         * 拖拽事件
+         *
+         * @param event
+         */
         @Override
         public void dispatchDragEvent(DragEvent event) {
             final ViewRootImpl viewAncestor = mViewAncestor.get();
@@ -7926,6 +8190,12 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 更新鼠标图标
+         *
+         * @param x
+         * @param y
+         */
         @Override
         public void updatePointerIcon(float x, float y) {
             final ViewRootImpl viewAncestor = mViewAncestor.get();
@@ -7934,6 +8204,14 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 传递系统UI的可见性改变事件
+         *
+         * @param seq
+         * @param globalVisibility
+         * @param localValue
+         * @param localChanges
+         */
         @Override
         public void dispatchSystemUiVisibilityChanged(int seq, int globalVisibility,
                                                       int localValue, int localChanges) {
@@ -7944,6 +8222,9 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        /**
+         * 分配系统显示事件
+         */
         @Override
         public void dispatchWindowShown() {
             final ViewRootImpl viewAncestor = mViewAncestor.get();

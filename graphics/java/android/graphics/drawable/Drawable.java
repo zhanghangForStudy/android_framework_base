@@ -957,12 +957,13 @@ public abstract class Drawable {
         return false;
     }
 
-    /** Override this in your subclass to change appearance if you vary based
+    /** Override this in your subclass to change appearance(外貌) if you vary based
      *  on level.
      * @return Returns true if the level change has caused the appearance of
      * the Drawable to change (that is, it needs to be drawn), else false
      * if it looks the same and there is no need to redraw it since its
-     * last level.
+     * last level.如果level的改变引起了可绘物外貌的改变（需要绘制），
+     * 否者返回false
      */
     protected boolean onLevelChange(int level) {
         return false;

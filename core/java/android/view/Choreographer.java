@@ -99,9 +99,11 @@ public final class Choreographer {
     private static final String TAG = "Choreographer";
 
     // Prints debug messages about jank which was detected (low volume).
+    // 打印检测到的关于jank的调试消息
     private static final boolean DEBUG_JANK = false;
 
     // Prints debug messages about every frame and callback registered (high volume).
+    // 打印每一帧及其注册的回调相关的调试信息
     private static final boolean DEBUG_FRAMES = false;
 
     // The default amount of time in ms between animation frames.
@@ -112,12 +114,19 @@ public final class Choreographer {
     // for jitter and hardware variations).  Regardless of this value, the animation
     // and display loop is ultimately rate-limited by how fast new graphics buffers can
     // be dequeued.
+    // 动画帧之间默认的时间(毫秒)。
+    // 当垂直同步不启用的时候，我们期望有一些方法，来表示在传递下一个动画消息之前，我们应该等待多长时间
+    // 默认的值小于所有设备上的真正的帧间延迟是重要的，因为这将避免因等待太长而跳过动画帧的情况（
+    // 我们必须补偿震动以及硬件引起的变化）。
+    // 忽略这个值的话，动画和展示循环，将最终被新的图片缓存入队的频率限制
     private static final long DEFAULT_FRAME_DELAY = 10;
 
     // The number of milliseconds between animation frames.
+    // 动画帧之间的毫秒事件
     private static volatile long sFrameDelay = DEFAULT_FRAME_DELAY;
 
     // Thread local storage for the choreographer.
+    // 线程级的绘制导演
     private static final ThreadLocal<Choreographer> sThreadInstance =
             new ThreadLocal<Choreographer>() {
                 @Override
@@ -131,15 +140,20 @@ public final class Choreographer {
             };
 
     // Enable/disable vsync for animations and drawing.
+    // 启动或者禁止，通过垂直同步的方法来动画和绘制
     private static final boolean USE_VSYNC = SystemProperties.getBoolean(
             "debug.choreographer.vsync", true);
 
     // Enable/disable using the frame time instead of returning now.
+    // 启动或者禁止使用帧时间，来代替立即返回
+
     private static final boolean USE_FRAME_TIME = SystemProperties.getBoolean(
             "debug.choreographer.frametime", true);
 
     // Set a limit to warn about skipped frames.
     // Skipped frames imply jank.
+    // 设置一个限制用来警告跳过的帧
+    // 跳过的帧意味这一个卡顿
     private static final int SKIPPED_FRAME_WARNING_LIMIT = SystemProperties.getInt(
             "debug.choreographer.skipwarning", 30);
 
@@ -148,6 +162,7 @@ public final class Choreographer {
     private static final int MSG_DO_SCHEDULE_CALLBACK = 2;
 
     // All frame callbacks posted by applications have this token.
+    // 所有的通过应用发送的帧回调，都有此引用
     private static final Object FRAME_CALLBACK_TOKEN = new Object() {
         public String toString() {
             return "FRAME_CALLBACK_TOKEN";
@@ -162,15 +177,23 @@ public final class Choreographer {
     // The display event receiver can only be accessed by the looper thread to which
     // it is attached.  We take care to ensure that we post message to the looper
     // if appropriate when interacting with the display event receiver.
+    // 显示屏幕事件接受者只能被拥有looper的线程访问。
+    // 我们需要小心的保证我们将消息传递给了此looper，当我们正在和此接受者交互的时候
     private final FrameDisplayEventReceiver mDisplayEventReceiver;
 
+    // 回调记录器？回调记录池？
     private CallbackRecord mCallbackPool;
 
+    // 回调队列
     private final CallbackQueue[] mCallbackQueues;
 
+    // 是否正在进行帧调度
     private boolean mFrameScheduled;
+    // 是否回调方法正在运行
     private boolean mCallbacksRunning;
+    // 上一次的帧开始被渲染的时间，纳秒级
     private long mLastFrameTimeNanos;
+    // 帧之间间隔，纳秒级
     private long mFrameIntervalNanos;
     private boolean mDebugPrintNextFrameTimeDelta;
 
@@ -179,6 +202,10 @@ public final class Choreographer {
      * mainly timings of key events along with a bit of metadata about
      * view tree state
      * <p>
+     * <p>
+     * 包含当前帧的相关信息，用以进行卡顿追踪。
+     * 主要包含按键事件的计时，以及一个包含视图树状态的元数据bit
+     * </p>
      * TODO: Is there a better home for this? Currently Choreographer
      * is the only one with CALLBACK_ANIMATION start time, hence why this
      * resides here.
@@ -198,6 +225,7 @@ public final class Choreographer {
 
     /**
      * Callback type: Input callback.  Runs first.
+     * 回调类型，输入事件首先运行
      *
      * @hide
      */
@@ -205,6 +233,7 @@ public final class Choreographer {
 
     /**
      * Callback type: Animation callback.  Runs before traversals.
+     * 动画回调，在遍历之前运行
      *
      * @hide
      */
@@ -213,6 +242,8 @@ public final class Choreographer {
     /**
      * Callback type: Traversal callback.  Handles layout and draw.  Runs
      * after all other asynchronous messages have been handled.
+     * 遍历回调。处理布局和绘制。
+     * 在所有其他异步消息被处理后运行
      *
      * @hide
      */
@@ -226,6 +257,10 @@ public final class Choreographer {
      * to be skipped.  The frame time reported during this callback provides a better
      * estimate of the start time of the frame in which animations (and other updates
      * to the view hierarchy state) actually took effect.
+     * 提交回调。处理关于此帧的绘制之后的操作。
+     * 在遍历结束之后完成。此回调之间被报告的帧事件可能被更新用以表现遍历过程中的延迟，以防止
+     * 重量级的布局操作引起一些帧被跳过。
+     * 在此回调之中的报告的帧事件提供了一个更好的，使得动画及其他关于更新视图树状态生效的，帧开始时间的评估
      *
      * @hide
      */
@@ -239,6 +274,7 @@ public final class Choreographer {
         mDisplayEventReceiver = USE_VSYNC ? new FrameDisplayEventReceiver(looper) : null;
         mLastFrameTimeNanos = Long.MIN_VALUE;
 
+        //一般为16毫秒
         mFrameIntervalNanos = (long) (1000000000 / getRefreshRate());
 
         mCallbackQueues = new CallbackQueue[CALLBACK_LAST + 1];
@@ -247,6 +283,7 @@ public final class Choreographer {
         }
     }
 
+    // 一般而言，显示屏幕的刷新速率是一秒60次？
     private static float getRefreshRate() {
         DisplayInfo di = DisplayManagerGlobal.getInstance().getDisplayInfo(
                 Display.DEFAULT_DISPLAY);
@@ -256,6 +293,7 @@ public final class Choreographer {
     /**
      * Gets the choreographer for the calling thread.  Must be called from
      * a thread that already has a {@link android.os.Looper} associated with it.
+     * 必须由一个粘贴了looper对象的线程调用
      *
      * @return The choreographer for this thread.
      * @throws IllegalStateException if the thread does not have a looper.
@@ -286,9 +324,16 @@ public final class Choreographer {
      * between frames may be different, depending on system load and capabilities. This is a static
      * function because the same delay will be applied to all animations, since they are all
      * run off of a single timing loop.
-     * </p><p>
+     * </p>
+     * <p>
      * The frame delay may be ignored when the animation system uses an external timing
      * source, such as the display refresh rate (vsync), to govern animations.
+     * </p>
+     * <p>
+     * 在每一个动画帧之间的时间量，毫秒级
+     * 这是一个被要求的，动画将尝试信任的时间，但是，依赖于系统导入性能，帧之间的实际延迟可能会不同。
+     * 这是一个静态的方法，因为相同的延迟将被应用到所有的动画之上，因为它们所有都在一个单独的时间循环之中运行。
+     * 当动画系统使用一个外部的时间源（例如垂直同步信号）来管理动画时，帧延迟可能被忽略
      * </p>
      *
      * @return the requested time between frames, in milliseconds
@@ -334,6 +379,17 @@ public final class Choreographer {
      * on the next frame, but this is much better than waiting a whole 16ms and likely
      * missing the deadline.
      * </p>
+     * <p>
+     * 从一个延迟间隔之中减去特有的帧延迟时间。
+     * 此方法被用来补偿，假定帧延迟的，动画延迟时间。
+     * 例如，对于60HZ的帧时间，嘉定16毫秒的延迟是很常见的。
+     * 当我们调用postAnimationCallbackDelayed方法时，我们期望知道，
+     * 在发送动画回调并让动画计时器关系剩下的帧延迟时间之前，我们应该等待
+     * 多长的时间。
+     * 此方法关于它应该减去多少帧延迟，有点保守。
+     * 它使用getFrameDelay返回的值，尽管系统许多部分都使用16毫秒。
+     * 因此，在发送一个在下一帧运行的动画之前，我们将可能等待6秒，但是这比等待整个16毫秒而看起来像是失去了截止日期，要好一些
+     * </p>
      *
      * @param delayMillis The original delay time including an assumed frame delay.
      * @return The adjusted delay time with the assumed frame delay subtracted out.
@@ -366,8 +422,10 @@ public final class Choreographer {
 
     /**
      * Posts a callback to run on the next frame.
+     * 运行在下一帧上的回调
      * <p>
      * The callback runs once then is automatically removed.
+     * 回调一旦运行就会被自动删除
      * </p>
      *
      * @param callbackType The callback type.
@@ -382,6 +440,7 @@ public final class Choreographer {
 
     /**
      * Posts a callback to run on the next frame after the specified delay.
+     * 传递一个回调，此回调将在下一帧，延迟指定的时间后，被调用
      * <p>
      * The callback runs once then is automatically removed.
      * </p>
@@ -431,6 +490,7 @@ public final class Choreographer {
 
     /**
      * Removes callbacks that have the specified action and token.
+     * 移除回调
      *
      * @param callbackType The callback type.
      * @param action       The action property of the callbacks to remove, or null to remove
@@ -481,6 +541,7 @@ public final class Choreographer {
 
     /**
      * Posts a frame callback to run on the next frame after the specified delay.
+     * 传递一个帧回调，此回调将在下一帧，延迟指定的时间后，被调用
      * <p>
      * The callback runs once then is automatically removed.
      * </p>
@@ -533,6 +594,19 @@ public final class Choreographer {
      * </p><p>
      * This method should only be called from within a callback.
      * </p>
+     * <p>
+     * 获取当前帧开始的时间
+     * 此方法提供当前帧开始被渲染的时间，此时间为毫秒级别的精度。
+     * 此帧时间为同步动画与绘制，提供了一种稳定的时间依据。
+     * 因此，当在UI上动画或者绘制时，应该使用此方法来代替使用{@link SystemClock#uptimeMillis()}.
+     * 使用帧时间可以帮助减少帧间的卡顿，因为这个帧时间被修复为当前帧开始被渲染的时间，从而忽略了动画和
+     * 绘制回调实际运行的时候。
+     * 所有的，作为渲染一个帧的一部分，的回调将遵循相同的帧时间，所以使用此帧时间也将帮助
+     * 同步不同回调的执行所带来的影响.
+     * 请注意,framework已经很小心的，通过使用帧时间，作为一个稳定的时间依据，来处理动画和绘制了。
+     * 所以绝大部分的应用应该不需要直接使用帧时间。
+     * 这个方法应该只在一个回调之中被调用
+     * </p>
      *
      * @return The frame start time, in the {@link SystemClock#uptimeMillis()} time base.
      * @throws IllegalStateException if no frame is in progress.
@@ -559,6 +633,7 @@ public final class Choreographer {
         }
     }
 
+    // 请求一次垂直同步信号？
     private void scheduleFrameLocked(long now) {
         if (!mFrameScheduled) {
             mFrameScheduled = true;
@@ -570,6 +645,8 @@ public final class Choreographer {
                 // If running on the Looper thread, then schedule the vsync immediately,
                 // otherwise post a message to schedule the vsync from the UI thread
                 // as soon as possible.
+                // 如果运行在一个looper线程上，则立即调度垂直同步信号，
+                // 否者发送一个消息，来调度垂直同步信号
                 if (isRunningOnLooperThreadLocked()) {
                     scheduleVsyncLocked();
                 } else {
@@ -590,6 +667,7 @@ public final class Choreographer {
         }
     }
 
+    // 同步信号来临时，执行相关的回调？
     void doFrame(long frameTimeNanos, int frame) {
         final long startNanos;
         synchronized (mLock) {
@@ -606,7 +684,10 @@ public final class Choreographer {
             long intendedFrameTimeNanos = frameTimeNanos;
             startNanos = System.nanoTime();
             final long jitterNanos = startNanos - frameTimeNanos;
+            // 如果出现了卡顿，就爆出一些警告日志，并且调整垂直信号发送的时间
             if (jitterNanos >= mFrameIntervalNanos) {
+                // 一般而言，如果垂直信号发送时间，与当前时间之差，超过了16毫秒
+                // 超过的时间转换为超过的帧数
                 final long skippedFrames = jitterNanos / mFrameIntervalNanos;
                 if (skippedFrames >= SKIPPED_FRAME_WARNING_LIMIT) {
                     Log.i(TAG, "Skipped " + skippedFrames + " frames!  "
@@ -664,12 +745,20 @@ public final class Choreographer {
         }
     }
 
+    /**
+     * 处理不同类型的回调
+     *
+     * @param callbackType   回调的类型
+     * @param frameTimeNanos 当前的垂直同步信号时间
+     */
     void doCallbacks(int callbackType, long frameTimeNanos) {
         CallbackRecord callbacks;
         synchronized (mLock) {
             // We use "now" to determine when callbacks become due because it's possible
             // for earlier processing phases in a frame to post callbacks that should run
             // in a following phase, such as an input event that causes an animation to start.
+            // 我们使用now来决定回调到期的时间，因为对于在一个帧之中，在较早处理阶段中传递一个应该在较晚处理阶段处理
+            // 的回调是可能，例如一个能引起一个动画开始的输入时间
             final long now = System.nanoTime();
             callbacks = mCallbackQueues[callbackType].extractDueCallbacksLocked(
                     now / TimeUtils.NANOS_PER_MS);
@@ -686,6 +775,12 @@ public final class Choreographer {
             // or equal to the previous frame's commit frame time.  Keep in mind that the
             // next frame has most likely already been scheduled by now so we play it
             // safe by ensuring the commit time is always at least one frame behind.
+            // 在提交此帧的时候，按需更新帧时间。
+            // 如果在此时，超时多于2帧，则更新帧时间。
+            // 这将保证被回调观察的帧时间将总是从这一帧增加到下一帧，如此边永远不会重复。
+            // 我们从不期望下一帧的开始时间，小于或者等于上一帧的提交时间。
+            // 记住下一帧此刻最有可能已经被调度了，所以我们通过确保提交时间总是至少落后于一个帧，来假定下一帧
+            // 是安全的
             if (callbackType == Choreographer.CALLBACK_COMMIT) {
                 final long jitterNanos = now - frameTimeNanos;
                 Trace.traceCounter(Trace.TRACE_TAG_VIEW, "jitterNanos", (int) jitterNanos);
@@ -700,6 +795,7 @@ public final class Choreographer {
                                 + " ms in the past.");
                         mDebugPrintNextFrameTimeDelta = true;
                     }
+                    // 一般而言frameTimeNanos执行下条命令前的值，与执行后的值总是相差16ms
                     frameTimeNanos = now - lastFrameOffset;
                     mLastFrameTimeNanos = frameTimeNanos;
                 }
@@ -716,6 +812,7 @@ public final class Choreographer {
                 c.run(frameTimeNanos);
             }
         } finally {
+            // 清空所有的回调
             synchronized (mLock) {
                 mCallbacksRunning = false;
                 do {
@@ -755,6 +852,14 @@ public final class Choreographer {
         return Looper.myLooper() == mLooper;
     }
 
+    /**
+     * 从回调对象池中，获取回调
+     *
+     * @param dueTime 截止时间
+     * @param action
+     * @param token
+     * @return
+     */
     private CallbackRecord obtainCallbackLocked(long dueTime, Object action, Object token) {
         CallbackRecord callback = mCallbackPool;
         if (callback == null) {
@@ -769,6 +874,11 @@ public final class Choreographer {
         return callback;
     }
 
+    /**
+     * 回收回调对象
+     *
+     * @param callback
+     */
     private void recycleCallbackLocked(CallbackRecord callback) {
         callback.action = null;
         callback.token = null;
@@ -780,6 +890,8 @@ public final class Choreographer {
      * Implement this interface to receive a callback when a new display frame is
      * being rendered.  The callback is invoked on the {@link Looper} thread to
      * which the {@link Choreographer} is attached.
+     * 实现此接口，用以在一个新的显示屏幕帧被渲染的时候，接受一个回调
+     * 此回调将会在{@link Choreographer}创建时所粘合的Looper对象对应的线程之中执行
      */
     public interface FrameCallback {
         /**
@@ -798,6 +910,20 @@ public final class Choreographer {
          * Please note that the framework already takes care to process animations and
          * drawing using the frame time as a stable time base.  Most applications should
          * not need to use the frame time information directly.
+         * </p>
+         * <p>
+         * <p>
+         * 当新的显示屏幕帧开始渲染的时候，调用此方法
+         * 此方法提供了显示屏幕帧被渲染时的一个纳秒级别的时间。
+         * 此时间为同步动画和绘制，提供一个稳定的时间依据。
+         * 此时间应该被UI线程的动画和绘制操作，用来替换对{@link SystemClock#uptimeMillis()}
+         * 或者{@link System#nanoTime()}方法的调用。
+         * 使用此方法将被用来减少帧与帧之间的卡顿，因为时间被修复至帧开始的时间，并忽略了动画和绘制的实际
+         * 运行时间。
+         * 所有的作为渲染帧流程中的一部分的回调，以一个相同的帧开始时间为基准，所以使用相同的帧时间
+         * 也将协助被不同回调引起的效果的同步。
+         * framework已经关注了通过帧时间作为一个稳定的时间依据，来处理动画与绘制。
+         * 所以应用最好不要直接修改帧信息
          * </p>
          *
          * @param frameTimeNanos The time in nanoseconds when the frame started being rendered,
@@ -848,6 +974,12 @@ public final class Choreographer {
             // At this time Surface Flinger won't send us vsyncs for secondary displays
             // but that could change in the future so let's log a message to help us remember
             // that we need to fix this.
+            // 忽略来自于第二显示屏幕上的垂直同步信号。
+            // 这可能是有问题的，因为对于scheduleVsync()方法的调用是只有一次的。
+            // 我们需要确保我们将接收到来自于最初的、我们已经关注的显示频幕的垂直同步信号。
+            // 理想中，我们应该从一个指定的显示屏幕之中调度垂直同步信号。
+            // 在这个时候，Surface Fling将不会发送第二个显示屏幕的垂直同步信号，
+            // 但是这可能会在未来改变，所以让一个日志来记录我们需要在此处修复这个问题
             if (builtInDisplayId != SurfaceControl.BUILT_IN_DISPLAY_ID_MAIN) {
                 Log.d(TAG, "Received vsync from secondary display, but we don't support "
                         + "this case yet.  Choreographer needs a way to explicitly request "
@@ -862,6 +994,10 @@ public final class Choreographer {
             // the message queue.  If there are no messages in the queue with timestamps
             // earlier than the frame time, then the vsync event will be processed immediately.
             // Otherwise, messages that predate the vsync event will be handled first.
+            // 将垂直同步事件传递给Handler对象。
+            // 如果在这个带有时间戳的队列之中，没有遭遇帧时间的消息，
+            // 则垂直同步事件将会被立即处理。
+            // 否者，先于此垂直同步事件的消息将被优先处理
             long now = System.nanoTime();
             if (timestampNanos > now) {
                 Log.w(TAG, "Frame time is " + ((timestampNanos - now) * 0.000001f)
@@ -906,6 +1042,7 @@ public final class Choreographer {
         }
     }
 
+    // 按照时间顺序排序的回调队列
     private final class CallbackQueue {
         private CallbackRecord mHead;
 
@@ -913,6 +1050,12 @@ public final class Choreographer {
             return mHead != null && mHead.dueTime <= now;
         }
 
+        /**
+         * 提取指定时间之前的所有回调
+         *
+         * @param now
+         * @return
+         */
         public CallbackRecord extractDueCallbacksLocked(long now) {
             CallbackRecord callbacks = mHead;
             if (callbacks == null || callbacks.dueTime > now) {

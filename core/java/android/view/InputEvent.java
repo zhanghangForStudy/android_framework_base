@@ -25,18 +25,26 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Common base class for input events.
  */
 public abstract class InputEvent implements Parcelable {
-    /** @hide */
+    /**
+     * @hide
+     */
     protected static final int PARCEL_TOKEN_MOTION_EVENT = 1;
-    /** @hide */
+    /**
+     * @hide
+     */
     protected static final int PARCEL_TOKEN_KEY_EVENT = 2;
 
     // Next sequence number.
     private static final AtomicInteger mNextSeq = new AtomicInteger();
 
-    /** @hide */
+    /**
+     * @hide
+     */
     protected int mSeq;
 
-    /** @hide */
+    /**
+     * @hide
+     */
     protected boolean mRecycled;
 
     private static final boolean TRACK_RECYCLED_LOCATION = false;
@@ -51,7 +59,11 @@ public abstract class InputEvent implements Parcelable {
      * zero indicates that the event didn't come from a physical device
      * and maps to the default keymap.  The other numbers are arbitrary and
      * you shouldn't depend on the values.
-     * 
+     * 获取事件来源设备的ID。
+     * 如果一个设备ID为0，则标识此输入事件并非来自于一个物理设备，
+     * 和默认的虚拟键盘。
+     * 其他的数字则是任意的，完全不应该被依赖
+     *
      * @return The device id.
      * @see InputDevice#getDevice
      */
@@ -59,7 +71,7 @@ public abstract class InputEvent implements Parcelable {
 
     /**
      * Gets the device that this event came from.
-     * 
+     *
      * @return The device, or null if unknown.
      */
     public final InputDevice getDevice() {
@@ -68,7 +80,7 @@ public abstract class InputEvent implements Parcelable {
 
     /**
      * Gets the source of the event.
-     * 
+     *
      * @return The event source or {@link InputDevice#SOURCE_UNKNOWN} if unknown.
      * @see InputDevice#getSources
      */
@@ -86,8 +98,8 @@ public abstract class InputEvent implements Parcelable {
      * Determines whether the event is from the given source.
      *
      * @param source The input source to check against. This can be a specific device type, such as
-     * {@link InputDevice#SOURCE_TOUCH_NAVIGATION}, or a more generic device class, such as
-     * {@link InputDevice#SOURCE_CLASS_POINTER}.
+     *               {@link InputDevice#SOURCE_TOUCH_NAVIGATION}, or a more generic device class, such as
+     *               {@link InputDevice#SOURCE_CLASS_POINTER}.
      * @return Whether the event is from the given source.
      */
     public boolean isFromSource(int source) {
@@ -107,6 +119,7 @@ public abstract class InputEvent implements Parcelable {
      * This method should only be used by the system since applications do not
      * expect {@link KeyEvent} objects to be recycled, although {@link MotionEvent}
      * objects are fine.  See {@link KeyEvent#recycle()} for details.
+     *
      * @hide
      */
     public void recycle() {
@@ -126,12 +139,13 @@ public abstract class InputEvent implements Parcelable {
     /**
      * Conditionally recycled the event if it is appropriate to do so after
      * dispatching the event to an application.
-     *
+     * <p>
      * If the event is a {@link MotionEvent} then it is recycled.
-     *
+     * <p>
      * If the event is a {@link KeyEvent} then it is NOT recycled, because applications
      * expect key events to be immutable so once the event has been dispatched to
      * the application we can no longer recycle it.
+     *
      * @hide
      */
     public void recycleIfNeededAfterDispatch() {
@@ -140,6 +154,7 @@ public abstract class InputEvent implements Parcelable {
 
     /**
      * Reinitializes the event on reuse (after recycling).
+     *
      * @hide
      */
     protected void prepareForReuse() {
@@ -190,7 +205,6 @@ public abstract class InputEvent implements Parcelable {
      * @return Returns the time this event occurred,
      * in the {@link android.os.SystemClock#uptimeMillis} time base but with
      * nanosecond (instead of millisecond) precision.
-     *
      * @hide
      */
     public abstract long getEventTimeNano();
@@ -207,7 +221,7 @@ public abstract class InputEvent implements Parcelable {
      * Every input event that is created or received by a process has a
      * unique sequence number.  Moreover, a new sequence number is obtained
      * each time an event object is recycled.
-     *
+     * <p>
      * Sequence numbers are only guaranteed to be locally unique within a process.
      * Sequence numbers are not preserved when events are parceled.
      *
@@ -234,7 +248,7 @@ public abstract class InputEvent implements Parcelable {
                 throw new IllegalStateException("Unexpected input event type token in parcel.");
             }
         }
-        
+
         public InputEvent[] newArray(int size) {
             return new InputEvent[size];
         }

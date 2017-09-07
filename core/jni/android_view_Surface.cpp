@@ -300,6 +300,7 @@ static jlong nativeLockCanvas(JNIEnv* env, jclass clazz,
     Rect dirtyRect(Rect::EMPTY_RECT);
     Rect* dirtyRectPtr = NULL;
 
+    // 将脏区域矩形转换成c++层的矩形
     if (dirtyRectObj) {
         dirtyRect.left   = env->GetIntField(dirtyRectObj, gRectClassInfo.left);
         dirtyRect.top    = env->GetIntField(dirtyRectObj, gRectClassInfo.top);
@@ -309,6 +310,7 @@ static jlong nativeLockCanvas(JNIEnv* env, jclass clazz,
     }
 
     ANativeWindow_Buffer outBuffer;
+    // 锁定一块图形缓冲区
     status_t err = surface->lock(&outBuffer, dirtyRectPtr);
     if (err < 0) {
         const char* const exception = (err == NO_MEMORY) ?
@@ -318,12 +320,13 @@ static jlong nativeLockCanvas(JNIEnv* env, jclass clazz,
         return 0;
     }
 
-
+　　//　根据缓冲区，构建skia图片信息
     SkImageInfo info = SkImageInfo::Make(outBuffer.width, outBuffer.height,
                                          convertPixelFormat(outBuffer.format),
                                          outBuffer.format == PIXEL_FORMAT_RGBX_8888 ?
                                          kOpaque_SkAlphaType : kPremul_SkAlphaType);
 
+　　// 构建skia位图
     SkBitmap bitmap;
     ssize_t bpr = outBuffer.stride * bytesPerPixel(outBuffer.format);
     bitmap.setInfo(info, bpr);
@@ -337,6 +340,7 @@ static jlong nativeLockCanvas(JNIEnv* env, jclass clazz,
     Canvas* nativeCanvas = GraphicsJNI::getNativeCanvas(env, canvasObj);
     nativeCanvas->setBitmap(bitmap);
 
+　　// 根据bitmap裁剪Canvas的区域
     if (dirtyRectPtr) {
         nativeCanvas->clipRect(dirtyRect.left, dirtyRect.top,
                 dirtyRect.right, dirtyRect.bottom);
@@ -352,6 +356,8 @@ static jlong nativeLockCanvas(JNIEnv* env, jclass clazz,
     // Create another reference to the surface and return it.  This reference
     // should be passed to nativeUnlockCanvasAndPost in place of mNativeObject,
     // because the latter could be replaced while the surface is locked.
+    // 创建另一个此surface的引用，并返回它。此引用应该被传递给nativeUnlockCanvasAndPost方法，而不是
+    // 使用mNativeObject,这是因为后者可能被替换，当此surface被锁定的时候
     sp<Surface> lockedSurface(surface);
     lockedSurface->incStrong(&sRefBaseOwner);
     return (jlong) lockedSurface.get();
@@ -411,26 +417,36 @@ static jlong nativeReadFromParcel(JNIEnv* env, jclass clazz,
         return 0;
     }
 
+    // 初始化一个新的surface对象,此Surface位于android::view命名空间之中；
+    // 一般的Surface类位于android命名空间之中
     android::view::Surface surfaceShim;
 
     // Calling code in Surface.java has already read the name of the Surface
     // from the Parcel
+    // 调用Surface.java中的代码，已经从Parcel对象之中读取了Surface的名字,
+    // 此逻辑反映在readFromParcel方法中的第二个参数
     surfaceShim.readFromParcel(parcel, /*nameAlreadyRead*/true);
 
+　　// 原始的surface对象
     sp<Surface> self(reinterpret_cast<Surface *>(nativeObject));
 
     // update the Surface only if the underlying IGraphicBufferProducer
     // has changed.
+
+    //　只有在IGraphicBufferProducer对象发生了改变，才会更新Surface
+  　// 对象
     if (self != nullptr
             && (IInterface::asBinder(self->getIGraphicBufferProducer()) ==
                     IInterface::asBinder(surfaceShim.graphicBufferProducer))) {
         // same IGraphicBufferProducer, return ourselves
+        // 相同的graphicBufferProducer
         return jlong(self.get());
     }
 
     sp<Surface> sur;
     if (surfaceShim.graphicBufferProducer != nullptr) {
         // we have a new IGraphicBufferProducer, create a new Surface for it
+        //　我们有一个新的IGraphicBufferProducer对象，所以创建一个新的Surface对象
         sur = new Surface(surfaceShim.graphicBufferProducer, true);
         // and keep a reference before passing to java
         sur->incStrong(&sRefBaseOwner);

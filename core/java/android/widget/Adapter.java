@@ -25,7 +25,8 @@ import android.view.ViewGroup;
  * underlying data for that view. The Adapter provides access to the data items.
  * The Adapter is also responsible for making a {@link android.view.View} for
  * each item in the data set.
- * 
+ * 一个适配器对象扮演了一座在AdapterView对于与它对应的基本数据之间桥。
+ * 适配器提供访问数据项目（data items）的能力，同时也为数据集中的每一项生成对应的视图。
  * @see android.widget.ArrayAdapter
  * @see android.widget.CursorAdapter
  * @see android.widget.SimpleCursorAdapter
